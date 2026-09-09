@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-const Model = mongoose.model('Setting');
+const Model = require('../../../models/coreModels/Setting');
 
 const listAll = async (req, res) => {
   const sort = parseInt(req.query.sort) || 'desc';

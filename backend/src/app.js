@@ -5,6 +5,12 @@ const compression = require('compression');
 
 const cookieParser = require('cookie-parser');
 
+const { globSync } = require('glob');
+
+for (const filePath of globSync('models/**/*.js', { cwd: __dirname, absolute: true })) {
+  require(filePath);
+}
+
 const coreAuthRouter = require('./routes/coreRoutes/coreAuth');
 const coreApiRouter = require('./routes/coreRoutes/coreApi');
 const coreDownloadRouter = require('./routes/coreRoutes/coreDownloadRouter');

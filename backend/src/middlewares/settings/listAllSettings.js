@@ -1,6 +1,4 @@
-const mongoose = require('mongoose');
-
-const Model = mongoose.model('Setting');
+const Model = require('../../models/coreModels/Setting');
 
 const listAllSettings = async () => {
   try {

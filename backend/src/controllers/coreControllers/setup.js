@@ -6,6 +6,12 @@ const { generate: uniqueId } = require('shortid');
 
 const mongoose = require('mongoose');
 
+require('../../models/coreModels/Admin');
+require('../../models/coreModels/AdminPassword');
+require('../../models/coreModels/Setting');
+require('../../models/appModels/PaymentMode');
+require('../../models/appModels/Taxes');
+
 const setup = async (req, res) => {
   const Admin = mongoose.model('Admin');
   const AdminPassword = mongoose.model('AdminPassword');

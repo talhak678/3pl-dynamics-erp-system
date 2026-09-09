@@ -1,6 +1,4 @@
 const mongoose = require('mongoose');
-const { globSync } = require('glob');
-const path = require('path');
 
 // Make sure we are running node 7.6+
 const [major, minor] = process.versions.node.split('.').map(parseFloat);
@@ -23,12 +21,6 @@ mongoose.connection.on('error', (error) => {
   );
   console.error(`2. 🚫 Error → : ${error.message}`);
 });
-
-const modelsFiles = globSync('./src/models/**/*.js');
-
-for (const filePath of modelsFiles) {
-  require(path.resolve(filePath));
-}
 
 // Start our app!
 const app = require('./app');
