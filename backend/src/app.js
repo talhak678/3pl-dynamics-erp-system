@@ -1,6 +1,3 @@
-const moduleAlias = require('module-alias');
-moduleAlias.addAlias('@', __dirname);
-
 const express = require('express');
 
 const cors = require('cors');

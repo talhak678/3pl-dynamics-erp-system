@@ -1,11 +1,11 @@
 const fs = require('fs');
-const custom = require('@/controllers/pdfController');
-const { SendQuote } = require('@/emailTemplate/SendEmailTemplate');
+const custom = require('../../pdfController');
+const { SendQuote } = require('../../../emailTemplate/SendEmailTemplate');
 const mongoose = require('mongoose');
 const QuoteModel = mongoose.model('Quote');
 const { Resend } = require('resend');
-const { loadSettings } = require('@/middlewares/settings');
-const { useAppSettings } = require('@/settings');
+const { loadSettings } = require('../../../middlewares/settings');
+const { useAppSettings } = require('../../../settings');
 
 const mail = async (req, res) => {
   const { id } = req.body;

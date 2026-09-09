@@ -29,7 +29,6 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
-    "module-alias": "^2.2.3",
     "moment": "^2.30.1",
     "mongoose": "^8.1.1",
     "mongoose-autopopulate": "^1.1.0",
@@ -43,9 +42,6 @@
   },
   "devDependencies": {
     "nodemon": "3.0.1"
-  },
-  "_moduleAliases": {
-    "@": "src"
   },
   "main": "server.js",
   "author": "3PL Dynamics",
