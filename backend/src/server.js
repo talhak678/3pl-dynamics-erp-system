@@ -1,30 +1,44 @@
 const mongoose = require('mongoose');
 
-// Make sure we are running node 7.6+
-const [major, minor] = process.versions.node.split('.').map(parseFloat);
-if (major < 20) {
-  console.log('Please upgrade your node.js version at least 20 or greater. 👌\n ');
-  process.exit();
-}
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled promise rejection:', error);
+});
 
-// import environmental variables from our variables.env file
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+});
+
 require('dotenv').config({ path: '.env' });
 require('dotenv').config({ path: '.env.local' });
 
-mongoose.connect(process.env.DATABASE);
+let app;
+try {
+  app = require('./app');
+} catch (error) {
+  console.error('Backend startup failed:', error);
+  throw error;
+}
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const port = process.env.PORT || 8888;
+const databaseUrl = process.env.DATABASE;
+
+if (!databaseUrl) {
+  console.error('DATABASE environment variable is required');
+} else {
+  mongoose
+    .connect(databaseUrl)
+    .then(() => console.log('MongoDB connected'))
+    .catch((error) => console.error('MongoDB connection failed:', error));
+}
 
 mongoose.connection.on('error', (error) => {
-  console.log(
-    `1. 🔥 Common Error caused issue → : check your .env file first and add your mongodb url`
-  );
-  console.error(`2. 🚫 Error → : ${error.message}`);
+  console.error('MongoDB runtime error:', error);
 });
 
-// Start our app!
-const app = require('./app');
-app.set('port', process.env.PORT || 8888);
-const server = app.listen(app.get('port'), () => {
-  console.log(`Express running → On PORT : ${server.address().port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Express running → On PORT : ${port}`);
+  });
+}
+
+module.exports = app;
