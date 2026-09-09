@@ -1,19 +1,18 @@
 const summary = async (Model, req, res) => {
-  //  Query the database for a list of all results
   const countPromise = Model.countDocuments({
     removed: false,
-  });
+  }).exec();
 
-  const resultsPromise = await Model.countDocuments({
-    removed: false,
-  })
-    .where(req.query.filter)
-    .equals(req.query.equal)
-    .exec();
-  // Resolving both promises
-  const [countFilter, countAllDocs] = await Promise.all([resultsPromise, countPromise]);
+  const filter = typeof req.query.filter === 'string' ? req.query.filter.trim() : '';
+  let filteredQuery = Model.countDocuments({ removed: false });
 
-  if (countAllDocs.length > 0) {
+  if (filter && Model.schema.path(filter)) {
+    filteredQuery = filteredQuery.where(filter).equals(req.query.equal);
+  }
+
+  const [countFilter, countAllDocs] = await Promise.all([filteredQuery.exec(), countPromise]);
+
+  if (countAllDocs > 0) {
     return res.status(200).json({
       success: true,
       result: { countFilter, countAllDocs },
