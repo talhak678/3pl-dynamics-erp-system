@@ -12,20 +12,20 @@
   margin-top: -19px;
 }
 .whiteBox {
-  background: #fff;
+  background: var(--app-surface);
   width: 100%;
   min-height: 100px;
   overflow: hidden;
   transition: all 0.3s ease-in-out;
 }
 .shadow {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border);
 }
 .shadow:hover {
-  border: 1px solid #bdbdbd;
+  border: 1px solid var(--color-gray-300);
 }
 .line {
-  border-top: 1px solid #edf0f5;
+  border-top: 1px solid var(--app-border);
   width: 100%;
   margin: 5px auto;
 }

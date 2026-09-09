@@ -19,7 +19,7 @@ async function setupApp() {
 
     const demoAdmin = {
       email: 'admin@admin.com',
-      name: 'IDURAR',
+      name: '3PL Dynamics',
       surname: 'Admin',
       enabled: true,
       role: 'owner',

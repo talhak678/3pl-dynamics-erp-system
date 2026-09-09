@@ -1,25 +1,32 @@
 .navigation {
-  position: sticky;
-  height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-  background: #fff;
-  border-right: 1px solid #edf0f5;
+  background: var(--app-surface);
+  border-right: 1px solid var(--app-border);
+}
+
+.navigation::-webkit-scrollbar {
+  display: none;
 }
 
 .logo {
-  height: 45px;
-  margin: 15px 15px 30px 30px;
+  height: 110px;
+  margin: 12px auto 18px;
   display: flex;
-  justify-content: space-evenly;
-  width: 160px;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  overflow: hidden;
+}
+
+.logo img {
+  display: block;
+  width: 180px;
+  height: 110px;
+  max-height: 110px;
+  object-fit: contain;
 }
 
 .sidebar-wraper {
-  background: #fff;
+  background: var(--app-surface);
   display: block;
 }
 
@@ -31,9 +38,37 @@
   padding: 12px 0px !important;
 }
 
-/* .ant-btn.mobile-sidebar-btn {
+.mobile-navigation-drawer .ant-drawer-header {
+  display: none !important;
+}
+
+.mobile-navigation-drawer .ant-drawer-body {
+  padding: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-navigation-drawer .ant-drawer-body::-webkit-scrollbar {
   display: none;
-} */
+}
+
+.mobile-navigation-drawer,
+.mobile-navigation-drawer .ant-drawer-content {
+  overflow: hidden !important;
+}
+
+.mobile-navigation-drawer .navigation {
+  width: 250px !important;
+  max-width: 250px !important;
+}
+
+.ant-btn.mobile-sidebar-btn {
+  margin-right: auto;
+  color: var(--app-text);
+}
 
 .tabsNavigation span {
   background-color: transparent;
@@ -47,19 +82,33 @@
 @media only screen and (max-width: 768px) {
   .sidebar-wraper {
     display: none;
+    width: 0;
+    min-width: 0;
+    flex: 0 0 0;
+  }
+
+  .mobile-navigation-trigger {
+    position: relative;
+    width: 0;
+    min-width: 0;
+    flex: 0 0 0;
+    overflow: visible;
   }
 
   .navigation {
-    height: 100%;
+    height: auto;
   }
 
-  /* .ant-btn.mobile-sidebar-btn {
-    display: block;
+  .ant-btn.mobile-sidebar-btn {
     position: absolute;
-    top: 21px;
-  } */
+    top: 12px;
+    left: 16px;
+    z-index: 51;
+    margin: 0 !important;
+  }
 
   .mobile-sidebar-wraper {
-    display: block;
+    display: none;
+    width: 0;
   }
 }

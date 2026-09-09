@@ -7,7 +7,7 @@ const sendMail = async ({
   name,
   link,
   idurar_app_email,
-  subject = 'Verify your email | idurar',
+  subject = 'Verify your email | 3PL Dynamics',
   type = 'emailVerfication',
   emailToken,
 }) => {

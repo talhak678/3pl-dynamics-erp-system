@@ -5,8 +5,9 @@ import { Button, Drawer, Layout, Menu } from 'antd';
 import { useAppContext } from '@/context/appContext';
 
 import useLanguage from '@/locale/useLanguage';
-import logoIcon from '@/style/images/logo-icon.svg';
-import logoText from '@/style/images/logo-text.svg';
+import lightLogo from '@/style/images/light-logo.png';
+import darkLogo from '@/style/images/dark-logo.png';
+import { useTheme } from '@/context/ThemeContext';
 
 import useResponsive from '@/hooks/useResponsive';
 
@@ -16,16 +17,18 @@ import {
   ContainerOutlined,
   FileSyncOutlined,
   DashboardOutlined,
-  TagOutlined,
-  TagsOutlined,
-  UserOutlined,
   CreditCardOutlined,
   MenuOutlined,
-  FileOutlined,
   ShopOutlined,
-  FilterOutlined,
   WalletOutlined,
   ReconciliationOutlined,
+  UserOutlined,
+  FileOutlined,
+  FilterOutlined,
+  TagOutlined,
+  TagsOutlined,
+  ShoppingCartOutlined,
+  PieChartOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -38,11 +41,11 @@ export default function Navigation() {
 
 function Sidebar({ collapsible, isMobile = false }) {
   let location = useLocation();
+  const { theme } = useTheme();
 
   const { state: stateApp, appContextAction } = useAppContext();
   const { isNavMenuClose } = stateApp;
   const { navMenu } = appContextAction;
-  const [showLogoApp, setLogoApp] = useState(isNavMenuClose);
   const [currentPath, setCurrentPath] = useState(location.pathname.slice(1));
 
   const translate = useLanguage();
@@ -55,15 +58,14 @@ function Sidebar({ collapsible, isMobile = false }) {
       label: <Link to={'/'}>{translate('dashboard')}</Link>,
     },
     {
-      key: 'customer',
-      icon: <CustomerServiceOutlined />,
-      label: <Link to={'/customer'}>{translate('customers')}</Link>,
-    },
-
-    {
       key: 'invoice',
       icon: <ContainerOutlined />,
       label: <Link to={'/invoice'}>{translate('invoices')}</Link>,
+    },
+    {
+      key: 'payment',
+      icon: <CreditCardOutlined />,
+      label: <Link to={'/payment'}>{translate('payments')}</Link>,
     },
     {
       key: 'quote',
@@ -71,30 +73,83 @@ function Sidebar({ collapsible, isMobile = false }) {
       label: <Link to={'/quote'}>{translate('quote')}</Link>,
     },
     {
-      key: 'payment',
-      icon: <CreditCardOutlined />,
-      label: <Link to={'/payment'}>{translate('payments')}</Link>,
-    },
-
-    {
-      key: 'paymentMode',
-      label: <Link to={'/payment/mode'}>{translate('payments_mode')}</Link>,
-      icon: <WalletOutlined />,
+      key: 'customer',
+      icon: <CustomerServiceOutlined />,
+      label: <Link to={'/customer'}>{translate('customers')}</Link>,
     },
     {
-      key: 'taxes',
-      label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
+      key: 'people',
+      icon: <UserOutlined />,
+      label: <Link to={'/people'}>{translate('peoples')}</Link>,
+    },
+    {
+      key: 'company',
       icon: <ShopOutlined />,
+      label: <Link to={'/company'}>{translate('companies')}</Link>,
     },
     {
-      key: 'generalSettings',
-      label: <Link to={'/settings'}>{translate('settings')}</Link>,
-      icon: <SettingOutlined />,
+      key: 'lead',
+      icon: <FilterOutlined />,
+      label: <Link to={'/lead'}>{translate('leads')}</Link>,
     },
     {
-      key: 'about',
-      label: <Link to={'/about'}>{translate('about')}</Link>,
+      key: 'offer',
+      icon: <FileOutlined />,
+      label: <Link to={'/offer'}>{translate('Offers for Leads')}</Link>,
+    },
+    {
+      key: 'product',
+      icon: <TagOutlined />,
+      label: <Link to={'/product'}>{translate('products')}</Link>,
+    },
+    {
+      key: 'category/product',
+      icon: <TagsOutlined />,
+      label: <Link to={'/category/product'}>{translate('Products Category')}</Link>,
+    },
+    {
+      key: 'order',
+      icon: <ShoppingCartOutlined />,
+      label: <Link to={'/order'}>{translate('Order')}</Link>,
+    },
+    {
+      key: 'expenses',
+      icon: <WalletOutlined />,
+      label: <Link to={'/expenses'}>{translate('expenses')}</Link>,
+    },
+    {
+      key: 'category/expenses',
       icon: <ReconciliationOutlined />,
+      label: <Link to={'/category/expenses'}>{translate('Expenses Category')}</Link>,
+    },
+    {
+      key: 'report',
+      icon: <PieChartOutlined />,
+      label: translate('Report'),
+      disabled: true,
+    },
+    {
+      label: translate('Settings'),
+      key: 'settingsMenu',
+      icon: <SettingOutlined />,
+      children: [
+        {
+          key: 'generalSettings',
+          label: <Link to={'/settings'}>{translate('settings')}</Link>,
+        },
+        {
+          key: 'paymentMode',
+          label: <Link to={'/payment/mode'}>{translate('payments_mode')}</Link>,
+        },
+        {
+          key: 'taxes',
+          label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
+        },
+        {
+          key: 'about',
+          label: <Link to={'/about'}>{translate('about')}</Link>,
+        },
+      ],
     },
   ];
 
@@ -107,17 +162,6 @@ function Sidebar({ collapsible, isMobile = false }) {
       }
   }, [location, currentPath]);
 
-  useEffect(() => {
-    if (isNavMenuClose) {
-      setLogoApp(isNavMenuClose);
-    }
-    const timer = setTimeout(() => {
-      if (!isNavMenuClose) {
-        setLogoApp(isNavMenuClose);
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [isNavMenuClose]);
   const onCollapse = () => {
     navMenu.collapse();
   };
@@ -128,21 +172,8 @@ function Sidebar({ collapsible, isMobile = false }) {
       collapsed={collapsible ? isNavMenuClose : collapsible}
       onCollapse={onCollapse}
       className="navigation"
-      width={256}
-      style={{
-        overflow: 'auto',
-        height: '100vh',
-
-        position: isMobile ? 'absolute' : 'relative',
-        bottom: '20px',
-        ...(!isMobile && {
-          // border: 'none',
-          ['left']: '20px',
-          top: '20px',
-          // borderRadius: '8px',
-        }),
-      }}
-      theme={'light'}
+      width={isMobile ? 250 : 256}
+      theme={theme}
     >
       <div
         className="logo"
@@ -151,24 +182,16 @@ function Sidebar({ collapsible, isMobile = false }) {
           cursor: 'pointer',
         }}
       >
-        <img src={logoIcon} alt="Logo" style={{ marginLeft: '-5px', height: '40px' }} />
-
-        {!showLogoApp && (
-          <img
-            src={logoText}
-            alt="Logo"
-            style={{
-              marginTop: '3px',
-              marginLeft: '10px',
-              height: '38px',
-            }}
-          />
+        {theme === 'dark' ? (
+          <img src={darkLogo} alt="3PL Dynamics" className="sidebar-logo" />
+        ) : (
+          <img src={lightLogo} alt="3PL Dynamics" className="sidebar-logo" />
         )}
       </div>
       <Menu
         items={items}
         mode="inline"
-        theme={'light'}
+        theme={theme}
         selectedKeys={[currentPath]}
         style={{
           width: 256,
@@ -180,19 +203,16 @@ function Sidebar({ collapsible, isMobile = false }) {
 
 function MobileSidebar() {
   const [visible, setVisible] = useState(false);
-  const showDrawer = () => {
-    setVisible(true);
-  };
   const onClose = () => {
     setVisible(false);
   };
 
   return (
-    <>
+    <div className="mobile-navigation-trigger">
       <Button
         type="text"
         size="large"
-        onClick={showDrawer}
+        onClick={() => setVisible((isVisible) => !isVisible)}
         className="mobile-sidebar-btn"
         style={{ ['marginLeft']: 25 }}
       >
@@ -200,14 +220,18 @@ function MobileSidebar() {
       </Button>
       <Drawer
         width={250}
-        // style={{ backgroundColor: 'rgba(255, 255, 255, 1)' }}
-        placement={'left'}
+        placement="left"
         closable={false}
         onClose={onClose}
         open={visible}
+        className="mobile-navigation-drawer"
+        styles={{
+          body: { padding: 0 },
+          content: { overflow: 'hidden' },
+        }}
       >
         <Sidebar collapsible={false} isMobile={true} />
       </Drawer>
-    </>
+    </div>
   );
 }

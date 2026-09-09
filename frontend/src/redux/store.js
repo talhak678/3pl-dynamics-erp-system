@@ -1,7 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
 
-import lang from '@/locale/translation/en_us';
-
 import rootReducer from './rootReducer';
 import storePersist from './storePersist';
 
@@ -24,8 +22,6 @@ const store = configureStore({
   devTools: import.meta.env.PROD === false, // Enable Redux DevTools in development mode
 });
 
-console.log(
-  '🚀 Welcome to IDURAR ERP CRM! Did you know that we also offer commercial customization services? Contact us at hello@idurarapp.com for more information.'
-);
+console.log('🚀 Welcome to 3PL Dynamics ERP CRM.');
 
 export default store;

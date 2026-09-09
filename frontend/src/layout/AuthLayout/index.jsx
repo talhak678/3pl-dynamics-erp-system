@@ -1,8 +1,5 @@
-import React from 'react';
 import { Layout, Row, Col } from 'antd';
-
-import { useSelector } from 'react-redux';
-import { Content } from 'antd/lib/layout/layout';
+import ThemeToggleButton from '@/apps/Header/ThemeToggleButton';
 
 export default function AuthLayout({ sideContent, children }) {
   return (
@@ -24,8 +21,18 @@ export default function AuthLayout({ sideContent, children }) {
           sm={{ span: 24, order: 1 }}
           md={{ span: 13, order: 2 }}
           lg={{ span: 12, order: 2 }}
-          style={{ background: '#FFF', minHeight: '100vh' }}
+          style={{ background: 'var(--app-surface)', minHeight: '100vh', position: 'relative' }}
         >
+          <div
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              zIndex: 1,
+            }}
+          >
+            <ThemeToggleButton />
+          </div>
           {children}
         </Col>
       </Row>

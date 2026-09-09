@@ -16,12 +16,17 @@ export default function AnalyticSummaryCard({ title, tagColor, data, prefix, isL
     >
       <div
         className="whiteBox shadow"
-        style={{ color: '#595959', fontSize: 13, minHeight: '106px', height: '100%' }}
+        style={{
+          color: 'var(--app-text-secondary)',
+          fontSize: 13,
+          minHeight: '106px',
+          height: '100%',
+        }}
       >
         <div className="pad15 strong" style={{ textAlign: 'center', justifyContent: 'center' }}>
           <h3
             style={{
-              color: '#22075e',
+              color: 'var(--app-text)',
               fontSize: 'large',
               margin: '5px 0',
               textTransform: 'capitalize',

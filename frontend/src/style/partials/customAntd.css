@@ -1,22 +1,21 @@
 .ant-layout {
-  background: #ffffff !important;
+  background: var(--app-bg) !important;
 }
-.site-layout .site-layout-background {
-  background: #fff;
-}
-[data-theme='dark'] .site-layout .site-layout-background {
-  background: #141414;
+
+.site-layout .site-layout-background,
+.ant-layout-header,
+.ant-drawer-content,
+.ant-modal-content,
+.ant-card,
+.ant-table-wrapper .ant-table,
+.ant-dropdown .ant-dropdown-menu {
+  background: var(--app-surface);
 }
 
 .headerIcon .ant-dropdown-menu {
-  border-radius: 6px;
-  background: none;
+  border-radius: 8px;
   padding: 0;
-  box-shadow: none;
-}
-.headerIcon .ant-dropdown-menu-item:hover,
-.headerIcon .ant-dropdown-menu-item.ant-dropdown-menu-item-active {
-  background: none;
+  box-shadow: var(--app-shadow-lg);
 }
 
 .App {
@@ -39,12 +38,8 @@
   width: 100%;
 }
 
-.ant-table-thead > tr > th {
-  font-weight: 700;
-}
-.ant-typography strong {
-  font-weight: 700;
-}
+.ant-table-thead > tr > th,
+.ant-typography strong,
 h1,
 h2,
 h3,
@@ -58,6 +53,20 @@ h6 {
   padding-bottom: 70px;
 }
 
+.ant-menu-item {
+  height: 40px !important;
+}
+
+.ant-menu-light .ant-menu-item-selected {
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
+}
+
+.dark .ant-menu-dark .ant-menu-item-selected {
+  background: rgba(70, 95, 255, 0.12);
+  color: var(--color-brand-400);
+}
+
 .tabContent .ant-tabs-right > .ant-tabs-content-holder,
 .tabContent .ant-tabs-right > div > .ant-tabs-content-holder {
   border-right: none;
@@ -67,16 +76,6 @@ h6 {
   margin: 0;
 }
 
-.ant-select-show-search:where(.css-dev-only-do-not-override-2q8sxy).ant-select:not(
-    .ant-select-customize-input
-  )
-  .ant-select-selector {
-  cursor: pointer;
-}
-
-.ant-menu-item {
-  height: 36px !important;
-}
 @media (max-width: 768px) {
   .tabContent .ant-tabs-right > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
     padding-right: 0;
@@ -86,8 +85,192 @@ h6 {
     display: block;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+
+/* ===================================================================
+   DARK MODE — Form Inputs, Selects, TextAreas, Pickers, InputNumbers
+   Universal fix across all modules (Products, Categories, etc.)
+   =================================================================== */
+
+/* --- 1. Background: distinct lighter-dark so inputs stand out --- */
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-input-number,
+.dark .ant-input-number-input,
+.dark .ant-picker,
+.dark .ant-select-selector,
+.dark .ant-input-textarea textarea,
+.dark .ant-mentions,
+.dark .ant-cascader-input {
+  background: #1d2939 !important;
+  border: 1px solid #344054 !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease;
+}
+
+/* --- 2. Hover state: slightly brighter border --- */
+.dark .ant-input:hover,
+.dark .ant-input-affix-wrapper:hover,
+.dark .ant-input-number:hover,
+.dark .ant-picker:hover,
+.dark .ant-select-selector:hover,
+.dark .ant-input-textarea textarea:hover,
+.dark .ant-mentions:hover {
+  border-color: #475467 !important;
+}
+
+/* --- 3. Focus state: brand color border + glow --- */
+.dark .ant-input:focus,
+.dark .ant-input-focused,
+.dark .ant-input-affix-wrapper:focus,
+.dark .ant-input-affix-wrapper-focused,
+.dark .ant-input-number:focus,
+.dark .ant-input-number-focused,
+.dark .ant-picker-focused,
+.dark .ant-select-focused .ant-select-selector,
+.dark .ant-input-textarea textarea:focus,
+.dark .ant-mentions:focus,
+.dark .ant-mentions-focused {
+  border-color: var(--color-brand-400) !important;
+  box-shadow: 0 0 0 2px rgba(117, 146, 255, 0.25) !important;
+}
+
+/* --- 4. Placeholder text: legible light gray --- */
+.dark .ant-input::placeholder,
+.dark .ant-input-number-input::placeholder,
+.dark .ant-picker-input > input::placeholder,
+.dark .ant-select-selection-placeholder,
+.dark .ant-input-textarea textarea::placeholder,
+.dark .ant-mentions::placeholder {
+  color: #98a2b3 !important;
+  opacity: 1;
+}
+
+/* --- 5. Input text, icons, and affixes --- */
+.dark .ant-input-prefix,
+.dark .ant-input-suffix,
+.dark .ant-picker-suffix,
+.dark .ant-picker-clear,
+.dark .ant-select-arrow,
+.dark .ant-select-clear,
+.dark .ant-input-number-handler-wrap,
+.dark .ant-picker-separator {
+  color: #98a2b3 !important;
+}
+
+.dark .ant-picker-input > input,
+.dark .ant-select-selection-item,
+.dark .ant-select-selection-search-input {
+  color: #ffffff !important;
+}
+
+/* --- 6. Dropdown / Popup panels (Select, Picker, Cascader) --- */
+.dark .ant-select-dropdown,
+.dark .ant-picker-dropdown .ant-picker-panel-container,
+.dark .ant-cascader-dropdown {
+  background: #1a2231 !important;
+  border: 1px solid #344054 !important;
+  box-shadow: var(--app-shadow-lg);
+}
+
+.dark .ant-select-item {
+  color: #ffffff !important;
+}
+
+.dark .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: rgba(117, 146, 255, 0.12) !important;
+}
+
+.dark .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: rgba(117, 146, 255, 0.2) !important;
+  color: var(--color-brand-400) !important;
+}
+
+/* --- 7. Disabled state --- */
+.dark .ant-input-disabled,
+.dark .ant-input-affix-wrapper-disabled,
+.dark .ant-input-number-disabled,
+.dark .ant-picker-disabled,
+.dark .ant-select-disabled .ant-select-selector {
+  background: #101828 !important;
+  border-color: #1d2939 !important;
+  color: #667085 !important;
+  cursor: not-allowed;
+}
+
+/* --- 8. Form labels --- */
+.dark .ant-form-item-label > label {
+  color: #ffffff !important;
+}
+
+.dark .ant-form-item-required::before {
+  color: var(--color-error-500) !important;
+}
+
+/* --- 9. Drawer / Modal backgrounds (ensure surface contrast) --- */
+.dark .ant-drawer-content {
+  background: var(--app-surface) !important;
+}
+
+.dark .ant-drawer-header {
+  background: var(--app-surface) !important;
+  border-bottom: 1px solid #1d2939 !important;
+}
+
+.dark .ant-drawer-title,
+.dark .ant-drawer-close {
+  color: #ffffff !important;
+}
+
+.dark .ant-modal-content {
+  background: var(--app-surface) !important;
+}
+
+.dark .ant-modal-header {
+  background: var(--app-surface) !important;
+  border-bottom: 1px solid #1d2939 !important;
+}
+
+.dark .ant-modal-title,
+.dark .ant-modal-close {
+  color: #ffffff !important;
+}
+
+/* --- 10. Dividers, Descriptions, and misc inside dark drawers --- */
+.dark .ant-divider {
+  border-color: #1d2939 !important;
+}
+
+.dark .ant-descriptions-item-label {
+  color: #98a2b3 !important;
+}
+
+.dark .ant-descriptions-item-content {
+  color: #ffffff !important;
+}
+
+/* --- 11. Checkbox & Radio in dark mode --- */
+.dark .ant-checkbox-inner {
+  background: #1d2939 !important;
+  border-color: #344054 !important;
+}
+
+.dark .ant-checkbox-checked .ant-checkbox-inner {
+  background: var(--color-brand-400) !important;
+  border-color: var(--color-brand-400) !important;
+}
+
+.dark .ant-radio-inner {
+  background: #1d2939 !important;
+  border-color: #344054 !important;
+}
+
+.dark .ant-radio-checked .ant-radio-inner {
+  border-color: var(--color-brand-400) !important;
+}
+
+/* --- 12. Tags --- */
+.dark .ant-tag {
+  background: rgba(117, 146, 255, 0.12);
+  border-color: #344054;
+  color: #ffffff;
 }

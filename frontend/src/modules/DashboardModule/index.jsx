@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-import { Tag, Row, Col } from 'antd';
+import { Row, Col } from 'antd';
 import useLanguage from '@/locale/useLanguage';
 
 import { useMoney } from '@/settings';
@@ -38,6 +38,8 @@ export default function DashboardModule() {
 
   const { result: quoteResult, isLoading: quoteLoading, onFetch: fetchQuotesStats } = useOnFetch();
 
+  const { result: offerResult, isLoading: offerLoading, onFetch: fetchOffersStats } = useOnFetch();
+
   const {
     result: paymentResult,
     isLoading: paymentLoading,
@@ -54,6 +56,7 @@ export default function DashboardModule() {
     if (currency) {
       fetchInvoicesStats(getStatsData({ entity: 'invoice', currency }));
       fetchQuotesStats(getStatsData({ entity: 'quote', currency }));
+      fetchOffersStats(getStatsData({ entity: 'offer', currency }));
       fetchPayemntsStats(getStatsData({ entity: 'payment', currency }));
     }
   }, [money_format_settings.default_currency_code]);
@@ -99,7 +102,13 @@ export default function DashboardModule() {
       result: quoteResult,
       isLoading: quoteLoading,
       entity: 'quote',
-      title: translate('quote'),
+      title: translate('Quotes For Customers'),
+    },
+    {
+      result: offerResult,
+      isLoading: offerLoading,
+      entity: 'offer',
+      title: translate('Quotes For Leads'),
     },
   ];
 
@@ -129,10 +138,16 @@ export default function DashboardModule() {
       <>
         <Row gutter={[32, 32]}>
           <SummaryCard
-            title={translate('Invoices')}
+            title={translate('Paid Invoice')}
             prefix={translate('This month')}
+            isLoading={paymentLoading}
+            data={paymentResult?.total}
+          />
+          <SummaryCard
+            title={translate('Unpaid Invoice')}
+            prefix={translate('Not Paid')}
             isLoading={invoiceLoading}
-            data={invoiceResult?.total}
+            data={invoiceResult?.total_undue}
           />
           <SummaryCard
             title={translate('Quote')}
@@ -141,16 +156,10 @@ export default function DashboardModule() {
             data={quoteResult?.total}
           />
           <SummaryCard
-            title={translate('paid')}
+            title={translate('Offer')}
             prefix={translate('This month')}
-            isLoading={paymentLoading}
-            data={paymentResult?.total}
-          />
-          <SummaryCard
-            title={translate('Unpaid')}
-            prefix={translate('Not Paid')}
-            isLoading={invoiceLoading}
-            data={invoiceResult?.total_undue}
+            isLoading={offerLoading}
+            data={offerResult?.total}
           />
         </Row>
         <div className="space30"></div>
@@ -174,7 +183,9 @@ export default function DashboardModule() {
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 12 }}>
             <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
-              <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
+              <h3
+                style={{ color: 'var(--app-text)', marginBottom: 5, padding: '0 20px 20px' }}
+              >
                 {translate('Recent Invoices')}
               </h3>
 
@@ -184,7 +195,9 @@ export default function DashboardModule() {
 
           <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 12 }}>
             <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
-              <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
+              <h3
+                style={{ color: 'var(--app-text)', marginBottom: 5, padding: '0 20px 20px' }}
+              >
                 {translate('Recent Quotes')}
               </h3>
               <RecentTable entity={'quote'} dataTableColumns={dataTableColumns} />

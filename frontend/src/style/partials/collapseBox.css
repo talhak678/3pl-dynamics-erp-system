@@ -3,16 +3,16 @@
   transition: all 0.3s ease;
 }
 .collapseBoxHeader {
-  /* width: 100%; */
   padding: 17px 30px;
   margin-bottom: 30px;
   text-align: center;
   font-size: 14px;
   text-transform: uppercase;
   cursor: pointer;
-  background-color: #ffffff;
-  border-top: 1px solid #edf0f5;
-  border-bottom: 1px solid #edf0f5;
+  color: var(--app-text);
+  background-color: var(--app-surface);
+  border-top: 1px solid var(--app-border);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .box {
@@ -20,7 +20,6 @@
   padding: 20px;
 }
 .BottomCollapseBox {
-  /* padding: 20px; */
   opacity: 1;
 }
 .TopCollapseBox {
@@ -30,8 +29,7 @@
 .collapseBox {
   margin-top: -400px;
   position: relative;
-
-  background: #fff;
+  background: var(--app-surface);
   z-index: 1;
 }
 .collapsed {
@@ -42,7 +40,7 @@
 
 .collapseBox .whiteBg {
   display: none;
-  background-color: hsla(0, 0%, 100%, 0);
+  background-color: transparent;
 }
 
 .collapsed .whiteBg {
@@ -51,6 +49,6 @@
   width: 100%;
   height: 100%;
   display: inline-block;
-  background-color: hsla(0, 0%, 100%, 0.8);
+  background-color: color-mix(in srgb, var(--app-surface) 80%, transparent);
   z-index: 9;
 }

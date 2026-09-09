@@ -1,5 +1,5 @@
 {
-  "name": "idurar-erp-crm",
+  "name": "3pl-dynamics-erp-crm",
   "version": "4.1.0",
   "engines": {
     "npm": "10.2.4",
@@ -48,15 +48,8 @@
     "@": "src"
   },
   "main": "server.js",
-  "author": "IDURAR",
-  "email": "hello@idurarapp.com",
+  "author": "3PL Dynamics",
+  "email": "info@3pldynamicsai.com",
   "license": "Fair-code License",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/idurar/idurar-erp-crm/.git"
-  },
-  "bugs": {
-    "url": "https://github.com/idurar/idurar-erp-crm//issues"
-  },
-  "homepage": "https://github.com/idurar/idurar-erp-crm/#readme"
+  "homepage": "https://www.3pldynamicsai.com"
 }

@@ -18,7 +18,14 @@ export default function CustomerPreviewCard({
             justifyContent: 'center',
           }}
         >
-          <h3 style={{ color: '#333', marginBottom: 40, marginTop: 15, fontSize: 'large' }}>
+          <h3
+            style={{
+              color: 'var(--app-text)',
+              marginBottom: 40,
+              marginTop: 15,
+              fontSize: 'large',
+            }}
+          >
             {translate('Customers')}
           </h3>
 
@@ -38,13 +45,7 @@ export default function CustomerPreviewCard({
                 title={translate('Active Customer')}
                 value={activeCustomer}
                 precision={2}
-                valueStyle={
-                  activeCustomer > 0
-                    ? { color: '#333' }
-                    : activeCustomer < 0
-                      ? { color: '#333' }
-                      : { color: '#000000' }
-                }
+                valueStyle={{ color: 'var(--app-text)' }}
                 prefix={
                   activeCustomer > 0 ? (
                     <ArrowUpOutlined />

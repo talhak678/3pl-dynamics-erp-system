@@ -5,7 +5,7 @@
 .list-checked-item {
   position: relative;
   display: block;
-  color: #677788;
+  color: var(--app-text-secondary);
   margin-bottom: 30px;
   list-style: none;
 }
@@ -37,5 +37,22 @@
 
 
 .sideContent * {
-  color: #4f5d75 !important;
+  color: var(--app-text) !important;
+}
+
+/* Ensure left-side auth panel logos scale proportionally */
+.sideContent img {
+  max-width: 250px;
+  width: 80%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Clean login form spacing */
+.login-form .ant-form-item {
+  margin-bottom: 20px;
+}
+
+.login-form .ant-form-item-label > label {
+  font-weight: 500;
 }

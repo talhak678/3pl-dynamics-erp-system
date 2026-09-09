@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Avatar, Dropdown, Layout, Badge, Button } from 'antd';
+import { Avatar, Dropdown, Layout } from 'antd';
 
 // import Notifications from '@/components/Notification';
 
@@ -12,6 +12,7 @@ import { FILE_BASE_URL } from '@/config/serverApiConfig';
 
 import useLanguage from '@/locale/useLanguage';
 
+import ThemeToggleButton from './ThemeToggleButton';
 import UpgradeButton from './UpgradeButton';
 
 export default function HeaderContent() {
@@ -29,9 +30,9 @@ export default function HeaderContent() {
           className="last"
           src={currentAdmin?.photo ? FILE_BASE_URL + currentAdmin?.photo : undefined}
           style={{
-            color: '#f56a00',
-            backgroundColor: currentAdmin?.photo ? 'none' : '#fde3cf',
-            boxShadow: 'rgba(150, 190, 238, 0.35) 0px 0px 6px 1px',
+            color: 'var(--color-orange-500)',
+            backgroundColor: currentAdmin?.photo ? 'transparent' : 'var(--color-orange-100)',
+            boxShadow: 'var(--app-shadow)',
           }}
         >
           {currentAdmin?.name?.charAt(0)?.toUpperCase()}
@@ -86,13 +87,15 @@ export default function HeaderContent() {
 
   return (
     <Header
+      className="app-header"
       style={{
         padding: '20px',
-        background: '#ffffff',
+        background: 'var(--app-surface)',
         display: 'flex',
+        alignItems: 'center',
         flexDirection: 'row-reverse',
         justifyContent: 'flex-start',
-        gap: ' 15px',
+        gap: '15px',
       }}
     >
       <Dropdown
@@ -108,9 +111,9 @@ export default function HeaderContent() {
           className="last"
           src={currentAdmin?.photo ? FILE_BASE_URL + currentAdmin?.photo : undefined}
           style={{
-            color: '#f56a00',
-            backgroundColor: currentAdmin?.photo ? 'none' : '#fde3cf',
-            boxShadow: 'rgba(150, 190, 238, 0.35) 0px 0px 10px 2px',
+            color: 'var(--color-orange-500)',
+            backgroundColor: currentAdmin?.photo ? 'transparent' : 'var(--color-orange-100)',
+            boxShadow: 'var(--app-shadow)',
             float: 'right',
             cursor: 'pointer',
           }}
@@ -123,11 +126,8 @@ export default function HeaderContent() {
 
       {/* <AppsButton /> */}
 
+      <ThemeToggleButton />
       <UpgradeButton />
     </Header>
   );
 }
-
-//  console.log(
-//    '🚀 Welcome to IDURAR ERP CRM! Did you know that we also offer commercial customization services? Contact us at hello@idurarapp.com for more information.'
-//  );

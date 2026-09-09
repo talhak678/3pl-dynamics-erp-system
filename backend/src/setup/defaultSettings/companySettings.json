@@ -2,7 +2,7 @@
   {
     "settingCategory": "company_settings",
     "settingKey": "company_name",
-    "settingValue": "COMPANY Name",
+    "settingValue": "3PL Dynamics",
     "valueType": "string"
   },
   {
@@ -38,7 +38,7 @@
   {
     "settingCategory": "company_settings",
     "settingKey": "company_email",
-    "settingValue": "youremail@example.com",
+    "settingValue": "info@3pldynamicsai.com",
     "valueType": "string"
   },
   {
@@ -50,7 +50,7 @@
   {
     "settingCategory": "company_settings",
     "settingKey": "company_website",
-    "settingValue": "www.example.com",
+    "settingValue": "https://www.3pldynamicsai.com",
     "valueType": "string"
   },
   {

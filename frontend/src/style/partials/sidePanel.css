@@ -1,6 +1,6 @@
 .sidePanel {
-  border-right: 1px solid #edf0f5;
-  background: #fff;
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface);
 }
 
 .sidePanelContent {
