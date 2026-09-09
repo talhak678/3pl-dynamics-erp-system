@@ -8,20 +8,20 @@
 }
 
 .logo {
-  height: 110px;
-  margin: 12px auto 18px;
+  height: 85px;
+  margin: 10px auto 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 200px;
+  width: 175px;
   overflow: hidden;
 }
 
 .logo img {
   display: block;
-  width: 180px;
-  height: 110px;
-  max-height: 110px;
+  width: 155px;
+  height: 75px;
+  max-height: 75px;
   object-fit: contain;
 }
 

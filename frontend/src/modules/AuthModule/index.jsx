@@ -16,7 +16,7 @@ const AuthModule = ({ authContent, AUTH_TITLE, isForRegistre = false }) => {
   const translate = useLanguage();
   const { theme } = useTheme();
   // DARK theme = LIGHT logo, LIGHT theme = DARK logo
-  const logo = theme === 'dark' ? darkLogo : lightLogo;
+  const logo = theme === 'dark' ? lightLogo : darkLogo;
   return (
     <AuthLayout sideContent={<SideContent />}>
       <Content

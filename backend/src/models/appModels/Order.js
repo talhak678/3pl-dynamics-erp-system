@@ -15,113 +15,38 @@ const orderSchema = new mongoose.Schema({
     ref: 'Admin',
   },
 
-  assigned: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Employee',
+  orderId: {
+    type: String,
+    required: true,
+    trim: true,
   },
-  number: {
+  products: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  quantity: {
+    type: Number,
+    default: 1,
+    required: true,
+  },
+  price: {
     type: Number,
     required: true,
-  },
-  recurring: {
-    type: String,
-    enum: ['daily', 'weekly', 'monthly', 'annually', 'quarter'],
-  },
-  date: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
-  client: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Client',
-    required: true,
-    autopopulate: true,
-  },
-  invoice: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Ivoince',
-    autopopulate: true,
-  },
-  items: [
-    {
-      product: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Product',
-        required: true,
-      },
-      itemName: {
-        type: String,
-        required: true,
-      },
-      description: {
-        type: String,
-      },
-      quantity: {
-        type: Number,
-        default: 1,
-        required: true,
-      },
-      price: {
-        type: Number,
-        required: true,
-      },
-      discount: {
-        type: Number,
-        default: 0,
-      },
-      // taxRate: {
-      //   type: Number,
-      //   default: 0,
-      // },
-      // subTotal: {
-      //   type: Number,
-      //   default: 0,
-      // },
-      // taxTotal: {
-      //   type: Number,
-      //   default: 0,
-      // },
-      total: {
-        type: Number,
-      },
-      notes: {
-        type: String,
-      },
-    },
-  ],
-  shipment: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Shipment',
-  },
-  approved: {
-    type: Boolean,
-    default: false,
   },
   notes: {
     type: String,
   },
-  fulfillment: {
-    type: String,
-    enum: ['pending', 'in review', 'processing', 'packing', 'shipped', 'on hold', 'cancelled'],
-    default: 'pending',
-  },
   status: {
     type: String,
     enum: [
-      'not started',
-      'in progress',
-      'delayed',
-      'completed',
+      'pending',
+      'shipped',
       'delivered',
-      'returned',
       'cancelled',
-      'on hold',
-      'refunded',
     ],
-    default: 'not started',
+    default: 'pending',
   },
-  processingStatus: String,
   pdf: {
     type: String,
   },

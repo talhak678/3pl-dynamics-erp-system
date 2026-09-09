@@ -84,7 +84,8 @@ const request = {
   updateAndUpload: async ({ entity, id, jsonData }) => {
     try {
       includeToken();
-      const response = await axios.patch(entity + '/update/' + id, jsonData, {
+      const url = id ? entity + '/update/' + id : entity + '/update';
+      const response = await axios.patch(url, jsonData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
