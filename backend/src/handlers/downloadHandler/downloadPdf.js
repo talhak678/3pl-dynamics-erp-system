@@ -1,5 +1,8 @@
 const custom = require('../../controllers/pdfController');
 const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
 module.exports = downloadPdf = async (req, res, { directory, id }) => {
   try {
@@ -19,7 +22,12 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
 
       const fileId = modelName.toLowerCase() + '-' + result._id + '.pdf';
       const folderPath = modelName.toLowerCase();
-      const targetLocation = `src/public/download/${folderPath}/${fileId}`;
+      // Use os.tmpdir() for Vercel compatibility (read-only filesystem)
+      const tmpDir = path.join(os.tmpdir(), 'download', folderPath);
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+      const targetLocation = path.join(tmpDir, fileId);
       await custom.generatePdf(
         modelName,
         { filename: folderPath, format: 'A4', targetLocation },

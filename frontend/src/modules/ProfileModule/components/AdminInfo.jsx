@@ -56,7 +56,7 @@ const AdminInfo = ({ config }) => {
         <Col xs={{ span: 24 }} sm={{ span: 7 }} md={{ span: 5 }}>
           <Avatar
             className="last left"
-            src={currentAdmin?.photo ? FILE_BASE_URL + currentAdmin?.photo : undefined}
+            src={currentAdmin?.photo ? (currentAdmin.photo.startsWith('data:') || currentAdmin.photo.startsWith('http') ? currentAdmin.photo : FILE_BASE_URL + currentAdmin.photo) : undefined}
             size={96}
             style={{
               color: '#f56a00',

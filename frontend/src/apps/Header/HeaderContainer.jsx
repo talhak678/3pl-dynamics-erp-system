@@ -28,7 +28,7 @@ export default function HeaderContent() {
         <Avatar
           size="large"
           className="last"
-          src={currentAdmin?.photo ? FILE_BASE_URL + currentAdmin?.photo : undefined}
+          src={currentAdmin?.photo ? (currentAdmin.photo.startsWith('data:') || currentAdmin.photo.startsWith('http') ? currentAdmin.photo : FILE_BASE_URL + currentAdmin.photo) : undefined}
           style={{
             color: 'var(--color-orange-500)',
             backgroundColor: currentAdmin?.photo ? 'transparent' : 'var(--color-orange-100)',
@@ -109,7 +109,7 @@ export default function HeaderContent() {
         {/* <Badge dot> */}
         <Avatar
           className="last"
-          src={currentAdmin?.photo ? FILE_BASE_URL + currentAdmin?.photo : undefined}
+          src={currentAdmin?.photo ? (currentAdmin.photo.startsWith('data:') || currentAdmin.photo.startsWith('http') ? currentAdmin.photo : FILE_BASE_URL + currentAdmin.photo) : undefined}
           style={{
             color: 'var(--color-orange-500)',
             backgroundColor: currentAdmin?.photo ? 'transparent' : 'var(--color-orange-100)',

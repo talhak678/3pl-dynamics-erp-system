@@ -1,5 +1,6 @@
 const pug = require('pug');
 const fs = require('fs');
+const path = require('path');
 const moment = require('moment');
 let pdf = require('html-pdf');
 const { listAllSettings, loadSettings } = require('../../middlewares/settings');
@@ -58,7 +59,7 @@ exports.generatePdf = async (
 
       settings.public_server_file = process.env.PUBLIC_SERVER_FILE;
 
-      const htmlContent = pug.renderFile('src/pdf/' + modelName + '.pug', {
+      const htmlContent = pug.renderFile(path.join(__dirname, '..', '..', 'pdf', modelName + '.pug'), {
         model: result,
         settings,
         translate,
