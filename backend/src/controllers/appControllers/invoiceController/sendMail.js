@@ -1,12 +1,8 @@
-const fs = require('fs');
-
-const mongoose = require('mongoose');
-
 const mail = async (req, res) => {
-  return res.status(200).json({
-    success: true,
+  return res.status(503).json({
+    success: false,
     result: null,
-    message: 'Please Upgrade to Premium  Version to have full features',
+    message: 'Mail service is not configured. Please set up an email provider.',
   });
 };
 
