@@ -59,6 +59,10 @@ let routes = {
       element: <About />,
     },
     {
+      path: '/help',
+      element: <About />,
+    },
+    {
       path: '/',
       element: <Dashboard />,
     },

@@ -137,17 +137,17 @@ function Sidebar({ collapsible, isMobile = false }) {
           key: 'generalSettings',
           label: <Link to={'/settings'}>{translate('settings')}</Link>,
         },
-        {
-          key: 'paymentMode',
-          label: <Link to={'/payment/mode'}>{translate('payments_mode')}</Link>,
-        },
+        // {
+        //   key: 'paymentMode',
+        //   label: <Link to={'/payment/mode'}>{translate('payments_mode')}</Link>,
+        // },
         {
           key: 'taxes',
           label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
         },
         {
-          key: 'about',
-          label: <Link to={'/about'}>{translate('about')}</Link>,
+          key: 'help',
+          label: <Link to={'/help'}>{translate('Help')}</Link>,
         },
       ],
     },

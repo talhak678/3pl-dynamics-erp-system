@@ -15,8 +15,8 @@ const { Title } = Typography;
 const AuthModule = ({ authContent, AUTH_TITLE, isForRegistre = false }) => {
   const translate = useLanguage();
   const { theme } = useTheme();
-  // DARK theme = LIGHT logo, LIGHT theme = DARK logo
-  const logo = theme === 'dark' ? lightLogo : darkLogo;
+  // Match desktop SideContent: DARK theme = darkLogo (light colored), LIGHT theme = lightLogo (dark colored)
+  const logo = theme === 'dark' ? darkLogo : lightLogo;
   return (
     <AuthLayout sideContent={<SideContent />}>
       <Content
