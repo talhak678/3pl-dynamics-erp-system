@@ -1,7 +1,14 @@
 {
   "version": 2,
   "builds": [
-    { "src": "src/server.js", "use": "@vercel/node" }
+    {
+      "src": "src/server.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60,
+        "includeFiles": ["src/pdf/**", "src/public/**"]
+      }
+    }
   ],
   "routes": [
     { "src": "(.*)", "dest": "src/server.js" }

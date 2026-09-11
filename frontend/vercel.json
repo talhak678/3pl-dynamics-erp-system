@@ -5,6 +5,10 @@
       "destination": "https://3pl-dynamics-erp-system-backend.vercel.app/api/:path*"
     },
     {
+      "source": "/download/:path*",
+      "destination": "https://3pl-dynamics-erp-system-backend.vercel.app/download/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

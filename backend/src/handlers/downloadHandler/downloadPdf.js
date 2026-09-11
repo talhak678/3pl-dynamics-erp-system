@@ -28,22 +28,29 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
         fs.mkdirSync(tmpDir, { recursive: true });
       }
       const targetLocation = path.join(tmpDir, fileId);
-      await custom.generatePdf(
+      const { pdfBuffer, htmlContent } = await custom.generatePdf(
         modelName,
         { filename: folderPath, format: 'A4', targetLocation },
-        result,
-        async () => {
-          return res.download(targetLocation, (error) => {
-            if (error)
-              return res.status(500).json({
-                success: false,
-                result: null,
-                message: "Couldn't find file",
-                error: error.message,
-              });
-          });
-        }
+        result
       );
+
+      if (pdfBuffer) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileId}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        return res.end(pdfBuffer);
+      } else if (htmlContent) {
+        const printableHtml = htmlContent.includes('window.print()')
+          ? htmlContent
+          : htmlContent.replace(
+              '</body>',
+              '<script>window.onload = function() { window.print(); };</script></body>'
+            );
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(printableHtml);
+      } else {
+        throw new Error('PDF generation produced no output');
+      }
     } else {
       return res.status(404).json({
         success: false,

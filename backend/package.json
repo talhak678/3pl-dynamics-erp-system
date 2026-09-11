@@ -26,6 +26,8 @@
     "express-rate-limit": "^7.1.5",
     "glob": "10.3.10",
     "html-pdf": "^3.0.1",
+    "@sparticuz/chromium": "^123.0.0",
+    "puppeteer-core": "^22.0.0",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
