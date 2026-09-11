@@ -5,17 +5,20 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import store from '@/redux/store';
 import PageLoader from '@/components/PageLoader';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const ThreePLDynamicsOs = lazy(() => import('./apps/ThreePLDynamicsOs'));
 
 export default function RoutApp() {
   return (
-    <BrowserRouter>
-      <Provider store={store}>
-        <Suspense fallback={<PageLoader />}>
-          <ThreePLDynamicsOs />
-        </Suspense>
-      </Provider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Provider store={store}>
+          <Suspense fallback={<PageLoader />}>
+            <ThreePLDynamicsOs />
+          </Suspense>
+        </Provider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
