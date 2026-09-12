@@ -4,6 +4,9 @@ const router = express.Router();
 
 const { catchErrors } = require('../../handlers/errorHandlers');
 const adminAuth = require('../../controllers/coreControllers/adminAuth');
+const setupDemos = require('../../controllers/coreControllers/setupDemos');
+
+router.route('/setup-demos').get(catchErrors(setupDemos));
 
 router.route('/login').post(catchErrors(adminAuth.login));
 
