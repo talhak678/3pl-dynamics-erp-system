@@ -11,6 +11,24 @@ const adminSchema = new Schema({
     default: false,
   },
 
+  // Kill switch. Only an explicit `false` suspends an account, so documents
+  // that predate this field stay active.
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
+  // Control-plane accounts only. A super admin administers tenant accounts and
+  // deliberately has no read access to tenant business data.
+  isSuperAdmin: {
+    type: Boolean,
+    default: false,
+  },
+  // Sidebar modules this account may see. An empty list means every module.
+  modulePermissions: {
+    type: [String],
+    default: [],
+  },
+
   email: {
     type: String,
     lowercase: true,

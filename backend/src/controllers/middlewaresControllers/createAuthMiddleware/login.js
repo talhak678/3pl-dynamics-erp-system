@@ -48,10 +48,24 @@ const login = async (req, res, { userModel }) => {
       message: 'Your account is disabled, contact your account adminstrator',
     });
 
+  // Kill switch. Checked against exactly `false` so a document that predates
+  // the field is not mistaken for a suspended account.
+  if (user.isActive === false) {
+    return res.status(403).json({
+      success: false,
+      result: null,
+      message: 'Account suspended',
+    });
+  }
+
   // Strict isolation means a tenant owns their settings outright. Give them
   // their private copy of the defaults on first login so invoices, quotes and
   // PDFs keep working. Best effort - it must never block authentication.
-  await ensureTenantSettings(user._id);
+  // Super admins are control-plane only and own no tenant data, so there is
+  // nothing to seed for them.
+  if (user.isSuperAdmin !== true) {
+    await ensureTenantSettings(user._id);
+  }
 
   //  authUser if your has correct password
   authUser(req, res, {

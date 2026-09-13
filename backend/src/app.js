@@ -11,7 +11,9 @@ const coreAuthRouter = require('./routes/coreRoutes/coreAuth');
 const coreApiRouter = require('./routes/coreRoutes/coreApi');
 const coreDownloadRouter = require('./routes/coreRoutes/coreDownloadRouter');
 const corePublicRouter = require('./routes/coreRoutes/corePublicRouter');
+const superAdminRouter = require('./routes/coreRoutes/superAdminApi');
 const adminAuth = require('./controllers/coreControllers/adminAuth');
+const requireSuperAdmin = require('./middlewares/requireSuperAdmin');
 
 const errorHandlers = require('./handlers/errorHandlers');
 const erpApiRouter = require('./routes/appRoutes/appApi');
@@ -39,6 +41,11 @@ app.use(compression());
 // Here our API Routes
 
 app.use('/api', coreAuthRouter);
+// Mounted ahead of the generic /api routers: `app.use('/api', ...)` matches any
+// /api/* path, so placing this after them would run isValidAuthToken twice per
+// request. Order within this line matters too — isValidAuthToken populates
+// req.admin, which requireSuperAdmin reads.
+app.use('/api/superadmin', adminAuth.isValidAuthToken, requireSuperAdmin, superAdminRouter);
 app.use('/api', adminAuth.isValidAuthToken, coreApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, erpApiRouter);
 app.use('/download', coreDownloadRouter);

@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const { resolveModules } = require('../../../utils/moduleList');
+
 const authUser = async (req, res, { user, databasePassword, password, UserPasswordModel }) => {
   const isMatch = await bcrypt.compare(databasePassword.salt + password, databasePassword.password);
 
@@ -46,6 +48,10 @@ const authUser = async (req, res, { user, databasePassword, password, UserPasswo
         role: user.role,
         email: user.email,
         photo: user.photo,
+        isSuperAdmin: user.isSuperAdmin === true,
+        // Returned resolved so the client never has to reimplement the
+        // "empty means all modules" rule.
+        modulePermissions: resolveModules(user),
         token: token,
         maxAge: req.body.remember ? 365 : null,
       },

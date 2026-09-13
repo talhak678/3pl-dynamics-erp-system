@@ -34,8 +34,13 @@ const updatePassword = async (userModel, req, res) => {
     salt: salt,
   };
 
+  // SECURITY: target the authenticated caller, never req.params.id. Using the
+  // URL parameter here let any authenticated admin reset any other admin's
+  // password — including a super admin's — simply by passing their id. The
+  // :id route parameter is still accepted for backwards compatibility with
+  // existing callers but no longer selects the account being modified.
   const resultPassword = await UserPassword.findOneAndUpdate(
-    { user: req.params.id, removed: false },
+    { user: userProfile._id, removed: false },
     { $set: UserPasswordData },
     {
       new: true, // return the new result instead of the old one

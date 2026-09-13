@@ -52,6 +52,17 @@ const isValidAuthToken = async (req, res, next, { userModel, jwtSecret = 'JWT_SE
         jwtExpired: true,
       });
     else {
+      // Kill switch. Placed here rather than only at login so that suspending
+      // an account invalidates its live sessions on the next request instead of
+      // whenever the token happens to expire.
+      if (user.isActive === false) {
+        return res.status(403).json({
+          success: false,
+          result: null,
+          message: 'Account suspended',
+        });
+      }
+
       const reqUserName = userModel.toLowerCase();
       req[reqUserName] = user;
       next();
