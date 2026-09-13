@@ -29,6 +29,7 @@ const summary = async (Model, req, res) => {
             $match: {
               removed: false,
               enabled: true,
+              createdBy: req.admin._id,
             },
           },
           {
@@ -41,6 +42,7 @@ const summary = async (Model, req, res) => {
               removed: false,
               created: { $gte: startDate.toDate(), $lte: endDate.toDate() },
               enabled: true,
+              createdBy: req.admin._id,
             },
           },
           {
@@ -58,7 +60,10 @@ const summary = async (Model, req, res) => {
           },
           {
             $match: {
+              removed: false,
+              createdBy: req.admin._id,
               'offer.removed': false,
+              'offer.createdBy': req.admin._id,
             },
           },
           {

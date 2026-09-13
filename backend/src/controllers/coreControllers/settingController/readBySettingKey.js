@@ -1,5 +1,7 @@
 const Model = require('../../../models/coreModels/Setting');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const readBySettingKey = async (req, res) => {
   // Find document by id
   const settingKey = req.params.settingKey || undefined;
@@ -14,6 +16,7 @@ const readBySettingKey = async (req, res) => {
 
   const result = await Model.findOne({
     settingKey,
+    ...ownerFilter(req),
   });
 
   // If no results found, return document not found

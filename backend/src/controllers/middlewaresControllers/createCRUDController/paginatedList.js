@@ -1,3 +1,5 @@
+const { ownerFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
   const limit = parseInt(req.query.items) || 10;
@@ -18,7 +20,7 @@ const paginatedList = async (Model, req, res) => {
   // Build filter condition safely: reject MongoDB operators in values
   let filterCondition = {};
   if (filter && equal !== undefined) {
-    if (typeof equal === 'object') {
+    if (typeof equal === 'object' || isReservedFilterKey(filter)) {
       return res.status(400).json({
         success: false,
         result: [],
@@ -33,6 +35,7 @@ const paginatedList = async (Model, req, res) => {
     removed: false,
     ...filterCondition,
     ...fields,
+    ...ownerFilter(req),
   })
     .skip(skip)
     .limit(limit)
@@ -45,6 +48,7 @@ const paginatedList = async (Model, req, res) => {
     removed: false,
     ...filterCondition,
     ...fields,
+    ...ownerFilter(req),
   });
   // Resolving both promises
   const [result, count] = await Promise.all([resultsPromise, countPromise]);

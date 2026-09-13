@@ -4,6 +4,7 @@ const Model = mongoose.model('Invoice');
 
 const { calculate } = require('../../../helpers');
 const { increaseBySettingKey } = require('../../../middlewares/settings');
+const { ownerFilter } = require('../../../middlewares/ownership');
 const schema = require('./schemaValidate');
 
 const create = async (req, res) => {
@@ -51,7 +52,7 @@ const create = async (req, res) => {
   const result = await new Model(body).save();
   const fileId = 'invoice-' + result._id + '.pdf';
   const updateResult = await Model.findOneAndUpdate(
-    { _id: result._id },
+    { _id: result._id, ...ownerFilter(req) },
     { pdf: fileId },
     {
       new: true,
@@ -61,6 +62,7 @@ const create = async (req, res) => {
 
   increaseBySettingKey({
     settingKey: 'last_invoice_number',
+    adminId: req.admin._id,
   });
 
   // Returning successfull response

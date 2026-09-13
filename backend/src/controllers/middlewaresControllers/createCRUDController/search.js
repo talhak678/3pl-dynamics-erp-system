@@ -1,3 +1,5 @@
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const search = async (Model, req, res) => {
   // console.log(req.query.fields)
   // if (req.query.q === undefined || req.query.q.trim() === '') {
@@ -21,6 +23,7 @@ const search = async (Model, req, res) => {
 
   let results = await Model.find({
     ...fields,
+    ...ownerFilter(req),
   })
 
     .where('removed', false)

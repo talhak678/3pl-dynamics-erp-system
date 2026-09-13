@@ -2,13 +2,21 @@ const mongoose = require('mongoose');
 const Client = mongoose.model('Client');
 const Lead = mongoose.model('People');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const update = async (Model, req, res) => {
   // Find document by id and updates with the required fields
   req.body.removed = false;
-  const result = await Model.findOneAndUpdate({ _id: req.params.id, removed: false }, req.body, {
-    new: true, // return the new result instead of the old one
-    runValidators: true,
-  }).exec();
+  // Ownership is immutable: never let a caller reassign a record to someone else.
+  delete req.body.createdBy;
+  const result = await Model.findOneAndUpdate(
+    { _id: req.params.id, removed: false, ...ownerFilter(req) },
+    req.body,
+    {
+      new: true, // return the new result instead of the old one
+      runValidators: true,
+    }
+  ).exec();
 
   if (!result) {
     return res.status(404).json({
@@ -18,7 +26,7 @@ const update = async (Model, req, res) => {
     });
   } else {
     await Client.findOneAndUpdate(
-      { company: result._id },
+      { company: result._id, ...ownerFilter(req) },
       { name: result.name },
       {
         new: true, // return the new result instead of the old one
@@ -26,7 +34,7 @@ const update = async (Model, req, res) => {
     ).exec();
 
     await Lead.findOneAndUpdate(
-      { company: result._id },
+      { company: result._id, ...ownerFilter(req) },
       { name: result.name },
       {
         new: true, // return the new result instead of the old one

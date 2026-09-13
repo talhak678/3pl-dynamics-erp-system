@@ -1,5 +1,7 @@
 const Model = require('../../../models/coreModels/Setting');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const updateBySettingKey = async (req, res) => {
   const settingKey = req.params.settingKey || undefined;
 
@@ -20,7 +22,7 @@ const updateBySettingKey = async (req, res) => {
     });
   }
   const result = await Model.findOneAndUpdate(
-    { settingKey },
+    { settingKey, ...ownerFilter(req) },
     {
       settingValue,
     },

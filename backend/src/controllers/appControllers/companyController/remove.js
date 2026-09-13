@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const Client = mongoose.model('Client');
 const People = mongoose.model('People');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const remove = async (Model, req, res) => {
   // cannot delete client it it have one invoice or Client:
   // check if client have invoice or quotes:
@@ -12,6 +14,7 @@ const remove = async (Model, req, res) => {
   const client = await Client.findOne({
     company: id,
     removed: false,
+    ...ownerFilter(req),
   }).exec();
   if (client) {
     return res.status(400).json({
@@ -23,6 +26,7 @@ const remove = async (Model, req, res) => {
   const people = await People.findOne({
     company: id,
     removed: false,
+    ...ownerFilter(req),
   }).exec();
   if (people) {
     return res.status(400).json({
@@ -34,7 +38,7 @@ const remove = async (Model, req, res) => {
 
   // if no People or quote, delete the client
   const result = await Model.findOneAndUpdate(
-    { _id: id, removed: false },
+    { _id: id, removed: false, ...ownerFilter(req) },
     {
       $set: {
         removed: true,

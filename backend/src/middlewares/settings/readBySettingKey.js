@@ -1,6 +1,6 @@
 const Model = require('../../models/coreModels/Setting');
 
-const readBySettingKey = async ({ settingKey }) => {
+const readBySettingKey = async ({ settingKey, adminId }) => {
   try {
     // Find document by id
 
@@ -8,7 +8,14 @@ const readBySettingKey = async ({ settingKey }) => {
       return null;
     }
 
-    const result = await Model.findOne({ settingKey });
+    const query = { settingKey };
+
+    // Tenant isolation: a tenant can only read their own settings.
+    if (adminId) {
+      query.createdBy = adminId;
+    }
+
+    const result = await Model.findOne(query);
     // If no results found, return document not found
     if (!result) {
       return null;

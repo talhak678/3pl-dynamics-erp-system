@@ -5,6 +5,7 @@ const Model = mongoose.model('Quote');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const update = async (req, res) => {
   const { items = [], taxRate = 0, discount = 0 } = req.body;
@@ -46,9 +47,24 @@ const update = async (req, res) => {
   }
   // Find document by id and updates with the required fields
 
-  const result = await Model.findOneAndUpdate({ _id: req.params.id, removed: false }, body, {
-    new: true, // return the new result instead of the old one
-  }).exec();
+  // Ownership is immutable: never let a caller reassign a record to someone else.
+  delete body.createdBy;
+
+  const result = await Model.findOneAndUpdate(
+    { _id: req.params.id, removed: false, ...ownerFilter(req) },
+    body,
+    {
+      new: true, // return the new result instead of the old one
+    }
+  ).exec();
+
+  if (!result) {
+    return res.status(404).json({
+      success: false,
+      result: null,
+      message: 'Quote not found',
+    });
+  }
 
   // Returning successfull response
 

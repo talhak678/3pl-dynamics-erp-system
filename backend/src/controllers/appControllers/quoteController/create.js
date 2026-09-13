@@ -5,6 +5,7 @@ const Model = mongoose.model('Quote');
 const custom = require('../../pdfController');
 const { increaseBySettingKey } = require('../../../middlewares/settings');
 const { calculate } = require('../../../helpers');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const create = async (req, res) => {
   const { items = [], taxRate = 0, discount = 0 } = req.body;
@@ -38,7 +39,7 @@ const create = async (req, res) => {
   const result = await new Model(body).save();
   const fileId = 'quote-' + result._id + '.pdf';
   const updateResult = await Model.findOneAndUpdate(
-    { _id: result._id },
+    { _id: result._id, ...ownerFilter(req) },
     { pdf: fileId },
     {
       new: true,
@@ -48,6 +49,7 @@ const create = async (req, res) => {
 
   increaseBySettingKey({
     settingKey: 'last_quote_number',
+    adminId: req.admin._id,
   });
 
   // Returning successfull response

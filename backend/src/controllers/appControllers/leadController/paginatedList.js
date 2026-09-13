@@ -1,4 +1,5 @@
 const { migrate } = require('./migrate');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -24,6 +25,7 @@ const paginatedList = async (Model, req, res) => {
 
     [filter]: equal,
     ...fields,
+    ...ownerFilter(req),
   })
     .skip(skip)
     .limit(limit)
@@ -37,6 +39,7 @@ const paginatedList = async (Model, req, res) => {
 
     [filter]: equal,
     ...fields,
+    ...ownerFilter(req),
   });
   // Resolving both promises
   const [result, count] = await Promise.all([resultsPromise, countPromise]);

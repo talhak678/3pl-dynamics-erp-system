@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const People = mongoose.model('People');
 const Company = mongoose.model('Company');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const create = async (Model, req, res) => {
   // Creating a new document in the collection
 
@@ -15,6 +17,7 @@ const create = async (Model, req, res) => {
       let { firstname, lastname } = await People.findOne({
         _id: req.body.people,
         removed: false,
+        ...ownerFilter(req),
       }).exec();
       req.body.name = firstname + ' ' + lastname;
       req.body.company = null;
@@ -29,6 +32,7 @@ const create = async (Model, req, res) => {
       let { name } = await Company.findOne({
         _id: req.body.company,
         removed: false,
+        ...ownerFilter(req),
       }).exec();
       req.body.name = name;
       req.body.people = null;
@@ -36,6 +40,7 @@ const create = async (Model, req, res) => {
   }
 
   req.body.removed = false;
+  req.body.createdBy = req.admin._id;
   const result = await new Model({
     ...req.body,
   }).save();

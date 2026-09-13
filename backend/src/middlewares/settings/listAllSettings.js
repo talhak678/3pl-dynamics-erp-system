@@ -1,11 +1,18 @@
 const Model = require('../../models/coreModels/Setting');
 
-const listAllSettings = async () => {
+const listAllSettings = async (adminId) => {
   try {
-    //  Query the database for a list of all results
-    const result = await Model.find({
+    const query = {
       removed: false,
-    }).exec();
+    };
+
+    // Tenant isolation: settings belong to the admin who owns them.
+    if (adminId) {
+      query.createdBy = adminId;
+    }
+
+    //  Query the database for a list of all results
+    const result = await Model.find(query).exec();
 
     if (result.length > 0) {
       return result;

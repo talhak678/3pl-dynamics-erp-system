@@ -5,6 +5,7 @@ const Model = mongoose.model('Invoice');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
+const { ownerFilter } = require('../../../middlewares/ownership');
 const schema = require('./schemaValidate');
 
 const update = async (req, res) => {
@@ -23,7 +24,16 @@ const update = async (req, res) => {
   const previousInvoice = await Model.findOne({
     _id: req.params.id,
     removed: false,
+    ...ownerFilter(req),
   });
+
+  if (!previousInvoice) {
+    return res.status(404).json({
+      success: false,
+      result: null,
+      message: 'Invoice not found',
+    });
+  }
 
   const { credit } = previousInvoice;
 
@@ -66,10 +76,24 @@ const update = async (req, res) => {
   let paymentStatus =
     calculate.sub(total, discount) === credit ? 'paid' : credit > 0 ? 'partially' : 'unpaid';
   body['paymentStatus'] = paymentStatus;
+  // Ownership is immutable: never let a caller reassign a record to someone else.
+  delete body.createdBy;
 
-  const result = await Model.findOneAndUpdate({ _id: req.params.id, removed: false }, body, {
-    new: true, // return the new result instead of the old one
-  }).exec();
+  const result = await Model.findOneAndUpdate(
+    { _id: req.params.id, removed: false, ...ownerFilter(req) },
+    body,
+    {
+      new: true, // return the new result instead of the old one
+    }
+  ).exec();
+
+  if (!result) {
+    return res.status(404).json({
+      success: false,
+      result: null,
+      message: 'Invoice not found',
+    });
+  }
 
   // Returning successfull response
 

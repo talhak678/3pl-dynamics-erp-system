@@ -47,14 +47,16 @@ async function setupApp() {
       settingFiles.push(...file);
     }
 
-    await Setting.insertMany(settingFiles);
+    await Setting.insertMany(settingFiles.map((setting) => ({ ...setting, createdBy: result._id })));
 
     console.log('👍 Settings created : Done!');
 
     const PaymentMode = require('../models/appModels/PaymentMode');
     const Taxes = require('../models/appModels/Taxes');
 
-    await Taxes.insertMany([{ taxName: 'Tax 0%', taxValue: '0', isDefault: true }]);
+    await Taxes.insertMany([
+      { taxName: 'Tax 0%', taxValue: '0', isDefault: true, createdBy: result._id },
+    ]);
     console.log('👍 Taxes created : Done!');
 
     await PaymentMode.insertMany([
@@ -62,6 +64,7 @@ async function setupApp() {
         name: 'Default Payment',
         description: 'Default Payment Mode (Cash , Wire Transfer)',
         isDefault: true,
+        createdBy: result._id,
       },
     ]);
     console.log('👍 PaymentMode created : Done!');

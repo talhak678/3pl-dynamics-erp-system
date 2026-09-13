@@ -1,6 +1,6 @@
 const Model = require('../../models/coreModels/Setting');
 
-const listBySettingKey = async ({ settingKeyArray = [] }) => {
+const listBySettingKey = async ({ settingKeyArray = [], adminId }) => {
   try {
     // Find document by id
 
@@ -13,7 +13,15 @@ const listBySettingKey = async ({ settingKeyArray = [] }) => {
     for (const settingKey of settingKeyArray) {
       settingsToShow.$or.push({ settingKey });
     }
-    let results = await Model.find({ ...settings }).where('removed', false);
+
+    const query = { ...settingsToShow };
+
+    // Tenant isolation: a tenant can only read their own settings.
+    if (adminId) {
+      query.createdBy = adminId;
+    }
+
+    let results = await Model.find(query).where('removed', false);
 
     // If no results found, return document not found
     if (results.length >= 1) {

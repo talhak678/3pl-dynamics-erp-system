@@ -1,5 +1,7 @@
 const Model = require('../../../models/coreModels/Setting');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const listAll = async (req, res) => {
   const sort = parseInt(req.query.sort) || 'desc';
 
@@ -7,6 +9,7 @@ const listAll = async (req, res) => {
   const result = await Model.find({
     removed: false,
     isPrivate: false,
+    ...ownerFilter(req),
   }).sort({ created: sort });
 
   if (result.length > 0) {

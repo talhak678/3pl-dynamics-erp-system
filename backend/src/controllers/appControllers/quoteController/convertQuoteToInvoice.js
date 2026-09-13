@@ -4,11 +4,14 @@ const moment = require('moment');
 const Model = mongoose.model('Quote');
 const InvoiceModel = mongoose.model('Invoice');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const convertQuoteToInvoice = async (req, res) => {
   // Fetch the quote from the database
   const quote = await Model.findOne({
     _id: req.params.id,
     removed: false,
+    ...ownerFilter(req),
   }).exec();
 
   if (!quote) {

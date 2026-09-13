@@ -1,13 +1,20 @@
 const Model = require('../../models/coreModels/Setting');
 
-const updateBySettingKey = async ({ settingKey, settingValue }) => {
+const updateBySettingKey = async ({ settingKey, settingValue, adminId }) => {
   try {
     if (!settingKey || !settingValue) {
       return null;
     }
 
+    const filter = { settingKey };
+
+    // Tenant isolation: a tenant can only ever write their own settings.
+    if (adminId) {
+      filter.createdBy = adminId;
+    }
+
     const result = await Model.findOneAndUpdate(
-      { settingKey },
+      filter,
       {
         settingValue,
       },

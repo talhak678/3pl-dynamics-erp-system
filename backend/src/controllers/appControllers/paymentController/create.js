@@ -5,6 +5,7 @@ const Invoice = mongoose.model('Invoice');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const create = async (req, res) => {
   // Creating a new document in the collection
@@ -19,7 +20,16 @@ const create = async (req, res) => {
   const currentInvoice = await Invoice.findOne({
     _id: req.body.invoice,
     removed: false,
+    ...ownerFilter(req),
   });
+
+  if (!currentInvoice) {
+    return res.status(404).json({
+      success: false,
+      result: null,
+      message: 'Invoice not found',
+    });
+  }
 
   const {
     total: previousTotal,
@@ -45,6 +55,7 @@ const create = async (req, res) => {
     {
       _id: result._id.toString(),
       removed: false,
+      ...ownerFilter(req),
     },
     { pdf: fileId },
     {
@@ -64,7 +75,7 @@ const create = async (req, res) => {
       : 'unpaid';
 
   const invoiceUpdate = await Invoice.findOneAndUpdate(
-    { _id: req.body.invoice },
+    { _id: req.body.invoice, ...ownerFilter(req) },
     {
       $push: { payment: paymentId.toString() },
       $inc: { credit: amount },

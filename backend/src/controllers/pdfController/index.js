@@ -113,7 +113,9 @@ exports.generatePdf = async (
     const { targetLocation } = info;
 
     if (pugFiles.includes(modelName.toLowerCase())) {
-      const settings = await loadSettings();
+      // Tenant isolation: render the PDF with the settings of the admin who owns
+      // the document, never with another tenant's configuration.
+      const settings = await loadSettings(info.adminId);
       const selectedLang = settings['idurar_app_language'];
       const translate = useLanguage({ selectedLang });
 

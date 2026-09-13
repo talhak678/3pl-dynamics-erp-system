@@ -1,4 +1,5 @@
 const { migrate } = require('./migrate');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const listAll = async (Model, req, res) => {
   const sort = parseInt(req.query.sort) || 'desc';
@@ -6,6 +7,7 @@ const listAll = async (Model, req, res) => {
   //  Query the database for a list of all results
   const result = await Model.find({
     removed: false,
+    ...ownerFilter(req),
   })
     .sort({ created: sort })
     .populate()

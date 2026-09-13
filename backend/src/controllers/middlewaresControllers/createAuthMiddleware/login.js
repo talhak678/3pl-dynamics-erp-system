@@ -3,6 +3,7 @@ const Joi = require('joi');
 const mongoose = require('mongoose');
 
 const authUser = require('./authUser');
+const { ensureTenantSettings } = require('../../../middlewares/settings');
 
 const login = async (req, res, { userModel }) => {
   const UserPasswordModel = mongoose.model(userModel + 'Password');
@@ -46,6 +47,11 @@ const login = async (req, res, { userModel }) => {
       result: null,
       message: 'Your account is disabled, contact your account adminstrator',
     });
+
+  // Strict isolation means a tenant owns their settings outright. Give them
+  // their private copy of the defaults on first login so invoices, quotes and
+  // PDFs keep working. Best effort - it must never block authentication.
+  await ensureTenantSettings(user._id);
 
   //  authUser if your has correct password
   authUser(req, res, {

@@ -10,6 +10,11 @@ const settingSchema = new mongoose.Schema({
     default: true,
   },
 
+  createdBy: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Admin',
+  },
+
   settingCategory: {
     type: String,
     required: true,

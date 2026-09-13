@@ -6,6 +6,7 @@ const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
 const { increaseBySettingKey } = require('../../../middlewares/settings');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const create = async (req, res) => {
   const { items = [], taxRate = 0, discount = 0 } = req.body;
@@ -39,7 +40,7 @@ const create = async (req, res) => {
   const result = await new Model(body).save();
   const fileId = 'offer-' + result._id + '.pdf';
   const updateResult = await Model.findOneAndUpdate(
-    { _id: result._id },
+    { _id: result._id, ...ownerFilter(req) },
     { pdf: fileId },
     {
       new: true,
@@ -49,6 +50,7 @@ const create = async (req, res) => {
 
   increaseBySettingKey({
     settingKey: 'last_offer_number',
+    adminId: req.admin._id,
   });
 
   // Returning successfull response

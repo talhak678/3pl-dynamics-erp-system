@@ -6,6 +6,11 @@ const schema = new mongoose.Schema({
     default: false,
   },
 
+  createdBy: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Admin',
+  },
+
   date: {
     type: Date,
     default: Date.now,

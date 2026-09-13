@@ -1,10 +1,15 @@
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const update = async (Model, req, res) => {
   // Find document by id and update with the required fields
   req.body.removed = false;
+  // Ownership is immutable: never let a caller reassign a record to someone else.
+  delete req.body.createdBy;
   const result = await Model.findOneAndUpdate(
     {
       _id: req.params.id,
       removed: false,
+      ...ownerFilter(req),
     },
     req.body,
     {

@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const OfferModel = mongoose.model('Offer');
 const { Resend } = require('resend');
 const { loadSettings } = require('../../../middlewares/settings');
+const { ownerFilter } = require('../../../middlewares/ownership');
 const { useAppSettings } = require('../../../settings');
 
 const mail = async (req, res) => {
@@ -18,6 +19,7 @@ const mail = async (req, res) => {
   const result = await OfferModel.findOne({
     _id: id,
     removed: false,
+    ...ownerFilter(req),
   }).exec();
 
   // Throw error if no result
@@ -46,7 +48,7 @@ const mail = async (req, res) => {
 
   await custom.generatePdf(
     modelName,
-    { filename: folderPath, format: 'A4', targetLocation },
+    { filename: folderPath, format: 'A4', targetLocation, adminId: req.admin._id },
     result,
     async () => {
       const { id: mailId } = await sendViaApi({
@@ -56,7 +58,10 @@ const mail = async (req, res) => {
       });
 
       if (mailId) {
-        OfferModel.findByIdAndUpdate({ _id: id, removed: false }, { status: 'sent' })
+        OfferModel.findOneAndUpdate(
+          { _id: id, removed: false, ...ownerFilter(req) },
+          { status: 'sent' }
+        )
           .exec()
           .then((data) => {
             // Returning successfull response
@@ -74,7 +79,7 @@ const mail = async (req, res) => {
 const sendViaApi = async ({ email, name, targetLocation }) => {
   const resend = new Resend(process.env.RESEND_API);
 
-  const settings = await loadSettings();
+  const settings = await loadSettings(req.admin._id);
   const idurar_app_email = 'noreply@idurarapp.com';
   const idurar_app_company_email = settings['idurar_app_company_email'];
   const company_name = settings['company_name'];

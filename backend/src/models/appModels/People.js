@@ -10,6 +10,11 @@ const schema = new mongoose.Schema({
     default: true,
   },
 
+  createdBy: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Admin',
+  },
+
   firstname: {
     type: String,
     trim: true,

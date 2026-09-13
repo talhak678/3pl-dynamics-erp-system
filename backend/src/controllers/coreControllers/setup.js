@@ -85,15 +85,19 @@ const setup = async (req, res) => {
     settingData.push(...newSettings);
   }
 
-  await Setting.insertMany(settingData);
+  // Tenant isolation: the first admin owns the settings created during setup.
+  await Setting.insertMany(settingData.map((setting) => ({ ...setting, createdBy: result._id })));
 
-  await Taxes.insertMany([{ taxName: 'Tax 0%', taxValue: '0', isDefault: true }]);
+  await Taxes.insertMany([
+    { taxName: 'Tax 0%', taxValue: '0', isDefault: true, createdBy: result._id },
+  ]);
 
   await PaymentMode.insertMany([
     {
       name: 'Default Payment',
       description: 'Default Payment Mode (Cash , Wire Transfer)',
       isDefault: true,
+      createdBy: result._id,
     },
   ]);
 

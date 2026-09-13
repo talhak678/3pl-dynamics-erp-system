@@ -5,6 +5,7 @@ const Invoice = mongoose.model('Invoice');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const update = async (req, res) => {
   if (req.body.amount === 0) {
@@ -18,7 +19,16 @@ const update = async (req, res) => {
   const previousPayment = await Model.findOne({
     _id: req.params.id,
     removed: false,
+    ...ownerFilter(req),
   });
+
+  if (!previousPayment) {
+    return res.status(404).json({
+      success: false,
+      result: null,
+      message: 'No document found ',
+    });
+  }
 
   const { amount: previousAmount } = previousPayment;
   const { id: invoiceId, total, discount, credit: previousCredit } = previousPayment.invoice;
@@ -56,7 +66,7 @@ const update = async (req, res) => {
   };
 
   const result = await Model.findOneAndUpdate(
-    { _id: req.params.id, removed: false },
+    { _id: req.params.id, removed: false, ...ownerFilter(req) },
     { $set: updates },
     {
       new: true, // return the new result instead of the old one
@@ -64,7 +74,7 @@ const update = async (req, res) => {
   ).exec();
 
   const updateInvoice = await Invoice.findOneAndUpdate(
-    { _id: result.invoice._id.toString() },
+    { _id: result.invoice._id.toString(), ...ownerFilter(req) },
     {
       $inc: { credit: changedAmount },
       $set: {

@@ -1,10 +1,12 @@
 const { migrate } = require('./migrate');
+const { ownerFilter } = require('../../../middlewares/ownership');
 
 const read = async (Model, req, res) => {
   // Find document by id
   let result = await Model.findOne({
     _id: req.params.id,
     removed: false,
+    ...ownerFilter(req),
   }).exec();
   // If no results found, return document not found
   if (!result) {

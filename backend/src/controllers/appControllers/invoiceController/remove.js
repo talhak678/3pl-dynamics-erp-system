@@ -3,11 +3,14 @@ const mongoose = require('mongoose');
 const Model = mongoose.model('Invoice');
 const ModelPayment = mongoose.model('Payment');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const remove = async (req, res) => {
   const deletedInvoice = await Model.findOneAndUpdate(
     {
       _id: req.params.id,
       removed: false,
+      ...ownerFilter(req),
     },
     {
       $set: {
@@ -24,7 +27,7 @@ const remove = async (req, res) => {
     });
   }
   const paymentsInvoices = await ModelPayment.updateMany(
-    { invoice: deletedInvoice._id },
+    { invoice: deletedInvoice._id, ...ownerFilter(req) },
     { $set: { removed: true } }
   );
   return res.status(200).json({

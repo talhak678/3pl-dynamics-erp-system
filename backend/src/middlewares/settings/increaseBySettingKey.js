@@ -1,13 +1,20 @@
 const Model = require('../../models/coreModels/Setting');
 
-const increaseBySettingKey = async ({ settingKey }) => {
+const increaseBySettingKey = async ({ settingKey, adminId }) => {
   try {
     if (!settingKey) {
       return null;
     }
 
+    const filter = { settingKey };
+
+    // Tenant isolation: a tenant can only ever increment their own counters.
+    if (adminId) {
+      filter.createdBy = adminId;
+    }
+
     const result = await Model.findOneAndUpdate(
-      { settingKey },
+      filter,
       {
         $inc: { settingValue: 1 },
       },

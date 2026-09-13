@@ -1,3 +1,5 @@
+const { ownerFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+
 const filter = async (Model, req, res) => {
   if (req.query.filter === undefined || req.query.equal === undefined) {
     return res.status(403).json({
@@ -6,8 +8,17 @@ const filter = async (Model, req, res) => {
       message: 'filter not provided correctly',
     });
   }
+  // The .where() builder would override the ownership clause, so reject it outright.
+  if (isReservedFilterKey(req.query.filter)) {
+    return res.status(403).json({
+      success: false,
+      result: null,
+      message: 'filter not provided correctly',
+    });
+  }
   const result = await Model.find({
     removed: false,
+    ...ownerFilter(req),
   })
     .where(req.query.filter)
     .equals(req.query.equal)

@@ -1,5 +1,7 @@
 const Model = require('../../../models/coreModels/Setting');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const listBySettingKey = async (req, res) => {
   // Find document by id
 
@@ -24,6 +26,7 @@ const listBySettingKey = async (req, res) => {
 
   let results = await Model.find({
     ...settingsToShow,
+    ...ownerFilter(req),
   }).where('removed', false);
 
   // If no results found, return document not found

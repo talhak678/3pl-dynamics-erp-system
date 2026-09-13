@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const Model = mongoose.model('Invoice');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const paginatedList = async (req, res) => {
   const page = req.query.page || 1;
   const limit = parseInt(req.query.items) || 10;
@@ -25,6 +27,7 @@ const paginatedList = async (req, res) => {
 
     [filter]: equal,
     ...fields,
+    ...ownerFilter(req),
   })
     .skip(skip)
     .limit(limit)
@@ -38,6 +41,7 @@ const paginatedList = async (req, res) => {
 
     [filter]: equal,
     ...fields,
+    ...ownerFilter(req),
   });
 
   // Resolving both promises

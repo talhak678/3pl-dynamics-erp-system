@@ -6,6 +6,10 @@ const updateManySetting = async (req, res) => {
   const updateDataArray = [];
   const { settings } = req.body;
 
+  // Tenant isolation: every write is scoped to the authenticated admin, so one
+  // tenant can never overwrite another tenant's settings.
+  const owner = req.admin._id;
+
   for (const setting of settings) {
     if (!setting.hasOwnProperty('settingKey') || !setting.hasOwnProperty('settingValue')) {
       settingsHasError = true;
@@ -16,8 +20,8 @@ const updateManySetting = async (req, res) => {
 
     updateDataArray.push({
       updateOne: {
-        filter: { settingKey: settingKey },
-        update: { settingValue: settingValue },
+        filter: { settingKey: settingKey, createdBy: owner },
+        update: { settingValue: settingValue, createdBy: owner },
       },
     });
   }

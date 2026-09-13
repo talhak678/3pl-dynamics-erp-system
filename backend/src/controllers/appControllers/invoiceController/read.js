@@ -2,11 +2,14 @@ const mongoose = require('mongoose');
 
 const Model = mongoose.model('Invoice');
 
+const { ownerFilter } = require('../../../middlewares/ownership');
+
 const read = async (req, res) => {
   // Find document by id
   const result = await Model.findOne({
     _id: req.params.id,
     removed: false,
+    ...ownerFilter(req),
   })
     .populate('createdBy', 'name')
     .exec();

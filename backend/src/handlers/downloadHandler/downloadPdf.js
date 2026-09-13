@@ -28,9 +28,16 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
         fs.mkdirSync(tmpDir, { recursive: true });
       }
       const targetLocation = path.join(tmpDir, fileId);
+      // The /download route is public (client-facing links), so the tenant is
+      // derived from the document itself rather than from a session.
       const { pdfBuffer, htmlContent } = await custom.generatePdf(
         modelName,
-        { filename: folderPath, format: 'A4', targetLocation },
+        {
+          filename: folderPath,
+          format: 'A4',
+          targetLocation,
+          adminId: result.createdBy,
+        },
         result
       );
 
