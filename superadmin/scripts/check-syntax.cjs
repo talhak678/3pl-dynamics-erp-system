@@ -22,7 +22,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..');
+// With no argument this checks its own project. With one, the path is resolved
+// against the working directory rather than against this script, so
+// `node superadmin/scripts/check-syntax.cjs frontend` means what it looks like:
+//   node scripts/check-syntax.cjs ../frontend
+const ROOT = process.argv[2]
+  ? path.resolve(process.cwd(), process.argv[2])
+  : path.resolve(__dirname, '..');
 
 let esbuild;
 try {
@@ -67,7 +73,13 @@ for (const file of files) {
   const source = fs.readFileSync(file, 'utf8');
   try {
     esbuild.transformSync(source, {
-      loader: file.endsWith('.jsx') ? 'jsx' : 'js',
+      // The jsx loader is a superset of js — it parses plain JavaScript too —
+      // so one loader covers both extensions. This matches what
+      // @vitejs/plugin-react actually does: its default `include` is
+      // /\.[tj]sx?$/, so its Babel pass handles .js files as well and JSX in a
+      // .js file is valid here. Using the `js` loader would report false
+      // failures on those files.
+      loader: 'jsx',
       // Leave the code alone — we only want it parsed, not rewritten.
       format: 'esm',
     });

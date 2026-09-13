@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Button, Drawer, Layout, Menu } from 'antd';
 
 import { useAppContext } from '@/context/appContext';
+
+import { selectCurrentAdmin } from '@/redux/auth/selectors';
+import { resolveModules } from '@/utils/modulePermissions';
 
 import useLanguage from '@/locale/useLanguage';
 import lightLogo from '@/style/images/light-logo.png';
@@ -33,6 +37,38 @@ import {
 
 const { Sider } = Layout;
 
+/**
+ * Narrows the navigation tree to the modules an account has been granted.
+ *
+ * The "empty or absent list means every module" rule lives in
+ * utils/modulePermissions.js, which the route guard reads too — so the menu and
+ * the routes can never disagree about who may see what.
+ *
+ * Returns the array untouched when the account is unrestricted, so the common
+ * case allocates nothing.
+ */
+const filterByModules = (items, admin) => {
+  const granted = resolveModules(admin);
+
+  if (!granted) return items;
+
+  return items.reduce((visible, item) => {
+    // 'settingsMenu' is a container, not a module, so it has no entry in the
+    // server's MODULE_KEYS and can never appear in the allow-list. Matching it
+    // on its own key would drop the whole Settings group even for an account
+    // granted generalSettings, taxes or help. It survives on its children and
+    // falls away only once none of them are granted.
+    if (Array.isArray(item.children)) {
+      const children = item.children.filter((child) => granted.includes(child.key));
+      if (children.length > 0) visible.push({ ...item, children });
+      return visible;
+    }
+
+    if (granted.includes(item.key)) visible.push(item);
+    return visible;
+  }, []);
+};
+
 export default function Navigation() {
   const { isMobile } = useResponsive();
 
@@ -50,6 +86,7 @@ function Sidebar({ collapsible, isMobile = false }) {
 
   const translate = useLanguage();
   const navigate = useNavigate();
+  const currentAdmin = useSelector(selectCurrentAdmin);
 
   const items = [
     {
@@ -153,6 +190,8 @@ function Sidebar({ collapsible, isMobile = false }) {
     },
   ];
 
+  const visibleItems = filterByModules(items, currentAdmin);
+
   useEffect(() => {
     if (location)
       if (currentPath !== location.pathname) {
@@ -189,7 +228,7 @@ function Sidebar({ collapsible, isMobile = false }) {
         )}
       </div>
       <Menu
-        items={items}
+        items={visibleItems}
         mode="inline"
         theme={theme}
         selectedKeys={[currentPath]}

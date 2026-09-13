@@ -2,6 +2,8 @@ import { lazy } from 'react';
 
 import { Navigate } from 'react-router-dom';
 
+import RequireModule from './RequireModule';
+
 const Logout = lazy(() => import('@/pages/Logout.jsx'));
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
 
@@ -43,6 +45,24 @@ const Profile = lazy(() => import('@/pages/Profile'));
 
 const About = lazy(() => import('@/pages/About'));
 
+/**
+ * Attaches the route guard. The module key is written next to the path it
+ * protects rather than derived, so a route and its module can never drift apart
+ * — the module is named at the route it applies to.
+ *
+ * A route left unguarded is a deliberate choice, not an omission:
+ *
+ *   /login, /logout  must stay reachable — refusing the page a tenant signs out
+ *                    through would strand them.
+ *   /profile         cross-cutting, like /admin/profile on the backend: it is
+ *                    the account's own details, not a module.
+ *   /payment/mode    no module key covers it (its navigation entry is commented
+ *                    out in NavigationContainer.jsx), and the backend guard
+ *                    lets it through for the same reason.
+ *   *                the 404 must render for any path at all.
+ */
+const guarded = (module, element) => <RequireModule module={module}>{element}</RequireModule>;
+
 let routes = {
   expense: [],
   default: [
@@ -55,78 +75,80 @@ let routes = {
       element: <Logout />,
     },
     {
+      // Same component as /help, and reachable by typing it even though nothing
+      // links here. Guarded identically so it is not a way around that guard.
       path: '/about',
-      element: <About />,
+      element: guarded('help', <About />),
     },
     {
       path: '/help',
-      element: <About />,
+      element: guarded('help', <About />),
     },
     {
       path: '/',
-      element: <Dashboard />,
+      element: guarded('dashboard', <Dashboard />),
     },
     {
       path: '/customer',
-      element: <Customer />,
+      element: guarded('customer', <Customer />),
     },
 
     {
       path: '/invoice',
-      element: <Invoice />,
+      element: guarded('invoice', <Invoice />),
     },
     {
       path: '/invoice/create',
-      element: <InvoiceCreate />,
+      element: guarded('invoice', <InvoiceCreate />),
     },
     {
       path: '/invoice/read/:id',
-      element: <InvoiceRead />,
+      element: guarded('invoice', <InvoiceRead />),
     },
     {
       path: '/invoice/update/:id',
-      element: <InvoiceUpdate />,
+      element: guarded('invoice', <InvoiceUpdate />),
     },
     {
       path: '/invoice/pay/:id',
-      element: <InvoiceRecordPayment />,
+      element: guarded('invoice', <InvoiceRecordPayment />),
     },
     {
       path: '/quote',
-      element: <Quote />,
+      element: guarded('quote', <Quote />),
     },
     {
       path: '/quote/create',
-      element: <QuoteCreate />,
+      element: guarded('quote', <QuoteCreate />),
     },
     {
       path: '/quote/read/:id',
-      element: <QuoteRead />,
+      element: guarded('quote', <QuoteRead />),
     },
     {
       path: '/quote/update/:id',
-      element: <QuoteUpdate />,
+      element: guarded('quote', <QuoteUpdate />),
     },
     {
       path: '/payment',
-      element: <Payment />,
+      element: guarded('payment', <Payment />),
     },
     {
       path: '/payment/read/:id',
-      element: <PaymentRead />,
+      element: guarded('payment', <PaymentRead />),
     },
     {
       path: '/payment/update/:id',
-      element: <PaymentUpdate />,
+      element: guarded('payment', <PaymentUpdate />),
     },
 
     {
       path: '/settings',
-      element: <Settings />,
+      element: guarded('generalSettings', <Settings />),
     },
     {
       path: '/settings/edit/:settingsKey',
-      element: <Settings />,
+      element: guarded('generalSettings', <Settings />),
     },
     {
       path: '/payment/mode',
@@ -134,55 +156,55 @@ let routes = {
     },
     {
       path: '/taxes',
-      element: <Taxes />,
+      element: guarded('taxes', <Taxes />),
     },
     {
       path: '/people',
-      element: <People />,
+      element: guarded('people', <People />),
     },
     {
       path: '/company',
-      element: <Company />,
+      element: guarded('company', <Company />),
     },
     {
       path: '/lead',
-      element: <Lead />,
+      element: guarded('lead', <Lead />),
     },
     {
       path: '/offer',
-      element: <Offer />,
+      element: guarded('offer', <Offer />),
     },
     {
       path: '/offer/create',
-      element: <OfferCreate />,
+      element: guarded('offer', <OfferCreate />),
     },
     {
       path: '/offer/read/:id',
-      element: <OfferRead />,
+      element: guarded('offer', <OfferRead />),
     },
     {
       path: '/offer/update/:id',
-      element: <OfferUpdate />,
+      element: guarded('offer', <OfferUpdate />),
     },
     {
       path: '/product',
-      element: <Product />,
+      element: guarded('product', <Product />),
     },
     {
       path: '/category/product',
-      element: <ProductCategory />,
+      element: guarded('category/product', <ProductCategory />),
     },
     {
       path: '/order',
-      element: <Order />,
+      element: guarded('order', <Order />),
     },
     {
       path: '/expenses',
-      element: <Expense />,
+      element: guarded('expenses', <Expense />),
     },
     {
       path: '/category/expenses',
-      element: <ExpenseCategory />,
+      element: guarded('category/expenses', <ExpenseCategory />),
     },
 
     {

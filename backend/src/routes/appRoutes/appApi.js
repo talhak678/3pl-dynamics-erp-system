@@ -4,6 +4,12 @@ const router = express.Router();
 
 const appControllers = require('../../controllers/appControllers');
 const { routesList } = require('../../models/utils');
+const requireModuleAccess = require('../../middlewares/requireModuleAccess');
+
+// Registered ahead of the entity routes below so it runs first for every request
+// this router handles. req.admin is already populated by the time we get here:
+// app.js mounts this router behind adminAuth.isValidAuthToken.
+router.use(requireModuleAccess);
 
 const routerApp = (entity, controller) => {
   router.route(`/${entity}/create`).post(catchErrors(controller['create']));
