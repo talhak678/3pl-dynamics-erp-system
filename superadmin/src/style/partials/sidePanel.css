@@ -1,0 +1,9 @@
+.sidePanel {
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.sidePanelContent {
+  transition: all 0.3s ease-in-out;
+  margin-top: 0;
+}

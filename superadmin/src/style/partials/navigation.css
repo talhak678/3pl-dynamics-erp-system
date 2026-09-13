@@ -1,0 +1,114 @@
+.navigation {
+  background: var(--app-surface);
+  border-right: 1px solid var(--app-border);
+}
+
+.navigation::-webkit-scrollbar {
+  display: none;
+}
+
+.logo {
+  height: 85px;
+  margin: 10px auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 175px;
+  overflow: hidden;
+}
+
+.logo img {
+  display: block;
+  width: 155px;
+  height: 75px;
+  max-height: 75px;
+  object-fit: contain;
+}
+
+.sidebar-wraper {
+  background: var(--app-surface);
+  display: block;
+}
+
+.mobile-sidebar-wraper {
+  display: none;
+}
+
+.mobile-sidebar-wraper .ant-drawer-body {
+  padding: 12px 0px !important;
+}
+
+.mobile-navigation-drawer .ant-drawer-header {
+  display: none !important;
+}
+
+.mobile-navigation-drawer .ant-drawer-body {
+  padding: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-navigation-drawer .ant-drawer-body::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-navigation-drawer,
+.mobile-navigation-drawer .ant-drawer-content {
+  overflow: hidden !important;
+}
+
+.mobile-navigation-drawer .navigation {
+  width: 250px !important;
+  max-width: 250px !important;
+}
+
+.ant-btn.mobile-sidebar-btn {
+  margin-right: auto;
+  color: var(--app-text);
+}
+
+.tabsNavigation span {
+  background-color: transparent;
+}
+
+.tabsNavigation:hover span {
+  box-shadow: 0px 0px 30px 8px rgba(0, 115, 255, 0.15);
+  background-color: transparent;
+}
+
+@media only screen and (max-width: 768px) {
+  .sidebar-wraper {
+    display: none;
+    width: 0;
+    min-width: 0;
+    flex: 0 0 0;
+  }
+
+  .mobile-navigation-trigger {
+    position: relative;
+    width: 0;
+    min-width: 0;
+    flex: 0 0 0;
+    overflow: visible;
+  }
+
+  .navigation {
+    height: auto;
+  }
+
+  .ant-btn.mobile-sidebar-btn {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    z-index: 51;
+    margin: 0 !important;
+  }
+
+  .mobile-sidebar-wraper {
+    display: none;
+    width: 0;
+  }
+}

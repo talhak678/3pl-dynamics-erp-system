@@ -1,0 +1,10 @@
+* {
+  font-family: 'Inter', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg) !important;
+  color: var(--app-text);
+}

@@ -1,0 +1,60 @@
+.notification::-webkit-scrollbar {
+  width: 4px;
+  height: 60px;
+}
+.notification::-webkit-scrollbar-thumb {
+  background: var(--color-brand-500);
+  border-radius: 4px;
+}
+.headerIcon {
+  position: relative;
+}
+
+.headerIcon.ant-avatar {
+  float: right;
+  margin-left: 10px;
+  margin-top: 15px;
+  color: var(--app-text-secondary);
+  background: transparent;
+}
+.headerIcon.ant-avatar :hover {
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-lg);
+  cursor: pointer;
+}
+
+.headerIcon .last {
+  margin-right: 30px;
+}
+
+.profileDropdown {
+  display: flex;
+  min-width: 200px;
+}
+.profileDropdownInfo {
+  float: left;
+  display: inline;
+  padding-left: 15px;
+}
+
+.profileDropdownInfo p {
+  margin: 0;
+}
+
+.theme-toggle {
+  color: var(--app-text-secondary);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.theme-toggle:hover {
+  color: var(--app-primary) !important;
+  border-color: var(--app-primary) !important;
+  background: var(--app-surface-muted) !important;
+}
+
+@media only screen and (max-width: 768px) {
+  .app-header {
+    position: relative;
+  }
+}
