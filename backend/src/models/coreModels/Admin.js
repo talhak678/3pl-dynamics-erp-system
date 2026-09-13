@@ -45,10 +45,12 @@ const adminSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  // Descriptive label only. `isSuperAdmin` is the authoritative gate that
+  // requireSuperAdmin checks, so changing this value grants no access by itself.
   role: {
     type: String,
     default: 'owner',
-    enum: ['owner'],
+    enum: ['owner', 'superadmin'],
   },
 });
 
