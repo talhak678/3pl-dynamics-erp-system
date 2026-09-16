@@ -5,11 +5,24 @@ const moment = require('moment');
 const custom = require('../pdfController');
 const { resolveModules } = require('../../utils/moduleList');
 
-const invoiceSummary = require('../appControllers/invoiceController/summary');
-const quoteSummary = require('../appControllers/quoteController/summary');
-const offerSummary = require('../appControllers/offerController/summary');
-const paymentSummary = require('../appControllers/paymentController/summary');
-const clientSummary = require('../appControllers/clientController/summary');
+// The assembled controllers, not the summary modules sitting beside them.
+//
+// Four of the five export a plain (req, res) handler, but clientController's is a
+// factory — async (Model, req, res) — and only the controller that owns it knows
+// to bind the model in (see clientController/index.js). Calling the raw module
+// therefore shifts every argument by one: the factory's Model receives the
+// express request, its req receives the response stand-in below, and its res
+// receives undefined, so the first property it reads throws.
+//
+// These are the same objects the router hands its routes, so the report can
+// never call a differently-wired handler than the dashboard page does.
+const {
+  invoiceController,
+  quoteController,
+  offerController,
+  paymentController,
+  clientController,
+} = require('../appControllers');
 
 // The same asset the sidebar renders (frontend/src/style/images/light-logo.png),
 // copied under src/public because vercel.json already ships that directory into
@@ -51,6 +64,12 @@ const logoDataUri = () => {
  * is the whole of what it needs — no Express response is involved.
  */
 const collect = async (handler, req) => {
+  // A controller that failed to assemble would otherwise surface as the opaque
+  // "handler is not a function" from the call at the bottom of this function.
+  if (typeof handler !== 'function') {
+    throw new Error('Dashboard report could not load a summary controller');
+  }
+
   let payload = null;
 
   const res = {
@@ -83,11 +102,11 @@ const downloadDashboardReport = async (req, res) => {
     const can = (moduleKey) => granted.includes(moduleKey);
 
     const [invoice, quote, offer, payment, client] = await Promise.all([
-      can('invoice') ? collect(invoiceSummary, req) : null,
-      can('quote') ? collect(quoteSummary, req) : null,
-      can('offer') ? collect(offerSummary, req) : null,
-      can('payment') ? collect(paymentSummary, req) : null,
-      can('customer') ? collect(clientSummary, req) : null,
+      can('invoice') ? collect(invoiceController.summary, req) : null,
+      can('quote') ? collect(quoteController.summary, req) : null,
+      can('offer') ? collect(offerController.summary, req) : null,
+      can('payment') ? collect(paymentController.summary, req) : null,
+      can('customer') ? collect(clientController.summary, req) : null,
     ]);
 
     const fullName = [admin.name, admin.surname].filter(Boolean).join(' ').trim();
