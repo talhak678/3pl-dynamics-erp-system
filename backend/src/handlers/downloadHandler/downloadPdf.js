@@ -20,7 +20,11 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
 
       // Continue process if result is returned
 
+      // Two names, deliberately. The temp file on disk stays keyed by id so two
+      // documents sharing a number can never collide in the shared temp
+      // directory. The name the browser saves under is the professional one.
       const fileId = modelName.toLowerCase() + '-' + result._id + '.pdf';
+      const downloadName = custom.pdfDocumentName(modelName, result);
       const folderPath = modelName.toLowerCase();
       // Use os.tmpdir() for Vercel compatibility (read-only filesystem)
       const tmpDir = path.join(os.tmpdir(), 'download', folderPath);
@@ -43,7 +47,10 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
 
       if (pdfBuffer) {
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileId}"`);
+        // This header, not the URL, is what names the saved file. The route
+        // path still ends in the id — the handler parses the id out of it — so
+        // the professional name has to come from here or not at all.
+        res.setHeader('Content-Disposition', `attachment; filename="${downloadName}.pdf"`);
         res.setHeader('Content-Length', pdfBuffer.length);
         return res.end(pdfBuffer);
       } else if (htmlContent) {
