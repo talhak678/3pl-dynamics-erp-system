@@ -50,11 +50,16 @@ const login = async (req, res, { userModel }) => {
 
   // Kill switch. Checked against exactly `false` so a document that predates
   // the field is not mistaken for a suspended account.
+  //
+  // No jwtExpired flag here, deliberately. This is a failed sign-in attempt, not
+  // an expired session: there are no credentials to tear down, and setting the
+  // flag would send the client looking for a session to end. The message alone
+  // is enough — the sign-in form shows it without any redirect.
   if (user.isActive === false) {
     return res.status(403).json({
       success: false,
       result: null,
-      message: 'Account suspended',
+      message: 'Account Suspended, please contact our support team',
     });
   }
 

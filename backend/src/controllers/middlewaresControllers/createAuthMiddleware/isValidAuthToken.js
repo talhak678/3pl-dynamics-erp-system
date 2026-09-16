@@ -55,11 +55,19 @@ const isValidAuthToken = async (req, res, next, { userModel, jwtSecret = 'JWT_SE
       // Kill switch. Placed here rather than only at login so that suspending
       // an account invalidates its live sessions on the next request instead of
       // whenever the token happens to expire.
+      //
+      // jwtExpired is what marks this as a dead session, matching every 401
+      // above, and the client relies on it to tell this 403 apart from the
+      // module-access 403 returned by middlewares/requireModuleAccess.js. Only
+      // this one may end the session; the other is a live session being told
+      // "not this module", and signing that user out would be a gross
+      // overreaction.
       if (user.isActive === false) {
         return res.status(403).json({
           success: false,
           result: null,
-          message: 'Account suspended',
+          message: 'Account Suspended, please contact our support team',
+          jwtExpired: true,
         });
       }
 
