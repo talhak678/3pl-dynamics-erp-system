@@ -34,10 +34,30 @@ const isOnSignInPage = () => {
 const endDeadSession = (message) => {
   const hadSession = Boolean(window.localStorage.getItem('auth'));
 
-  window.localStorage.removeItem('auth');
-  window.localStorage.removeItem('isLogout');
+  // Read once, up front. Two decisions below depend on it, and both have to see
+  // the same value: what to tell the user, and whether the sign-out flag is
+  // still ours to clear.
+  const signingOut = isSigningOut();
 
-  const willRedirect = hadSession && !isOnSignInPage();
+  window.localStorage.removeItem('auth');
+
+  // The sign-out flag is left alone while a sign-out is under way, because
+  // redux/auth/actions.js owns it: it clears the flag itself when the logout
+  // request fails, and the next successful sign-in clears it otherwise. This
+  // file reads the flag to know which requests are expected to fail, so
+  // clearing it here ends that window early — and the second of two replies to
+  // a pair of residual requests then finds the window shut and puts a raw
+  // technical string on the sign-in page. Which is the bug this guards.
+  if (!signingOut) {
+    window.localStorage.removeItem('isLogout');
+  }
+
+  // A sign-out owns its own navigation. Redirecting here would be a full page
+  // load in the middle of the logout flow, which can abort the logout request
+  // still in flight and leave the session alive on the server. Today the flag
+  // cannot be set while 'auth' is still present, but relying on the ordering
+  // inside another file for that is not a guarantee worth keeping.
+  const willRedirect = hadSession && !signingOut && !isOnSignInPage();
 
   // Only worth stashing when a reload is coming. With no session there is
   // nowhere to redirect to and the toast survives on its own.
@@ -78,9 +98,15 @@ const isSuspendedResponse = (response) =>
 // burst of any size collapses into one message — and the wording reads the same
 // whether one call failed or six, which is why it says "some modules" rather
 // than naming any.
-const MODULE_DENIED_NOTIFICATION_KEY = 'module-access-denied';
+//
+// Both the key and the wording are exported because the dashboard raises the
+// same notice a second way: proactively, from the permissions themselves rather
+// than from a failed call. Sharing one key means the two can never stack two
+// near-identical messages, and sharing one string means they can never disagree
+// about what it says.
+export const UPGRADE_NOTIFICATION_KEY = 'module-access-denied';
 
-const MODULE_DENIED_MESSAGE =
+export const UPGRADE_MESSAGE =
   'Your account does not have access to some modules. Some functions may not work. Please contact our support team to upgrade.';
 
 // The guard's structured `module` field is the real signal. The wording is a
@@ -91,6 +117,71 @@ const isModuleDeniedResponse = (response) =>
   response?.status === 403 &&
   (typeof response?.data?.module === 'string' ||
     MODULE_DENIED_PATTERN.test(response?.data?.message || ''));
+
+// --- Requests that raced the token being cleared -----------------------------
+//
+// The sign-out flow clears 'auth' and only then calls the API, so replies can
+// land while the session is already gone. What comes back is the JWT library
+// talking to itself — "jwt malformed", "jwt expired", "invalid signature" —
+// which means nothing to a tenant. Matching on "jwt" alone covers that whole
+// family of messages.
+const TECHNICAL_TOKEN_PATTERN = /jwt|invalid signature|invalid token|secret or public key/i;
+
+const isTechnicalTokenMessage = (message) =>
+  Boolean(message) && TECHNICAL_TOKEN_PATTERN.test(String(message));
+
+/**
+ * True while a sign-out the user asked for is in flight, or has just finished.
+ *
+ * localStorage['isLogout'] is raised by the logout action immediately before it
+ * clears 'auth', and cleared again on the next successful sign-in — so it marks
+ * exactly the window in which a failing request is expected rather than worth
+ * reporting. Anything arriving in that window is swallowed. Without this,
+ * signing out puts a raw "jwt malformed" banner on the sign-in page.
+ */
+const isSigningOut = () => {
+  try {
+    const raw = window.localStorage.getItem('isLogout');
+    return Boolean(raw && JSON.parse(raw)?.isLogout);
+  } catch (error) {
+    // Unparseable flag. Treat it as absent rather than risk leaking the banner.
+    return false;
+  }
+};
+
+// What a session that ended for a reason the server worded technically is told
+// instead. "jwt expired" and "jwt malformed" are the JWT library talking to
+// itself; this is the same event said in words a tenant can act on. The session
+// ending is not a failure they caused or can debug, but being bounced to a
+// sign-in page with no explanation at all is its own small mystery.
+export const SESSION_ENDED_MESSAGE = 'Your session has ended, please sign in again.';
+
+/**
+ * What to tell the user about a session the server has declared dead, given the
+ * server's own wording. Returns '' when there is nothing worth saying.
+ *
+ * Derived from the response before endDeadSession runs, so the reason shown and
+ * the teardown performed can never disagree about the same reply. That ordering
+ * used to be load-bearing — endDeadSession cleared the sign-out flag this reads,
+ * so resolving the notice afterwards made every sign-out look like a genuine
+ * expiry. It no longer clears that flag mid-sign-out, but reading the reply
+ * before acting on it is still the order that reads correctly.
+ */
+const sessionEndNotice = (message) => {
+  // The user asked to sign out and this is a request that raced the teardown.
+  // There is nothing to explain, and saying "your session has ended" to someone
+  // who just ended it themselves would read as an error.
+  if (isSigningOut()) return '';
+
+  // A real expiry, described by the JWT library rather than by our API.
+  if (isTechnicalTokenMessage(message)) return SESSION_ENDED_MESSAGE;
+
+  // A message from our own API — a suspension, usually — is already worded for
+  // a person, so it is passed through. The fallback covers the case of no
+  // message at all: a dead session with no explanation is worse than a generic
+  // one, and silence here would look like a session that simply vanished.
+  return message || SESSION_ENDED_MESSAGE;
+};
 
 const errorHandler = (error) => {
   if (!navigator.onLine) {
@@ -137,15 +228,28 @@ const errorHandler = (error) => {
   if (response.data && response.data.jwtExpired) {
     const message = response.data.message;
 
-    endDeadSession(message);
+    // Two reasons to say nothing at all: the user asked to sign out and this is
+    // a request that raced the token being cleared, or the server is relaying
+    // the JWT library's own wording. Either way there is nothing a tenant can
+    // act on. The first is silent; the second gets the friendly line. The
+    // session is torn down either way.
+    const notice = sessionEndNotice(message);
 
-    notification.config({
-      duration: 20,
-      maxCount: 1,
-    });
-    notification.error({
-      message: message || codeMessage[response.status],
-    });
+    endDeadSession(notice);
+
+    // An empty notice is the sign-out case, which shows nothing. There is no
+    // codeMessage fallback here because every response carrying jwtExpired also
+    // carries a message — and a fallback would have to fire during a sign-out,
+    // where the silence is the whole point.
+    if (notice) {
+      notification.config({
+        duration: 20,
+        maxCount: 1,
+      });
+      notification.error({
+        message: notice,
+      });
+    }
 
     return { success: false, result: null, message };
   }
@@ -161,6 +265,12 @@ const errorHandler = (error) => {
     // a healthy session being refused one module, and signing the user out over
     // it would throw them out of the entire app for clicking a stale menu item.
     if (isSuspendedResponse(response)) {
+      // Deliberately NOT silenced during a sign-out, even though the other
+      // branches are. This bare form — no jwtExpired flag — comes only from the
+      // sign-in endpoint, so reaching here means someone is trying to log in.
+      // The sign-out flag outlives a logout until the next successful sign-in,
+      // so silencing this would answer a suspended user's login attempt with
+      // nothing at all: no toast, no reason, a form that appears to do nothing.
       endDeadSession(message);
 
       notification.config({
@@ -189,12 +299,22 @@ const errorHandler = (error) => {
     // a burst of refusals can leave a 20-second toast behind.
     if (isModuleDeniedResponse(response)) {
       notification.error({
-        key: MODULE_DENIED_NOTIFICATION_KEY,
-        message: MODULE_DENIED_MESSAGE,
+        key: UPGRADE_NOTIFICATION_KEY,
+        message: UPGRADE_MESSAGE,
         duration: 6,
       });
 
       return response.data;
+    }
+
+    // A token the JWT library rejected outright. Handled before the generic
+    // toast rather than after it, so the raw reason never reaches the screen —
+    // which now means the friendly line rather than silence, except during a
+    // sign-out, which stays silent. This is the case that used to leave a "jwt
+    // malformed" banner behind on the sign-in page.
+    if (response?.data?.error?.name === 'JsonWebTokenError') {
+      endDeadSession(sessionEndNotice(message));
+      return { success: false, result: null, message };
     }
 
     const errorText = message || codeMessage[response.status];
@@ -208,11 +328,7 @@ const errorHandler = (error) => {
       description: errorText,
     });
 
-    if (response?.data?.error?.name === 'JsonWebTokenError') {
-      window.localStorage.removeItem('auth');
-      window.localStorage.removeItem('isLogout');
-      window.location.href = '/logout';
-    } else return response.data;
+    return response.data;
   } else {
     notification.config({
       duration: 15,

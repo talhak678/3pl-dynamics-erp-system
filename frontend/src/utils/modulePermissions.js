@@ -10,9 +10,9 @@
  * resolveModules(user) in the login payload — and treats an empty or absent list
  * as every module. The client applies the identical rule.
  *
- * No list of module keys is duplicated here, deliberately. Callers pass the key
- * they care about, so there is nothing in this file to keep in sync with the
- * server's MODULE_KEYS.
+ * Gating decisions take the key they are asked about, so nothing in this file
+ * can grant or deny a module by being out of date. The single exception is
+ * ALL_MODULES, which exists only to answer "is anything missing?" — see below.
  */
 
 /**
@@ -34,4 +34,52 @@ export const resolveModules = (admin) => {
 export const hasModule = (admin, moduleKey) => {
   const granted = resolveModules(admin);
   return granted === null || granted.includes(moduleKey);
+};
+
+/**
+ * Every grantable module. Mirrors MODULE_KEYS in backend/src/utils/moduleList.js,
+ * which is the authority.
+ *
+ * This is the one list in this file, and it earns its place: the dashboard has to
+ * decide whether to raise the upgrade notice, and "are any modules missing?"
+ * cannot be answered without knowing the total. Nothing else reads it — every
+ * gating decision still takes the key it is asked about — so drift here cannot
+ * grant or deny anything. The worst it can do is misjudge that one notice: too
+ * long and everyone sees it, too short and nobody does.
+ *
+ * Keep it in step with the server if MODULE_KEYS ever changes.
+ */
+export const ALL_MODULES = [
+  'dashboard',
+  'invoice',
+  'payment',
+  'quote',
+  'customer',
+  'people',
+  'company',
+  'lead',
+  'offer',
+  'product',
+  'category/product',
+  'order',
+  'expenses',
+  'category/expenses',
+  'report',
+  'generalSettings',
+  'taxes',
+  'help',
+];
+
+/**
+ * Whether the account holds fewer modules than exist — the condition for the
+ * dashboard's upgrade notice.
+ *
+ * An account with no allow-list at all is unrestricted rather than empty, so it
+ * is never "missing" anything and must not be nagged. That is the same
+ * empty-means-everything rule resolveModules applies, and the same one the
+ * server's guard applies.
+ */
+export const isMissingModules = (admin) => {
+  const granted = resolveModules(admin);
+  return granted !== null && granted.length < ALL_MODULES.length;
 };

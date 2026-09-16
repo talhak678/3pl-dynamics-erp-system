@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { Row, Col } from 'antd';
+import { notification, Row, Col } from 'antd';
 import useLanguage from '@/locale/useLanguage';
 
 import { useMoney } from '@/settings';
@@ -17,7 +17,8 @@ import CustomerPreviewCard from './components/CustomerPreviewCard';
 
 import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
-import { hasModule } from '@/utils/modulePermissions';
+import { hasModule, isMissingModules } from '@/utils/modulePermissions';
+import { UPGRADE_MESSAGE, UPGRADE_NOTIFICATION_KEY } from '@/request/errorHandler';
 import { useSelector } from 'react-redux';
 
 export default function DashboardModule() {
@@ -41,6 +42,34 @@ export default function DashboardModule() {
    * dashboard behaves exactly as it did before.
    */
   const can = (moduleKey) => hasModule(currentAdmin, moduleKey);
+
+  /**
+   * The upgrade notice, raised from the permissions rather than from a failed
+   * call.
+   *
+   * Now that this dashboard no longer asks for a module the account does not
+   * hold, no request is refused on this page — so the request layer's safety net
+   * has nothing to report here, and the notice has to come from the permissions
+   * themselves. A ref rather than empty deps keeps it to one showing per mount
+   * without suppressing the exhaustive-deps rule, and it works under StrictMode's
+   * double-invoke too.
+   *
+   * It shares a notification key with that safety net, so if a refusal does still
+   * arrive mid-session the two update one another instead of stacking.
+   */
+  const upgradeNoticeShown = useRef(false);
+
+  useEffect(() => {
+    if (upgradeNoticeShown.current || !isMissingModules(currentAdmin)) return;
+
+    upgradeNoticeShown.current = true;
+
+    notification.warning({
+      key: UPGRADE_NOTIFICATION_KEY,
+      message: UPGRADE_MESSAGE,
+      duration: 8,
+    });
+  }, [currentAdmin]);
 
   const getStatsData = async ({ entity, currency }) => {
     return await request.summary({

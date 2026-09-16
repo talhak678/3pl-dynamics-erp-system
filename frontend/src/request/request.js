@@ -13,14 +13,31 @@ function findKeyByPrefix(object, prefix) {
   }
 }
 
+/**
+ * Points axios at the API and brings its Authorization header in line with the
+ * stored session — setting it when there is a token, removing it when there is
+ * not.
+ *
+ * The removal is the important half. These headers live on the shared axios
+ * instance for the life of the page, so a token only ever assigned here outlives
+ * the sign-out that deleted it from localStorage — and every request made
+ * afterwards still carries it. That is the stale request behind the "jwt
+ * malformed" banner: the sign-out flow clears 'auth' and only then calls the
+ * logout endpoint, so the logout request itself was being sent with the token it
+ * was trying to retire. Clearing on the way past means there is no stale token
+ * left to send.
+ */
 function includeToken() {
   axios.defaults.baseURL = API_BASE_URL;
 
   axios.defaults.withCredentials = true;
   const auth = storePersist.get('auth');
+  const token = auth && auth.current && auth.current.token;
 
-  if (auth) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
   }
 }
 
