@@ -1,0 +1,313 @@
+doctype html
+html
+  head
+    title= pdfTitle
+    link(rel="shortcut icon" type="image/png" href="data:image/x-icon;,")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    style.
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0 40px;
+        background: #ffffff;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 12px;
+        color: #1f2430;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* Masthead ---------------------------------------------------------- */
+      table.masthead {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table.masthead td {
+        vertical-align: top;
+      }
+      .brand {
+        width: 140px;
+      }
+      .user-box {
+        text-align: right;
+      }
+      .user-box .label {
+        font-size: 9px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #9aa2ad;
+        margin-bottom: 4px;
+      }
+      .user-box .name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1f2430;
+        line-height: 1.3;
+      }
+      .user-box .email {
+        font-size: 11px;
+        color: #5d6975;
+        margin-top: 2px;
+      }
+      .rule {
+        height: 3px;
+        background: #52008c;
+        margin: 16px 0 20px;
+      }
+
+      /* Title ------------------------------------------------------------- */
+      .doc-title {
+        font-size: 25px;
+        font-weight: 700;
+        color: #52008c;
+        margin: 0;
+        letter-spacing: -0.2px;
+      }
+      .doc-sub {
+        font-size: 11px;
+        color: #8c8c8c;
+        margin: 5px 0 0;
+      }
+
+      /* KPI grid ---------------------------------------------------------- */
+      table.kpi {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 10px 10px;
+        margin: 16px -10px 6px;
+      }
+      td.kpi-cell {
+        width: 33.33%;
+        vertical-align: top;
+        background: #f7f5fa;
+        border: 1px solid #e8e2f1;
+        border-left: 3px solid #52008c;
+        padding: 12px 14px;
+      }
+      td.kpi-empty {
+        background: transparent;
+        border: none;
+        border-left: none;
+      }
+      .kpi-label {
+        font-size: 10px;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: #6b7280;
+        font-weight: 700;
+      }
+      .kpi-note {
+        font-size: 9px;
+        color: #9aa2ad;
+        margin-top: 2px;
+      }
+      .kpi-value {
+        font-size: 19px;
+        font-weight: 700;
+        color: #1f2430;
+        margin-top: 7px;
+      }
+      .kpi-sub {
+        font-size: 9px;
+        color: #8c8c8c;
+        margin-top: 3px;
+      }
+
+      /* Sections ---------------------------------------------------------- */
+      .section {
+        margin-top: 24px;
+        page-break-inside: avoid;
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #52008c;
+        margin: 0;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e8e2f1;
+      }
+      .section-note {
+        font-size: 10px;
+        color: #9aa2ad;
+        margin: 4px 0 8px;
+      }
+      table.data {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table.data th {
+        font-size: 9px;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: #52008c;
+        text-align: left;
+        padding: 7px 10px;
+        border-bottom: 1px solid #c2e0f2;
+        background: #fbf9fd;
+      }
+      table.data th.num,
+      table.data td.num {
+        text-align: right;
+        white-space: nowrap;
+      }
+      table.data td {
+        font-size: 11px;
+        padding: 7px 10px;
+        border-bottom: 1px solid #eef1f5;
+        text-transform: capitalize;
+      }
+      table.data tr:nth-child(even) td {
+        background: #fcfeff;
+      }
+      table.data tr.total-row td {
+        font-weight: 700;
+        color: #1f2430;
+        border-top: 1px solid #5d6975;
+        background: #ffffff;
+      }
+
+      .footnote {
+        margin-top: 26px;
+        padding-top: 10px;
+        border-top: 1px solid #e8e2f1;
+        font-size: 9px;
+        color: #9aa2ad;
+        text-align: center;
+      }
+  body
+    -
+      const perf = (d) => (d && Array.isArray(d.performance) ? d.performance : []);
+      const money = (v) => moneyFormatter({ amount: v || 0 });
+      const pct = (v) => String(Math.round(Number(v) || 0)) + '%';
+      const countOf = (d) => perf(d).reduce((total, item) => total + (Number(item.count) || 0), 0);
+
+      const tiles = [];
+
+      if (model.payment) {
+        tiles.push({
+          label: 'Paid Invoices',
+          note: 'This month',
+          value: money(model.payment.total),
+          sub: String(model.payment.count || 0) + ' payment(s) received',
+        });
+      }
+      if (model.invoice) {
+        tiles.push({
+          label: 'Unpaid Invoices',
+          note: 'Awaiting payment',
+          value: money(model.invoice.total_undue),
+          sub: 'of ' + money(model.invoice.total) + ' invoiced',
+        });
+      }
+      if (model.quote) {
+        tiles.push({
+          label: 'Quotes',
+          note: 'This month',
+          value: money(model.quote.total),
+          sub: String(countOf(model.quote)) + ' quotation(s) on record',
+        });
+      }
+      if (model.offer) {
+        tiles.push({
+          label: 'Offers',
+          note: 'This month',
+          value: money(model.offer.total),
+          sub: String(countOf(model.offer)) + ' offer(s) on record',
+        });
+      }
+      if (model.client) {
+        tiles.push({
+          label: 'New Customers',
+          note: 'This month',
+          value: pct(model.client.new),
+          sub: 'share of all customers',
+        });
+        tiles.push({
+          label: 'Active Customers',
+          note: 'With invoices',
+          value: pct(model.client.active),
+          sub: 'share of all customers',
+        });
+      }
+
+      // Padded to whole rows so the grid keeps its columns even when a tenant
+      // holds only some of the modules.
+      const tileRows = [];
+      for (let i = 0; i < tiles.length; i += 3) {
+        const row = tiles.slice(i, i + 3);
+        while (row.length < 3) row.push(null);
+        tileRows.push(row);
+      }
+
+      const breakdowns = [
+        { title: 'Invoices by status', data: model.invoice },
+        { title: 'Quotes by status', data: model.quote },
+        { title: 'Offers by status', data: model.offer },
+      ]
+        .filter((entry) => perf(entry.data).length > 0)
+        // Invoice rows carry no per-status amount, so the money column is shown
+        // only for the breakdowns that actually have one to show.
+        .map((entry) => ({
+          ...entry,
+          rows: perf(entry.data),
+          showMoney: perf(entry.data).some((item) => Number(item.total_amount) > 0),
+        }));
+
+    table.masthead
+      tr
+        td
+          if model.logo
+            img.brand(src=model.logo alt="3PL Dynamics")
+        td.user-box
+          .label Prepared for
+          .name= model.user.name
+          if model.user.email
+            .email= model.user.email
+
+    .rule
+
+    h1.doc-title Dashboard Summary Report
+    p.doc-sub Generated on #{model.generatedAt}
+
+    if tileRows.length
+      table.kpi
+        each row in tileRows
+          tr
+            each tile in row
+              td.kpi-cell(class=tile ? '' : 'kpi-empty')
+                if tile
+                  .kpi-label= tile.label
+                  .kpi-note= tile.note
+                  .kpi-value= tile.value
+                  .kpi-sub= tile.sub
+
+    each section in breakdowns
+      .section
+        h2.section-title= section.title
+        table.data
+          thead
+            tr
+              th Status
+              th.num Count
+              th.num Share
+              if section.showMoney
+                th.num Amount
+          tbody
+            each row in section.rows
+              tr
+                td= row.status
+                td.num= row.count || 0
+                td.num= pct(row.percentage)
+                if section.showMoney
+                  td.num= money(row.total_amount)
+            tr.total-row
+              td Total
+              td.num= countOf(section.data)
+              td.num= '100%'
+              if section.showMoney
+                td.num= money(section.data.total)
+
+    .footnote
+      | This report covers every record visible to the account named above.

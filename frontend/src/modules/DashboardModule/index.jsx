@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { notification, Row, Col } from 'antd';
+import { notification, Row, Col, Button } from 'antd';
+import { FilePdfOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 
 import { useMoney } from '@/settings';
@@ -196,9 +197,68 @@ export default function DashboardModule() {
   const showQuoteTable = can('quote');
   const showRecentTables = showInvoiceTable || showQuoteTable;
 
+  /**
+   * Pulls the summary report and hands it to the browser as a file.
+   *
+   * The endpoint answers either a PDF or — on a host with no browser to render
+   * one — the same printable page the other downloads fall back to. The reply's
+   * Content-Type decides which: a PDF is saved under the name the server chose,
+   * and a printable page is opened in a tab so the user's own browser can produce
+   * the file. Without that branch the fallback would be saved as a file called
+   * .pdf containing HTML.
+   */
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    setReportLoading(true);
+
+    try {
+      const response = await request.download({ url: 'dashboard/report' });
+
+      // A failure here has already been reported by the request layer, which
+      // returns its own shape rather than a response.
+      if (!response || !response.data) return;
+
+      const contentType = response.headers['content-type'] || '';
+      const objectUrl = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
+
+      // Long enough for either the save or the new tab to have taken it.
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 60000);
+
+      if (contentType.includes('text/html')) {
+        window.open(objectUrl, '_blank');
+        return;
+      }
+
+      const disposition = response.headers['content-disposition'] || '';
+      const filename = disposition.match(/filename="([^"]+)"/);
+
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename ? filename[1] : 'Dashboard_Report.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   if (money_format_settings) {
     return (
       <>
+        <Row justify="end" style={{ marginBottom: 20 }}>
+          <Col>
+            <Button
+              type="primary"
+              icon={<FilePdfOutlined />}
+              loading={reportLoading}
+              onClick={handleDownloadReport}
+            >
+              {translate('Download Report')}
+            </Button>
+          </Col>
+        </Row>
         <Row gutter={[32, 32]}>
           {can('payment') && (
             <SummaryCard

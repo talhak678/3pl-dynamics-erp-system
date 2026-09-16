@@ -6,7 +6,10 @@ const { loadSettings } = require('../../middlewares/settings');
 const useLanguage = require('../../locale/useLanguage');
 const { useMoney, useDate } = require('../../settings');
 
-const pugFiles = ['invoice', 'offer', 'quote', 'payment'];
+// 'report' is the Dashboard Summary Report, which is built from live figures
+// rather than from a stored document, so it is the one entry here with no model
+// behind it.
+const pugFiles = ['invoice', 'offer', 'quote', 'payment', 'report'];
 
 require('dotenv').config({ path: '.env' });
 require('dotenv').config({ path: '.env.local' });
@@ -22,6 +25,10 @@ const PDF_NAME_PREFIX = {
   quote: 'Quote',
   offer: 'Offer',
   payment: 'Payment_Receipt',
+  // The dashboard report has no number of its own; its `number` is the date it
+  // was generated, given as YYYY-MM-DD, so it lands as
+  // Dashboard_Report_2026-09-16.pdf.
+  report: 'Dashboard_Report',
 };
 
 /**

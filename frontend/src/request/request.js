@@ -268,6 +268,29 @@ const request = {
     return source;
   },
 
+  /**
+   * Fetches a generated document as a blob.
+   *
+   * Unlike the /download routes, which are public and take their tenant from the
+   * document itself, this one is authenticated by the Authorization header — and
+   * a window.open() to the URL cannot send a header. So the bytes come back
+   * through axios and are handed to the browser as an object URL instead.
+   *
+   * The raw response is returned rather than response.data, because the caller
+   * needs the Content-Type (PDF or the printable-page fallback) and the
+   * Content-Disposition filename, both of which successHandler would discard.
+   */
+  download: async ({ url }) => {
+    try {
+      includeToken();
+      const response = await axios.get(url, { responseType: 'blob' });
+
+      return response;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
   summary: async ({ entity, options = {} }) => {
     try {
       includeToken();

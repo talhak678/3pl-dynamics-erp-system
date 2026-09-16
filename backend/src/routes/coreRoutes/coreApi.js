@@ -6,8 +6,17 @@ const router = express.Router();
 
 const adminController = require('../../controllers/coreControllers/adminController');
 const settingController = require('../../controllers/coreControllers/settingController');
+const reportController = require('../../controllers/reportController');
 
 const { singleStorageUpload } = require('../../middlewares/uploadMiddleware');
+
+//_______________________________ Dashboard Report _______________________________
+
+// Behind adminAuth.isValidAuthToken, which app.js applies to this whole router,
+// so the report is always built for the account that asked for it. It sits in
+// the core API rather than the entity router because it is not an entity and is
+// not owned by a module: every signed-in account may download its own dashboard.
+router.route('/dashboard/report').get(catchErrors(reportController.downloadDashboardReport));
 
 // //_______________________________ Admin management_______________________________
 

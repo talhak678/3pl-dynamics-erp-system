@@ -32,7 +32,6 @@ import {
   TagOutlined,
   TagsOutlined,
   ShoppingCartOutlined,
-  PieChartOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -92,7 +91,7 @@ function Sidebar({ collapsible, isMobile = false }) {
     {
       key: 'dashboard',
       icon: <DashboardOutlined />,
-      label: <Link to={'/'}>{translate('dashboard')}</Link>,
+      label: <Link to={'/'}>{translate('Dashboard & Reports')}</Link>,
     },
     {
       key: 'invoice',
@@ -158,12 +157,6 @@ function Sidebar({ collapsible, isMobile = false }) {
       key: 'category/expenses',
       icon: <ReconciliationOutlined />,
       label: <Link to={'/category/expenses'}>{translate('Expenses Category')}</Link>,
-    },
-    {
-      key: 'report',
-      icon: <PieChartOutlined />,
-      label: translate('Report'),
-      disabled: true,
     },
     {
       label: translate('Settings'),
