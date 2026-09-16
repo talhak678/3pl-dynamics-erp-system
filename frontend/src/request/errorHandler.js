@@ -65,6 +65,33 @@ const SUSPENDED_PATTERN = /account suspended/i;
 const isSuspendedResponse = (response) =>
   response?.status === 403 && SUSPENDED_PATTERN.test(response?.data?.message || '');
 
+// --- Module-access refusals -------------------------------------------------
+//
+// The dashboard asks for a summary of every entity at once, so a tenant granted
+// only some modules collects a burst of these — one 403 per module they lack.
+// Left to the generic path each one stacked its own "Request error 403" toast
+// and buried the screen.
+//
+// Two things fix that: a branch of their own, so they never reach the generic
+// toast at all, and a single fixed notification key. antd updates a
+// notification in place when the key matches rather than adding another, so a
+// burst of any size collapses into one message — and the wording reads the same
+// whether one call failed or six, which is why it says "some modules" rather
+// than naming any.
+const MODULE_DENIED_NOTIFICATION_KEY = 'module-access-denied';
+
+const MODULE_DENIED_MESSAGE =
+  'Your account does not have access to some modules. Some functions may not work. Please contact our support team to upgrade.';
+
+// The guard's structured `module` field is the real signal. The wording is a
+// fallback so this keeps working if the bundle ships ahead of the server.
+const MODULE_DENIED_PATTERN = /does not have access to the .+ module/i;
+
+const isModuleDeniedResponse = (response) =>
+  response?.status === 403 &&
+  (typeof response?.data?.module === 'string' ||
+    MODULE_DENIED_PATTERN.test(response?.data?.message || ''));
+
 const errorHandler = (error) => {
   if (!navigator.onLine) {
     notification.config({
@@ -145,6 +172,29 @@ const errorHandler = (error) => {
       });
 
       return { success: false, result: null, message };
+    }
+
+    // A restricted module, refused by middlewares/requireModuleAccess.js.
+    //
+    // Checked after the suspension test above and returning before the generic
+    // toast below. A suspended account carries jwtExpired and no `module` field,
+    // so the two can never match the same response — the order just makes that
+    // explicit.
+    //
+    // No notification.config() call here, deliberately. `maxCount` is global to
+    // antd, so setting it to 1 would also throw away unrelated errors the user
+    // still needs to see. The fixed key is what collapses the burst, and it does
+    // so without any side effect on other notifications. `duration` is set
+    // because whatever the previous branch configured would otherwise apply —
+    // a burst of refusals can leave a 20-second toast behind.
+    if (isModuleDeniedResponse(response)) {
+      notification.error({
+        key: MODULE_DENIED_NOTIFICATION_KEY,
+        message: MODULE_DENIED_MESSAGE,
+        duration: 6,
+      });
+
+      return response.data;
     }
 
     const errorText = message || codeMessage[response.status];
