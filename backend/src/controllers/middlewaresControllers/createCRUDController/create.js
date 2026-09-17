@@ -2,7 +2,7 @@ const create = async (Model, req, res) => {
   // Creating a new document in the collection
   req.body.removed = false;
   // Tenant isolation: the authenticated admin always owns what they create.
-  req.body.createdBy = req.admin._id;
+  req.body.createdBy = req.admin.tenantId;
   const result = await new Model({
     ...req.body,
   }).save();

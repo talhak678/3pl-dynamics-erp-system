@@ -3,6 +3,7 @@ import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import RequireModule from './RequireModule';
+import RequireOwner from './RequireOwner';
 
 const Logout = lazy(() => import('@/pages/Logout.jsx'));
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
@@ -42,6 +43,8 @@ const Expense = lazy(() => import('@/pages/Expense'));
 const ExpenseCategory = lazy(() => import('@/pages/ExpenseCategory'));
 
 const Profile = lazy(() => import('@/pages/Profile'));
+
+const UserManagement = lazy(() => import('@/pages/UserManagement'));
 
 const About = lazy(() => import('@/pages/About'));
 
@@ -210,6 +213,17 @@ let routes = {
     {
       path: '/profile',
       element: <Profile />,
+    },
+    {
+      // Guarded by ownership rather than by a module key, because managing
+      // users is a capability of owning the workspace and is deliberately not
+      // something an owner can grant away. See RequireOwner.
+      path: '/user-management',
+      element: (
+        <RequireOwner>
+          <UserManagement />
+        </RequireOwner>
+      ),
     },
     {
       path: '*',

@@ -48,7 +48,7 @@ const mail = async (req, res) => {
 
   await custom.generatePdf(
     modelName,
-    { filename: folderPath, format: 'A4', targetLocation, adminId: req.admin._id },
+    { filename: folderPath, format: 'A4', targetLocation, adminId: req.admin.tenantId },
     result,
     async () => {
       const { id: mailId } = await sendViaApi({
@@ -79,7 +79,7 @@ const mail = async (req, res) => {
 const sendViaApi = async ({ email, name, targetLocation }) => {
   const resend = new Resend(process.env.RESEND_API);
 
-  const settings = await loadSettings(req.admin._id);
+  const settings = await loadSettings(req.admin.tenantId);
   const idurar_app_email = 'noreply@idurarapp.com';
   const idurar_app_company_email = settings['idurar_app_company_email'];
   const company_name = settings['company_name'];

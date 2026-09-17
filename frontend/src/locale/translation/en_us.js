@@ -451,6 +451,18 @@ const lang = {
   offers: 'Offers',
   proforma_invoices: 'quote',
   search: 'search',
+
+  // User Management. The sentence-shaped entries have to be here rather than
+  // relying on a fallback: useLanguage Title-Cases any key it does not know, so
+  // an unlisted sentence renders as Every Word Capitalised.
+  'User Management': 'User Management',
+  'Create User': 'Create User',
+  'Create and manage the users in your workspace':
+    'Create and manage the users in your workspace',
+  'No users yet': 'No users yet',
+  'Create your first user to give a colleague access':
+    'Create your first user to give a colleague access',
+  'Remove this user?': 'Remove this user?',
 };
 
 export default lang;

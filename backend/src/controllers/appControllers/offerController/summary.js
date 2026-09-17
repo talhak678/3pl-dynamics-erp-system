@@ -30,7 +30,7 @@ const summary = async (req, res) => {
     {
       $match: {
         removed: false,
-        createdBy: req.admin._id,
+        createdBy: req.admin.tenantId,
 
         // date: {
         //   $gte: startDate.toDate(),

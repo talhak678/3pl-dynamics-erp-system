@@ -12,8 +12,10 @@ const coreApiRouter = require('./routes/coreRoutes/coreApi');
 const coreDownloadRouter = require('./routes/coreRoutes/coreDownloadRouter');
 const corePublicRouter = require('./routes/coreRoutes/corePublicRouter');
 const superAdminRouter = require('./routes/coreRoutes/superAdminApi');
+const teamRouter = require('./routes/coreRoutes/teamApi');
 const adminAuth = require('./controllers/coreControllers/adminAuth');
 const requireSuperAdmin = require('./middlewares/requireSuperAdmin');
+const requireTenantOwner = require('./middlewares/requireTenantOwner');
 
 const errorHandlers = require('./handlers/errorHandlers');
 const erpApiRouter = require('./routes/appRoutes/appApi');
@@ -46,6 +48,10 @@ app.use('/api', coreAuthRouter);
 // request. Order within this line matters too — isValidAuthToken populates
 // req.admin, which requireSuperAdmin reads.
 app.use('/api/superadmin', adminAuth.isValidAuthToken, requireSuperAdmin, superAdminRouter);
+// The Customer Admin's own employee management. Mounted here for the same
+// reason as the line above - ahead of the generic /api routers, so
+// isValidAuthToken runs once per request rather than twice.
+app.use('/api/team', adminAuth.isValidAuthToken, requireTenantOwner, teamRouter);
 app.use('/api', adminAuth.isValidAuthToken, coreApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, erpApiRouter);
 app.use('/download', coreDownloadRouter);

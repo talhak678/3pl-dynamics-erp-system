@@ -8,7 +8,7 @@ const updateManySetting = async (req, res) => {
 
   // Tenant isolation: every write is scoped to the authenticated admin, so one
   // tenant can never overwrite another tenant's settings.
-  const owner = req.admin._id;
+  const owner = req.admin.tenantId;
 
   for (const setting of settings) {
     if (!setting.hasOwnProperty('settingKey') || !setting.hasOwnProperty('settingValue')) {

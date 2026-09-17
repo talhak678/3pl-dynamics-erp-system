@@ -9,7 +9,7 @@ const summary = async (req, res) => {
 
   const { type } = req.query;
 
-  const settings = await loadSettings(req.admin._id);
+  const settings = await loadSettings(req.admin.tenantId);
 
   if (type) {
     if (['week', 'month', 'year'].includes(type)) {
@@ -32,7 +32,7 @@ const summary = async (req, res) => {
     {
       $match: {
         removed: false,
-        createdBy: req.admin._id,
+        createdBy: req.admin.tenantId,
 
         // date: {
         //   $gte: startDate.toDate(),

@@ -339,5 +339,76 @@ const request = {
       return errorHandler(error);
     }
   },
+
+  /**
+   * The Customer Admin's own employee management (/api/team).
+   *
+   * Its own namespace rather than a reuse of the generic entity methods above,
+   * because those build their URLs from a fixed shape - `update` posts to
+   * `<entity>/update/<id>`, for instance - and this resource is addressed
+   * RESTfully at `team/<id>`. Its `create`/`update`/`remove` are also the only
+   * calls in this file whose failures the user must see: a refused module grant
+   * comes back as a 403 whose `message` explains exactly which module was not
+   * allowed, and that is the whole value of the validation.
+   */
+  team: {
+    list: async () => {
+      try {
+        includeToken();
+        const response = await axios.get('team');
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    create: async ({ jsonData }) => {
+      try {
+        includeToken();
+        const response = await axios.post('team', jsonData);
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    read: async ({ id }) => {
+      try {
+        includeToken();
+        const response = await axios.get('team/' + id);
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    update: async ({ id, jsonData }) => {
+      try {
+        includeToken();
+        const response = await axios.patch('team/' + id, jsonData);
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    remove: async ({ id }) => {
+      try {
+        includeToken();
+        const response = await axios.delete('team/' + id);
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+  },
 };
 export default request;

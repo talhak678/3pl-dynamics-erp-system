@@ -81,6 +81,11 @@ const createUser = async (req, res) => {
     enabled: true,
     isActive: true,
     isSuperAdmin: false,
+    // Written explicitly rather than left to the schema default. `role` decides
+    // who may manage a team, so a tenant account created here has to be an owner
+    // by construction - not by a default that a future edit could move.
+    role: 'owner',
+    parentAdminId: null,
     modulePermissions: requestedModules,
   }).save();
 

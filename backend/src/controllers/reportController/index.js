@@ -130,7 +130,10 @@ const downloadDashboardReport = async (req, res) => {
 
     const { pdfBuffer, htmlContent } = await custom.generatePdf(
       'report',
-      { filename: 'report', format: 'A4', targetLocation: '', adminId: admin._id },
+      // The tenant, not the caller: an employee downloading the report must get
+      // it rendered with the company's currency, date format and logo, which are
+      // settings rows owned by the account that owns the workspace.
+      { filename: 'report', format: 'A4', targetLocation: '', adminId: admin.tenantId },
       model
     );
 

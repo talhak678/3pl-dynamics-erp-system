@@ -54,14 +54,14 @@ const convertQuoteToInvoice = async (req, res) => {
     notes: quote.notes,
   };
 
-  invoiceData['createdBy'] = req.admin._id;
+  invoiceData['createdBy'] = req.admin.tenantId;
   // Creating a new document in the collection
 
   // Create the invoice document
   const invoice = await new InvoiceModel(invoiceData).save();
 
   // Mark the quote as converted
-  quote['createdBy'] = req.admin._id;
+  quote['createdBy'] = req.admin.tenantId;
   quote.converted = true;
   await quote.save();
 

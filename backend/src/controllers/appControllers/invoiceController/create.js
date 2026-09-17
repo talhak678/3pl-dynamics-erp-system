@@ -46,7 +46,7 @@ const create = async (req, res) => {
   let paymentStatus = calculate.sub(total, discount) === 0 ? 'paid' : 'unpaid';
 
   body['paymentStatus'] = paymentStatus;
-  body['createdBy'] = req.admin._id;
+  body['createdBy'] = req.admin.tenantId;
 
   // Creating a new document in the collection
   const result = await new Model(body).save();
@@ -62,7 +62,7 @@ const create = async (req, res) => {
 
   increaseBySettingKey({
     settingKey: 'last_invoice_number',
-    adminId: req.admin._id,
+    adminId: req.admin.tenantId,
   });
 
   // Returning successfull response

@@ -29,6 +29,19 @@ const adminSchema = new Schema({
     default: [],
   },
 
+  // The account this one belongs to, when it is an employee rather than the
+  // tenant owner. Null for owners and super admins, which own themselves.
+  //
+  // This is the tenancy link: it decides whose invoices, clients and settings
+  // the account works on. It is written once at creation by teamController and
+  // is not accepted from any request body, so an employee cannot reparent
+  // themselves into another company.
+  parentAdminId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Admin',
+    default: null,
+  },
+
   email: {
     type: String,
     lowercase: true,
@@ -50,8 +63,30 @@ const adminSchema = new Schema({
   role: {
     type: String,
     default: 'owner',
-    enum: ['owner', 'superadmin'],
+    enum: ['owner', 'superadmin', 'employee'],
   },
+});
+
+/**
+ * The id every tenancy decision must use — whose data this account works on.
+ *
+ * An owner's tenant is themselves; an employee's is the account that created
+ * them. Every `createdBy` filter, every `createdBy` assignment and every
+ * settings lookup resolves through this, which is what makes an employee see
+ * their employer's workspace instead of an empty one of their own.
+ *
+ * It is a virtual rather than a stored field so it cannot drift from the two
+ * fields it derives from, and it is deliberately total: it always returns an
+ * ObjectId, falling back to `_id`. A reader that forgot to handle the employee
+ * case therefore gets the account's own id — a wrong-but-contained scope —
+ * rather than `undefined`, which in a Mongo filter would match every document
+ * with a missing `createdBy` and cross the tenant boundary outright.
+ *
+ * Not persisted, and not serialised: toJSON does not include virtuals here, so
+ * it never reaches a client payload.
+ */
+adminSchema.virtual('tenantId').get(function tenantId() {
+  return this.parentAdminId || this._id;
 });
 
 module.exports = mongoose.model('Admin', adminSchema);

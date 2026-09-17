@@ -40,7 +40,7 @@ const create = async (Model, req, res) => {
   }
 
   req.body.removed = false;
-  req.body.createdBy = req.admin._id;
+  req.body.createdBy = req.admin.tenantId;
   const result = await new Model({
     ...req.body,
   }).save();

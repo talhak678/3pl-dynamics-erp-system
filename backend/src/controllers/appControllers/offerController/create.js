@@ -34,7 +34,7 @@ const create = async (req, res) => {
   body['taxTotal'] = taxTotal;
   body['total'] = total;
   body['items'] = items;
-  body['createdBy'] = req.admin._id;
+  body['createdBy'] = req.admin.tenantId;
 
   // Creating a new document in the collection
   const result = await new Model(body).save();
@@ -50,7 +50,7 @@ const create = async (req, res) => {
 
   increaseBySettingKey({
     settingKey: 'last_offer_number',
-    adminId: req.admin._id,
+    adminId: req.admin.tenantId,
   });
 
   // Returning successfull response
