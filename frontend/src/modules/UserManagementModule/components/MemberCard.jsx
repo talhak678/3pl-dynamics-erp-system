@@ -103,7 +103,7 @@ export default function MemberCard({ member, onOpen }) {
             color={isActive ? 'success' : 'error'}
             style={{ marginInlineEnd: 0, fontWeight: 500 }}
           >
-            {isActive ? 'Active' : 'Inactive'}
+            {isActive ? 'Active' : 'Suspended'}
           </Tag>
 
           <Tooltip title={permissions.labels.join(', ')}>
