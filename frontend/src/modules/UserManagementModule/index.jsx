@@ -27,6 +27,7 @@ import {
 import { request } from '@/request';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { grantableFor } from '@/utils/erpModules';
+import StatTile from '@/components/StatTile';
 
 import MemberCard from './components/MemberCard';
 import MemberFormDrawer from './components/MemberFormDrawer';
@@ -34,64 +35,13 @@ import MemberFormDrawer from './components/MemberFormDrawer';
 const { Title, Text } = Typography;
 
 /**
- * One figure in the summary row.
- *
- * Deliberately identical to the Super Admin panel's StatTile, down to the
- * inline styles. It is copied rather than shared because the two are separate
- * Vite builds with no common module - this app cannot import from superadmin/src
- * - and the two panels sit side by side in the product, so a visual drift
- * between them would read as a bug.
- *
- * The colours and surfaces come from theme.css, which both apps define, so the
- * tile follows the light/dark switch rather than hard-coding a palette.
- */
-function StatTile({ icon, label, value, color }) {
-  return (
-    <div
-      style={{
-        background: 'var(--app-surface)',
-        border: '1px solid var(--app-border)',
-        borderRadius: 12,
-        padding: '16px 18px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        boxShadow: 'var(--app-shadow)',
-      }}
-    >
-      <div
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: 10,
-          background: 'var(--app-surface-muted)',
-          color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 18,
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </div>
-      <div>
-        <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{value}</div>
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          {label}
-        </Text>
-      </div>
-    </div>
-  );
-}
-
-/**
  * The people who work in this workspace, and the ways in to manage them.
  *
  * The layout mirrors the Super Admin panel's Users page - summary row, search
  * and status filter, card grid - because both screens manage the same kind of
  * record and a tenant admin should not have to learn a second visual language
- * for it.
+ * for it. The summary row itself is components/StatTile, which the Sales
+ * Pipeline uses too, so the two cannot drift apart.
  *
  * The whole page is gated twice over: the sidebar entry only renders for an
  * owner, the route only resolves for an owner, and every endpoint behind it

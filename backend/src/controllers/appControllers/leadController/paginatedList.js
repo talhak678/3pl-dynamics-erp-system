@@ -1,5 +1,5 @@
 const { migrate } = require('./migrate');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { leadFilter } = require('../../../middlewares/ownership');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -19,14 +19,22 @@ const paginatedList = async (Model, req, res) => {
     fields.$or.push({ [field]: { $regex: new RegExp(req.query.q, 'i') } });
   }
 
-  //  Query the database for a list of all results
-  const resultsPromise = Model.find({
-    removed: false,
+  // A Sales Executive's scope is itself an $or, and a text search builds one
+  // too. Spreading both into a single object would let whichever came last
+  // replace the other - the search would be dropped, and the caller would be
+  // handed every lead they can see. That reads as "search is broken", but it is
+  // the scope quietly swallowing the query. $and keeps both, and is equivalent
+  // to the plain spread when only one of them is present.
+  const conditions = [{ removed: false }];
 
-    [filter]: equal,
-    ...fields,
-    ...ownerFilter(req),
-  })
+  if (filter !== undefined) conditions.push({ [filter]: equal });
+  if (fields.$or) conditions.push(fields);
+  conditions.push(leadFilter(req));
+
+  const query = { $and: conditions };
+
+  //  Query the database for a list of all results
+  const resultsPromise = Model.find(query)
     .skip(skip)
     .limit(limit)
     .sort({ [sortBy]: sortValue })
@@ -34,13 +42,7 @@ const paginatedList = async (Model, req, res) => {
     .exec();
 
   // Counting the total documents
-  const countPromise = Model.countDocuments({
-    removed: false,
-
-    [filter]: equal,
-    ...fields,
-    ...ownerFilter(req),
-  });
+  const countPromise = Model.countDocuments(query);
   // Resolving both promises
   const [result, count] = await Promise.all([resultsPromise, countPromise]);
   // console.log('🚀 ~ file: paginatedList.js:23 ~ paginatedList ~ result:', result);

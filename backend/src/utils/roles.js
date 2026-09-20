@@ -55,6 +55,20 @@ const ASSIGNABLE_ROLES = [
 const ADMIN_ROLES = [...SYSTEM_ROLES, ...ASSIGNABLE_ROLES];
 
 /**
+ * The one assignable role that narrows a data scope rather than only labelling
+ * an account.
+ *
+ * Everything else in ASSIGNABLE_ROLES is a job title nothing branches on, but a
+ * Sales Executive sees a restricted slice of the tenant's leads (see
+ * middlewares/ownership.js). The string is named here so the comparison and the
+ * dropdown option cannot drift: it is stored Title-Cased with a space, so a
+ * mistyped comparison would not error - it would quietly fail to match, and the
+ * account would fall back to the WIDER tenant view instead of the narrower one.
+ * That is a fail-open mistake, which is why it gets a constant.
+ */
+const SALES_EXECUTIVE_ROLE = 'Sales Executive';
+
+/**
  * What a member gets when the request omits a role.
  *
  * 'employee' rather than the schema default of 'owner' - inheriting the schema
@@ -69,6 +83,7 @@ module.exports = {
   SYSTEM_ROLES,
   ASSIGNABLE_ROLES,
   ADMIN_ROLES,
+  SALES_EXECUTIVE_ROLE,
   DEFAULT_MEMBER_ROLE,
   isAssignableRole,
 };

@@ -7,6 +7,7 @@ import { useAppContext } from '@/context/appContext';
 
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { resolveModules } from '@/utils/modulePermissions';
+import { canUseSalesPipeline } from '@/utils/salesPipeline';
 
 import useLanguage from '@/locale/useLanguage';
 import lightLogo from '@/style/images/light-logo.png';
@@ -33,26 +34,38 @@ import {
   TagsOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
+  FunnelPlotOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
 
 /**
- * Not gated by a module: the navigation entries carrying `ownerOnly: true`.
+ * Not gated by the module allow-list: the navigation entries carrying
+ * `ungated: true`.
  *
  * filterByModules drops every item whose key is absent from the granted list.
- * User Management has no module key and never will - it is a capability of
- * owning the workspace, not something an owner can grant - so without this it
- * would vanish from the sidebar of any tenant whose modules are restricted,
- * which is exactly the tenant most likely to be managing employees.
+ * Two entries cannot be expressed as a module key at all:
+ *
+ *   User Management  a capability of owning the workspace, and deliberately not
+ *                    something an owner can grant away.
+ *   Sales Pipeline   real, but a second view of the `lead` module rather than a
+ *                    module of its own - /api/lead/* is what sits behind it -
+ *                    so its key is not in the granted list and never will be.
+ *
+ * Without this both would vanish from the sidebar of any tenant whose modules
+ * are restricted, which is exactly the tenant most likely to be managing
+ * employees or working leads.
  *
  * Such an entry is passed through the filter untouched and rebuilt without the
- * marker, so it never reaches the Ant Design Menu.
+ * marker, so it never reaches the Ant Design Menu. The marker is not what gates
+ * it: the entry is only built into `items` at all when its own condition holds,
+ * a few lines below. This just stops the module filter from removing it a
+ * second time.
  */
-const isOwnerOnlyEntry = (item) => item.ownerOnly === true;
+const isUngatedEntry = (item) => item.ungated === true;
 
 /** Drops the marker so it never reaches the Ant Design Menu. */
-const stripMarker = ({ ownerOnly, ...item }) => item;
+const stripMarker = ({ ungated, ...item }) => item;
 
 /**
  * Narrows the navigation tree to the modules an account has been granted.
@@ -61,21 +74,21 @@ const stripMarker = ({ ownerOnly, ...item }) => item;
  * utils/modulePermissions.js, which the route guard reads too — so the menu and
  * the routes can never disagree about who may see what.
  *
- * Returns the array untouched when the account is unrestricted, so the common
- * case allocates nothing.
+ * Every entry is rebuilt without the marker, on both paths, so an unknown prop
+ * never reaches rc-menu's item.
  */
 const filterByModules = (items, admin) => {
   const granted = resolveModules(admin);
 
-  // Mapped even on this path: an unrestricted account still carries the
-  // owner-only entry, and letting its marker reach the Menu would spread an
-  // unknown prop onto rc-menu's item.
+  // Mapped even on this path: an unrestricted account still carries the ungated
+  // entries, and letting that marker reach the Menu would spread an unknown
+  // prop onto rc-menu's item.
   if (!granted) return items.map(stripMarker);
 
   return items.reduce((visible, item) => {
     // Not module-gated, so the granted list says nothing about it. Rebuilt
     // without the marker rather than pushed as-is, so the Menu never sees it.
-    if (isOwnerOnlyEntry(item)) {
+    if (isUngatedEntry(item)) {
       visible.push(stripMarker(item));
       return visible;
     }
@@ -120,6 +133,12 @@ function Sidebar({ collapsible, isMobile = false }) {
   // the backend gate refuses them for the same reason.
   const isOwner = currentAdmin?.role === 'owner' && currentAdmin?.isSuperAdmin !== true;
 
+  // The same predicate the /sales-pipeline route reads, so the menu entry and
+  // the route can never disagree about who may open it. It is narrower than
+  // "has the lead module": an employee granted `lead` works leads on the Leads
+  // page and must not be offered the pipeline.
+  const canSeePipeline = canUseSalesPipeline(currentAdmin);
+
   const items = [
     {
       key: 'dashboard',
@@ -161,6 +180,23 @@ function Sidebar({ collapsible, isMobile = false }) {
       icon: <FilterOutlined />,
       label: <Link to={'/lead'}>{translate('leads')}</Link>,
     },
+    // Sits next to Leads because it is the same records seen another way.
+    // Appended here rather than filtered out later, for the same reason as the
+    // entry below: an item that was never built is not one devtools inspection
+    // away from being a visible one.
+    ...(canSeePipeline
+      ? [
+          {
+            // Must match the URL minus its leading slash: the Menu highlights
+            // with selectedKeys={[currentPath]}, and currentPath is the
+            // pathname sliced at 1.
+            key: 'sales-pipeline',
+            icon: <FunnelPlotOutlined />,
+            label: <Link to={'/sales-pipeline'}>{translate('Sales Pipeline')}</Link>,
+            ungated: true,
+          },
+        ]
+      : []),
     {
       key: 'offer',
       icon: <FileOutlined />,
@@ -204,7 +240,7 @@ function Sidebar({ collapsible, isMobile = false }) {
             key: 'user-management',
             icon: <TeamOutlined />,
             label: <Link to={'/user-management'}>{translate('User Management')}</Link>,
-            ownerOnly: true,
+            ungated: true,
           },
         ]
       : []),

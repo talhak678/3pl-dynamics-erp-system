@@ -3,6 +3,8 @@ const moment = require('moment');
 
 const OfferModel = mongoose.model('Offer');
 
+const { leadFilter } = require('../../../middlewares/ownership');
+
 const summary = async (Model, req, res) => {
   let defaultType = 'month';
   const { type } = req.query;
@@ -21,6 +23,14 @@ const summary = async (Model, req, res) => {
   let startDate = currentDate.clone().startOf(defaultType);
   let endDate = currentDate.clone().endOf(defaultType);
 
+  // Resolved once and spread into all three $match stages. An aggregation does
+  // not go through ownerFilter, so a Sales Executive's narrowed scope has to be
+  // written in by hand here - and the counts must agree with the list they sit
+  // above, or the dashboard would report leads the pipeline refuses to show.
+  // leadFilter still returns plain ownerFilter for everyone else, including the
+  // owner and any super admin.
+  const scope = leadFilter(req);
+
   const pipeline = [
     {
       $facet: {
@@ -29,7 +39,7 @@ const summary = async (Model, req, res) => {
             $match: {
               removed: false,
               enabled: true,
-              createdBy: req.admin.tenantId,
+              ...scope,
             },
           },
           {
@@ -42,7 +52,7 @@ const summary = async (Model, req, res) => {
               removed: false,
               created: { $gte: startDate.toDate(), $lte: endDate.toDate() },
               enabled: true,
-              createdBy: req.admin.tenantId,
+              ...scope,
             },
           },
           {
@@ -61,8 +71,12 @@ const summary = async (Model, req, res) => {
           {
             $match: {
               removed: false,
-              createdBy: req.admin.tenantId,
+              ...scope,
               'offer.removed': false,
+              // Left on the tenant id rather than folded into `scope`: these two
+              // keys address the joined Offer, and `scope` describes leads. The
+              // intention is "this lead has a live offer in this workspace", not
+              // "this lead has an offer the caller personally created".
               'offer.createdBy': req.admin.tenantId,
             },
           },

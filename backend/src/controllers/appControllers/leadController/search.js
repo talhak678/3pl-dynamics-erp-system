@@ -1,5 +1,5 @@
 const { migrate } = require('./migrate');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { leadFilter } = require('../../../middlewares/ownership');
 
 const search = async (Model, req, res) => {
   // if (req.query.q === undefined || req.query.q.trim() === '') {
@@ -21,9 +21,13 @@ const search = async (Model, req, res) => {
   }
   // console.log(fields)
 
+  // `fields` is always an $or here, and a Sales Executive's scope is one too.
+  // Spreading them together would let the scope replace the search term, so the
+  // executive's search would quietly return all twenty of their leads whatever
+  // they typed. $and holds both; for anyone without a scoped $or it reduces to
+  // exactly the old query.
   let results = await Model.find({
-    ...fields,
-    ...ownerFilter(req),
+    $and: [fields, leadFilter(req)],
   })
     .where('removed', false)
     .limit(20)

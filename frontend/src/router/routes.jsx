@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 
 import RequireModule from './RequireModule';
 import RequireOwner from './RequireOwner';
+import RequireSalesPipeline from './RequireSalesPipeline';
 
 const Logout = lazy(() => import('@/pages/Logout.jsx'));
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
@@ -45,6 +46,8 @@ const ExpenseCategory = lazy(() => import('@/pages/ExpenseCategory'));
 const Profile = lazy(() => import('@/pages/Profile'));
 
 const UserManagement = lazy(() => import('@/pages/UserManagement'));
+
+const SalesPipeline = lazy(() => import('@/pages/SalesPipeline'));
 
 const About = lazy(() => import('@/pages/About'));
 
@@ -172,6 +175,19 @@ let routes = {
     {
       path: '/lead',
       element: guarded('lead', <Lead />),
+    },
+    {
+      // A second view of the leads module rather than a module of its own, so
+      // it is guarded by role as well as by the `lead` key: the pipeline shows
+      // the same rows the API would return for /api/lead/*, and that API is
+      // already scoped by ownership.js to an executive's own leads. See
+      // utils/salesPipeline.js.
+      path: '/sales-pipeline',
+      element: (
+        <RequireSalesPipeline>
+          <SalesPipeline />
+        </RequireSalesPipeline>
+      ),
     },
     {
       path: '/offer',
