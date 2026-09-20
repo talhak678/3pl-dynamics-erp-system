@@ -65,7 +65,15 @@ const { Sider } = Layout;
 const isUngatedEntry = (item) => item.ungated === true;
 
 /** Drops the marker so it never reaches the Ant Design Menu. */
-const stripMarker = ({ ungated, ...item }) => item;
+const stripMarker = (item) => {
+  // A copy with the key deleted, rather than `({ ungated, ...item }) => item`.
+  // The destructure reads better but names a binding it never uses, which
+  // no-unused-vars reports - and silence would need ignoreRestSiblings turned
+  // on for the whole project, hiding genuine unused variables everywhere else.
+  const stripped = { ...item };
+  delete stripped.ungated;
+  return stripped;
+};
 
 /**
  * Narrows the navigation tree to the modules an account has been granted.

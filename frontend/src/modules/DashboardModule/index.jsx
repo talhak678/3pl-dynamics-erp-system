@@ -15,10 +15,12 @@ import RecentTable from './components/RecentTable';
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
+import SalesAnalytics from './components/SalesAnalytics';
 
 import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { hasModule, isMissingModules } from '@/utils/modulePermissions';
+import { canUseSalesPipeline } from '@/utils/salesPipeline';
 import { UPGRADE_MESSAGE, UPGRADE_NOTIFICATION_KEY } from '@/request/errorHandler';
 import { useSelector } from 'react-redux';
 
@@ -198,6 +200,21 @@ export default function DashboardModule() {
   const showRecentTables = showInvoiceTable || showQuoteTable;
 
   /**
+   * The sales analytics section, gated exactly as the pipeline board is.
+   *
+   * Deliberately not `can('lead')`. Holding the leads module is not the same as
+   * having a pipeline: an employee granted `lead` works the leads list, and this
+   * section would put a per-executive breakdown - colleagues' names, their
+   * workloads, their win rates - on a dashboard that has never shown them
+   * before. The Leads page exposes no assignee at all, so that would be the
+   * section granting something the module never did.
+   *
+   * canUseSalesPipeline is the owner-or-executive check the board's menu entry
+   * and route both read, so the three cannot drift apart.
+   */
+  const showSalesAnalytics = canUseSalesPipeline(currentAdmin);
+
+  /**
    * Pulls the summary report and hands it to the browser as a file.
    *
    * The endpoint answers either a PDF or — on a host with no browser to render
@@ -320,6 +337,12 @@ export default function DashboardModule() {
           )}
         </Row>
         <div className="space30"></div>
+        {showSalesAnalytics && (
+          <>
+            <SalesAnalytics />
+            <div className="space30"></div>
+          </>
+        )}
         {showRecentTables && (
           <Row gutter={[32, 32]}>
             {showInvoiceTable && (

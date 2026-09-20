@@ -1,19 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 
-import {
-  Alert,
-  Button,
-  Col,
-  Empty,
-  Progress,
-  Row,
-  Skeleton,
-  Space,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-} from 'antd';
+import { Alert, Button, Col, Row, Space, Tooltip, Typography } from 'antd';
 
 import {
   CheckCircleFilled,
@@ -23,45 +11,65 @@ import {
   RiseOutlined,
 } from '@ant-design/icons';
 
-import dayjs from 'dayjs';
-
 import { request } from '@/request';
+import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import StatTile from '@/components/StatTile';
+import useAssigneeDirectory from '@/hooks/useAssigneeDirectory';
+import { SALES_STAGES, stageOf } from '@/utils/salesStages';
 
-import { SALES_STAGES, stageOf } from './config';
+import LeadCard from './components/LeadCard';
+import StageColumn from './components/StageColumn';
 
 const { Title, Text } = Typography;
 
 /**
- * The Sales Pipeline.
+ * The Sales Pipeline board.
  *
- * This is the scaffolding step: the module is registered, reachable from the
- * sidebar, and actually reading the pipeline fields off the Lead schema. The
- * board UI - drag a card between columns, set a follow-up date, reassign - is
- * the next piece of work and is deliberately not guessed at here.
+ * Leads are distributed into one column per salesStage, and moved between them
+ * by dragging a card or by changing the stage select on it. Both routes end in
+ * the same call - a PATCH of `salesStage` to /api/lead/update/:id - so the
+ * server needs to know nothing about how the change was made.
  *
- * What it does do is prove the whole path end to end, which is the point of a
- * scaffold: every number and every tag below is computed from `salesStage`,
- * `assignedTo` and `followUpDate` as they come back from /api/lead/listAll. That
- * matters because a field missing from the server's migrate whitelist does not
- * fail loudly - it arrives absent, and the pipeline would show eight empty
- * columns. The summary row is what makes that visible before the board is built.
+ * Scoping is not decided here and cannot be worked around from here. The list
+ * arrives already narrowed: /api/lead/listAll applies leadFilter, which gives an
+ * owner the whole workspace and a Sales Executive only the leads assigned to
+ * them or entered by them. The update applies the same filter, so an executive
+ * cannot move a card they were never shown - and a lead that is out of scope
+ * answers 404, the same as one that does not exist, rather than confirming it is
+ * real.
  *
  * Data comes from listAll rather than the paginated list on purpose. A board is
- * a view of everything at once - a stage column showing only the first page of
- * its leads would be quietly lying. The cost is that this request is unbounded,
- * so the board step should either cap it per stage or have the server return
- * counts with a per-stage page.
- *
- * Scoping is not decided here. An owner sees every lead in the workspace and a
- * Sales Executive sees only their own, because /api/lead/listAll applies
- * leadFilter to the query. This component receives whatever it is given and has
- * no way to ask for more.
+ * a view of everything at once, and a column showing only the first page of its
+ * leads would be quietly lying. The cost is an unbounded request, so a workspace
+ * with a very large pipeline is the case to watch; the fix is a per-stage count
+ * plus a per-stage page, which is a change to this call and not to the board.
  */
 export default function SalesPipelineModule() {
+  const currentAdmin = useSelector(selectCurrentAdmin);
+
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  // Ids with an update in flight, so a card can be dimmed and its select
+  // disabled rather than accepting a second change on top of the first.
+  const [pending, setPending] = useState(() => new Set());
+
+  // Held in state rather than read back out of dataTransfer on drop, which is
+  // awkward to do safely and unavailable during dragenter, when the column needs
+  // to know whether this drag is even one of ours.
+  const [draggedLead, setDraggedLead] = useState(null);
+
+  // /api/team is owner-only, so an executive never loads a directory and their
+  // colleagues stay unnamed rather than the request failing on every sign-in.
+  // The page itself is only reachable by the two pipeline roles, so the role
+  // check here is about which of them may look colleagues up, not about access.
+  const isOwner = currentAdmin?.role === 'owner' && currentAdmin?.isSuperAdmin !== true;
+
+  const { resolve: resolveAssignee } = useAssigneeDirectory({
+    enabled: isOwner,
+    currentAdmin,
+  });
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -72,9 +80,9 @@ export default function SalesPipelineModule() {
 
       // The request layer returns its own failure shape rather than throwing, so
       // a refused or broken call arrives as a missing result rather than as an
-      // exception. Checked rather than assumed, and surfaced rather than shown
-      // as "no leads" - an empty pipeline and a failed request look identical
-      // otherwise, and only one of them needs the user to do something.
+      // exception. Surfaced rather than shown as an empty board - a pipeline
+      // with no leads and one that failed to load look identical otherwise, and
+      // only one of them needs the user to do something.
       if (data?.success) {
         setLeads(Array.isArray(data.result) ? data.result : []);
       } else {
@@ -90,9 +98,6 @@ export default function SalesPipelineModule() {
     loadLeads();
   }, [loadLeads]);
 
-  // Grouped once, then read by the summary row, the breakdown and the table.
-  // Each lead's stage is resolved through stageOf() so an unrecognised value
-  // still lands in a visible column instead of falling out of the board.
   const byStage = useMemo(() => {
     const groups = new Map(SALES_STAGES.map((stage) => [stage.value, []]));
 
@@ -117,64 +122,67 @@ export default function SalesPipelineModule() {
     };
   }, [leads, byStage]);
 
-  // Newest first, because listAll already sorts by created descending. Only
-  // sliced, never re-sorted: `created` is not part of the migrated shape, so
-  // sorting on it here would compare undefined to undefined.
-  const recentLeads = useMemo(() => leads.slice(0, 8), [leads]);
+  /**
+   * Moves a lead to another stage, showing the move before the server confirms
+   * it and putting the card back if the server refuses.
+   *
+   * Optimistic because this is the interaction itself: a drag that visibly
+   * springs back to where it started on every drop reads as broken even when the
+   * write succeeded. The rollback is what makes that safe, and the failure is
+   * never silent - request.updateQuietly reports errors on its own.
+   */
+  const moveLead = useCallback(async (lead, nextStage) => {
+    const from = stageOf(lead.salesStage).value;
 
-  const columns = [
-    {
-      title: 'Lead',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name) => name || <Text type="secondary">Unnamed</Text>,
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: 110,
-      render: (type) => <Tag color={type === 'company' ? 'blue' : 'magenta'}>{type}</Tag>,
-    },
-    {
-      title: 'Stage',
-      dataIndex: 'salesStage',
-      key: 'salesStage',
-      width: 160,
-      render: (value) => {
-        const stage = stageOf(value);
-        return <Tag color={stage.color}>{stage.label}</Tag>;
-      },
-    },
-    {
-      title: 'Follow-up',
-      dataIndex: 'followUpDate',
-      key: 'followUpDate',
-      width: 140,
-      render: (value) =>
-        value ? dayjs(value).format('DD MMM YYYY') : <Text type="secondary">Not set</Text>,
-    },
-    {
-      title: 'Assigned',
-      dataIndex: 'assignedTo',
-      key: 'assignedTo',
-      width: 130,
-      // A bare id is all the API returns - the mapper hands `assignedTo` back
-      // unresolved. Naming the account needs either a populated field on the
-      // lead or a lookup an executive may make, and /api/team is owner-only, so
-      // this says whether the lead belongs to somebody rather than guessing at
-      // who. Resolving it is part of the board step.
-      render: (assignedTo) =>
-        assignedTo ? 'Assigned' : <Text type="secondary">Unassigned</Text>,
-    },
-  ];
+    // A drop back into the column it came from, or a select set to the value it
+    // already has, is not a change and should not cost a request.
+    if (!nextStage || nextStage === from) return;
 
-  const panelStyle = {
-    background: 'var(--app-surface)',
-    border: '1px solid var(--app-border)',
-    borderRadius: 12,
-    padding: '18px 20px',
-  };
+    setLeads((current) =>
+      current.map((item) => (item._id === lead._id ? { ...item, salesStage: nextStage } : item))
+    );
+    setPending((current) => new Set(current).add(lead._id));
+
+    try {
+      const data = await request.updateQuietly({
+        entity: 'lead',
+        id: lead._id,
+        jsonData: { salesStage: nextStage },
+      });
+
+      if (data?.success) {
+        // Reconciled against what the server stored rather than trusting the
+        // optimistic value: `salesStage` is an enum, so a rejected value is
+        // silently coerced or the write fails, and the board should show what is
+        // actually in the database.
+        const saved = stageOf(data.result?.salesStage).value;
+        if (saved !== nextStage) {
+          setLeads((current) =>
+            current.map((item) => (item._id === lead._id ? { ...item, salesStage: saved } : item))
+          );
+        }
+      } else {
+        setLeads((current) =>
+          current.map((item) => (item._id === lead._id ? { ...item, salesStage: from } : item))
+        );
+      }
+    } finally {
+      setPending((current) => {
+        const next = new Set(current);
+        next.delete(lead._id);
+        return next;
+      });
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (stageValue) => {
+      const lead = draggedLead;
+      setDraggedLead(null);
+      if (lead) moveLead(lead, stageValue);
+    },
+    [draggedLead, moveLead]
+  );
 
   const isLoadingFirstTime = loading && leads.length === 0;
 
@@ -194,7 +202,7 @@ export default function SalesPipelineModule() {
             Sales Pipeline
           </Title>
           <Text type="secondary">
-            Every lead you can work, grouped by the stage it has reached.
+            Drag a lead between stages, or use the stage selector on its card.
           </Text>
         </div>
         <Tooltip title="Reload the pipeline">
@@ -251,72 +259,55 @@ export default function SalesPipelineModule() {
         </Col>
       </Row>
 
-      <div style={panelStyle}>
-        <Text strong>Leads by stage</Text>
+      {isLoadingFirstTime ? (
+        <div
+          style={{
+            padding: '48px 24px',
+            textAlign: 'center',
+            background: 'var(--app-surface)',
+            border: '1px solid var(--app-border)',
+            borderRadius: 12,
+          }}
+        >
+          <Text type="secondary">Loading the pipeline…</Text>
+        </div>
+      ) : (
+        // Scrolls sideways rather than wrapping: eight columns stacked into
+        // rows would stop reading as a pipeline, which is the one thing the
+        // layout is for.
+        <div
+          style={{
+            display: 'flex',
+            gap: 14,
+            alignItems: 'flex-start',
+            overflowX: 'auto',
+            paddingBottom: 8,
+          }}
+        >
+          {SALES_STAGES.map((stage) => {
+            const stageLeads = byStage.get(stage.value);
 
-        {isLoadingFirstTime ? (
-          <Skeleton active paragraph={{ rows: 6 }} style={{ marginTop: 16 }} />
-        ) : stats.total === 0 ? (
-          <Empty
-            style={{ marginTop: 16 }}
-            description={
-              failed
-                ? 'Nothing to show.'
-                : 'No leads in this pipeline yet. Leads you add appear here in their stage.'
-            }
-          />
-        ) : (
-          <div style={{ marginTop: 16 }}>
-            {SALES_STAGES.map((stage) => {
-              const count = byStage.get(stage.value).length;
-              // A share of the whole pipeline, so eight bars of very different
-              // length say where the work actually is. A stage with no leads
-              // still gets its row - its emptiness is information.
-              const percent = Math.round((count / stats.total) * 100);
-
-              return (
-                <div key={stage.value} style={{ marginBottom: 14 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'baseline',
-                      gap: 12,
-                    }}
-                  >
-                    <Tag color={stage.color} style={{ marginInlineEnd: 0 }}>
-                      {stage.label}
-                    </Tag>
-                    <Text type="secondary" style={{ fontSize: 13 }}>
-                      {count} {count === 1 ? 'lead' : 'leads'}
-                    </Text>
-                  </div>
-                  <Progress percent={percent} showInfo={false} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {recentLeads.length > 0 && (
-        <div style={panelStyle}>
-          <Text strong>Recently added</Text>
-          <Table
-            style={{ marginTop: 12 }}
-            rowKey="_id"
-            size="small"
-            pagination={false}
-            columns={columns}
-            dataSource={recentLeads}
-            scroll={{ x: 'max-content' }}
-          />
-          {leads.length > recentLeads.length && (
-            <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 12 }}>
-              Showing the {recentLeads.length} most recent of {leads.length}. The full board is
-              next.
-            </Text>
-          )}
+            return (
+              <StageColumn
+                key={stage.value}
+                stage={stage}
+                leads={stageLeads}
+                onDrop={handleDrop}
+              >
+                {stageLeads.map((lead) => (
+                  <LeadCard
+                    key={lead._id}
+                    lead={lead}
+                    assignee={resolveAssignee(lead.assignedTo)}
+                    isPending={pending.has(lead._id)}
+                    onMove={(next) => moveLead(lead, next)}
+                    onDragStart={setDraggedLead}
+                    onDragEnd={() => setDraggedLead(null)}
+                  />
+                ))}
+              </StageColumn>
+            );
+          })}
         </div>
       )}
     </Space>

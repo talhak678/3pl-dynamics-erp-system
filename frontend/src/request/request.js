@@ -98,6 +98,29 @@ const request = {
       return errorHandler(error);
     }
   },
+  /**
+   * The same PATCH as update(), reporting failures but not successes.
+   *
+   * update() toasts on every success, which is right for a form the user filled
+   * in and submitted - one deliberate action, one confirmation. It is wrong for
+   * an inline edit on a board, where moving a card is the interaction itself:
+   * five drops would raise five "Request success" toasts and bury the screen
+   * the user is working on. Failures still speak up, because a card that
+   * silently springs back to its old column has to explain itself.
+   */
+  updateQuietly: async ({ entity, id, jsonData }) => {
+    try {
+      includeToken();
+      const response = await axios.patch(entity + '/update/' + id, jsonData);
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: true,
+      });
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
   updateAndUpload: async ({ entity, id, jsonData }) => {
     try {
       includeToken();
