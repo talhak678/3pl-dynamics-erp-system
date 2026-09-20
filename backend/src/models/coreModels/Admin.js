@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const { ADMIN_ROLES } = require('../../utils/roles');
+
 const adminSchema = new Schema({
   removed: {
     type: Boolean,
@@ -58,12 +60,25 @@ const adminSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  // Descriptive label only. `isSuperAdmin` is the authoritative gate that
-  // requireSuperAdmin checks, so changing this value grants no access by itself.
+  // A job title for employees, and one of two tenancy roles for the accounts
+  // this platform itself creates.
+  //
+  // Mostly descriptive: it grants no module access, which is
+  // `modulePermissions`. But not purely descriptive, so do not treat it as a
+  // free-text label - 'owner' is what requireTenantOwner checks to decide who
+  // may manage a workspace's users, and 'superadmin' is what requireSuperAdmin
+  // checks on the control plane. Those are the only two places it gates
+  // anything, and both compare against a literal.
+  //
+  // The enum is deliberately WIDER than what /api/team will accept. It says what
+  // an account may BE; utils/roles.js says what a tenant may HAND OUT, which is
+  // this list minus 'owner' and 'superadmin'. Values outside the assignable set
+  // exist for accounts the platform creates and are rejected at the team
+  // endpoints, not here.
   role: {
     type: String,
     default: 'owner',
-    enum: ['owner', 'superadmin', 'employee'],
+    enum: ADMIN_ROLES,
   },
 });
 

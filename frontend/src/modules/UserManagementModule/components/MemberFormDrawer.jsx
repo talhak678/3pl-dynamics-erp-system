@@ -1,7 +1,29 @@
-import { useEffect } from 'react';
-import { Alert, Button, Drawer, Form, Input, Segmented, Space } from 'antd';
+import { useEffect, useMemo } from 'react';
+import { Alert, Button, Drawer, Form, Input, Segmented, Select, Space } from 'antd';
 
 import ModulePermissionsChecklist from './ModulePermissionsChecklist';
+
+/**
+ * The roles this form offers.
+ *
+ * Deliberately shorter than what the API accepts. The server allows any role
+ * except 'owner' and 'superadmin', including 'admin'; that one is not offered
+ * here because it is not a job title this product uses, and a dropdown is a
+ * better place to be opinionated than an API. Nothing is lost by the omission -
+ * a member carrying it still renders correctly, see the option merge below.
+ *
+ * The new titles carry their label as their value, because they are stored
+ * verbatim and shown verbatim. 'employee' is the exception: it keeps the
+ * lowercase value every account created before this change already carries, and
+ * only its label is title-cased. Changing that value would orphan existing
+ * members' roles.
+ */
+const BASE_ROLE_OPTIONS = [
+  { label: 'Employee', value: 'employee' },
+  { label: 'Sales Executive', value: 'Sales Executive' },
+  { label: 'Digital Marketer', value: 'Digital Marketer' },
+  { label: 'Manager', value: 'Manager' },
+];
 
 /**
  * Create and edit an employee, in a drawer.
@@ -10,11 +32,10 @@ import ModulePermissionsChecklist from './ModulePermissionsChecklist';
  * differences are the title and whether a password is required - splitting it
  * would mean keeping two copies of the validation in step.
  *
- * The Role field is shown but not editable, and that is a deliberate departure
- * from "give it a dropdown". This endpoint can only ever produce an 'employee':
- * an owner promoting someone is how a tenant would escalate its own account,
- * and the server ignores the field entirely (see teamController/updateMember.js).
- * A dropdown offering 'owner' would be a control that silently does nothing.
+ * Role is a constrained dropdown rather than a free choice. The server accepts
+ * any role except 'owner' and 'superadmin' - the two values the rest of the
+ * system authorises on, so assigning either would escalate rather than label.
+ * Offering them here would be a control that is refused on save.
  */
 export default function MemberFormDrawer({
   open,
@@ -27,6 +48,21 @@ export default function MemberFormDrawer({
 }) {
   const [form] = Form.useForm();
   const isEdit = Boolean(member);
+
+  const roleOptions = useMemo(() => {
+    // A member whose role was set through the API to something this dropdown
+    // does not offer - 'admin' is the live case - still has to appear as a real
+    // option. Without this the Select would fall back to rendering the bare
+    // value string, and the field would look like it had lost its selection
+    // even though saving it unchanged is perfectly valid.
+    const current = member?.role;
+
+    if (!current || BASE_ROLE_OPTIONS.some((option) => option.value === current)) {
+      return BASE_ROLE_OPTIONS;
+    }
+
+    return [...BASE_ROLE_OPTIONS, { label: current, value: current }];
+  }, [member?.role]);
 
   useEffect(() => {
     if (!open) return;
@@ -43,11 +79,15 @@ export default function MemberFormDrawer({
         // value as string | number, so binding a boolean to it would depend on
         // how it compares options internally rather than on its contract.
         status: member.isActive ? 'active' : 'inactive',
+        role: member.role,
         modulePermissions: member.modulePermissions ?? [],
       });
     } else {
       form.resetFields();
-      form.setFieldsValue({ status: 'active', modulePermissions: [] });
+      // 'employee' rather than leaving it blank, to match the server's default
+      // for an omitted role. A blank select would be a required field the user
+      // has to visit before they can save.
+      form.setFieldsValue({ status: 'active', role: 'employee', modulePermissions: [] });
     }
   }, [open, member, isEdit, form]);
 
@@ -56,6 +96,7 @@ export default function MemberFormDrawer({
       name: values.name,
       surname: values.surname || undefined,
       email: values.email,
+      role: values.role,
       isActive: values.status === 'active',
       modulePermissions: values.modulePermissions,
     };
@@ -149,8 +190,13 @@ export default function MemberFormDrawer({
           />
         </Form.Item>
 
-        <Form.Item label="Role">
-          <Input value="Employee" disabled />
+        <Form.Item
+          name="role"
+          label="Role"
+          rules={[{ required: true, message: 'Please choose a role' }]}
+          extra="A job title within your workspace. It does not change which modules this user can open."
+        >
+          <Select options={roleOptions} placeholder="Select a role" />
         </Form.Item>
 
         <Form.Item

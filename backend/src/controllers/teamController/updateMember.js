@@ -3,6 +3,8 @@ const Joi = require('joi');
 const { generate: uniqueId } = require('shortid');
 
 const { validateRequestedModules, grantableModules } = require('./permissions');
+const { validateRequestedRole } = require('./roles');
+const { ASSIGNABLE_ROLES } = require('../../utils/roles');
 const serializeMember = require('./serializeMember');
 
 /**
@@ -13,23 +15,28 @@ const serializeMember = require('./serializeMember');
  * Every field is optional, so the same endpoint backs both "edit the details"
  * and "toggle this person off".
  *
- * Four fields are deliberately not writable here:
+ * Three fields are deliberately not writable here:
  *
- *   role, isSuperAdmin  promoting an employee is a control-plane operation, not
- *                       something one tenant does to another account in its own
- *                       workspace. An owner editing their own employee must not
- *                       be a path to a super admin.
- *   parentAdminId       reparenting is how an account would be moved into
- *                       another tenant. There is no supported way to do it.
- *   enabled             the login switch, kept server-side so it cannot be used
- *                       to re-enable an account the platform disabled. isActive
- *                       is the tenant's own switch and IS settable.
+ *   isSuperAdmin  promoting an employee to the control plane is not something
+ *                 one tenant does to another account in its own workspace. An
+ *                 owner editing their own employee must not be a path to a
+ *                 super admin.
+ *   parentAdminId reparenting is how an account would be moved into another
+ *                 tenant. There is no supported way to do it.
+ *   enabled       the login switch, kept server-side so it cannot be used to
+ *                 re-enable an account the platform disabled. isActive is the
+ *                 tenant's own switch and IS settable.
+ *
+ * `role` IS writable, but only within the assignable set - see roles.js. It is
+ * a job title for the workspace, so a manager becoming a sales executive is a
+ * routine edit; 'owner' and 'superadmin' are refused because they are the two
+ * values the rest of the system authorises on.
  */
 const updateMember = async (req, res) => {
   const Admin = mongoose.model('Admin');
   const AdminPassword = mongoose.model('AdminPassword');
 
-  const { name, surname, email, password, modulePermissions, isActive } = req.body;
+  const { name, surname, email, password, modulePermissions, isActive, role } = req.body;
 
   const notFound = () =>
     res.status(404).json({
@@ -102,6 +109,26 @@ const updateMember = async (req, res) => {
   }
 
   if (isActive !== undefined) updates.isActive = isActive === true;
+
+  // Guarded on `undefined` rather than always run, because this handler treats
+  // every absent field as "leave it alone" - and validateRequestedRole resolves
+  // an absent role to its default. Calling it unconditionally would silently
+  // demote every member to 'employee' on any partial update, such as the status
+  // toggle the card's drawer sends.
+  if (role !== undefined) {
+    const roleAssignment = validateRequestedRole(role);
+
+    if (roleAssignment.error) {
+      return res.status(roleAssignment.status).json({
+        success: false,
+        result: null,
+        message: roleAssignment.error,
+        assignableRoles: ASSIGNABLE_ROLES,
+      });
+    }
+
+    updates.role = roleAssignment.value;
+  }
 
   if (modulePermissions !== undefined) {
     const permissions = validateRequestedModules(modulePermissions, req.admin);

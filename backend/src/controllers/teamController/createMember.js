@@ -3,6 +3,8 @@ const Joi = require('joi');
 const { generate: uniqueId } = require('shortid');
 
 const { validateRequestedModules, grantableModules } = require('./permissions');
+const { validateRequestedRole } = require('./roles');
+const { ASSIGNABLE_ROLES } = require('../../utils/roles');
 const serializeMember = require('./serializeMember');
 
 /**
@@ -10,16 +12,20 @@ const serializeMember = require('./serializeMember');
  *
  * Creates an employee inside the calling owner's workspace.
  *
- * `role`, `isSuperAdmin` and `parentAdminId` are all set here and never read
- * from the request body:
+ * `isSuperAdmin` and `parentAdminId` are set here and never read from the
+ * request body:
  *
  *   parentAdminId  is what scopes every later query, so accepting it from the
  *                  client would let an owner plant an account inside another
  *                  tenant - or, worse, let the account choose its own parent.
  *   isSuperAdmin   is left false so this endpoint cannot mint a control-plane
  *                  account, exactly as the super admin's own createUser does.
- *   role           is fixed to 'employee'. The only role this endpoint may
- *                  produce is one that cannot reach this endpoint.
+ *
+ * `role` IS taken from the body, but only from the assignable set: 'owner' and
+ * 'superadmin' are refused because they are the two values the rest of the
+ * system authorises on, so assigning either would escalate rather than label.
+ * The reasoning lives in roles.js. An omitted role falls back to 'employee'
+ * rather than the schema default of 'owner'.
  *
  * `enabled` is set true because its schema default is false and a new account
  * would otherwise be refused at login.
@@ -28,7 +34,7 @@ const createMember = async (req, res) => {
   const Admin = mongoose.model('Admin');
   const AdminPassword = mongoose.model('AdminPassword');
 
-  const { name, surname, email, password, modulePermissions, isActive } = req.body;
+  const { name, surname, email, password, modulePermissions, isActive, role } = req.body;
 
   const objectSchema = Joi.object({
     name: Joi.string().required(),
@@ -62,6 +68,20 @@ const createMember = async (req, res) => {
     });
   }
 
+  // Checked before the email lookup so an escalation attempt is refused on its
+  // own terms, rather than being reported as a duplicate email if the caller
+  // happened to reuse an address.
+  const roleAssignment = validateRequestedRole(role);
+
+  if (roleAssignment.error) {
+    return res.status(roleAssignment.status).json({
+      success: false,
+      result: null,
+      message: roleAssignment.error,
+      assignableRoles: ASSIGNABLE_ROLES,
+    });
+  }
+
   const normalisedEmail = email.trim().toLowerCase();
 
   // Checked globally rather than within the workspace, because email is the
@@ -84,7 +104,7 @@ const createMember = async (req, res) => {
     enabled: true,
     isActive: isActive === undefined ? true : isActive === true,
     isSuperAdmin: false,
-    role: 'employee',
+    role: roleAssignment.value,
     parentAdminId: req.admin._id,
     modulePermissions: permissions.value,
   }).save();
