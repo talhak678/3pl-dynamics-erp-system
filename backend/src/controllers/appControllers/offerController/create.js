@@ -36,6 +36,11 @@ const create = async (req, res) => {
   body['items'] = items;
   body['createdBy'] = req.admin.tenantId;
 
+  // Authorship rather than ownership - see the note on the generic create in
+  // middlewaresControllers/createCRUDController/create.js. This controller is
+  // bespoke, so it has to set the field itself; the shared one never runs here.
+  body['createdByUser'] = req.admin._id;
+
   // Creating a new document in the collection
   const result = await new Model(body).save();
   const fileId = 'offer-' + result._id + '.pdf';

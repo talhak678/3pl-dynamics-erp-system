@@ -15,6 +15,7 @@ import { selectCurrentItem } from '@/redux/crud/selectors';
 import useLanguage from '@/locale/useLanguage';
 import { crud } from '@/redux/crud/actions';
 import { useCrudContext } from '@/context/crud';
+import { ListFilterProvider } from '@/context/listFilter';
 
 import { CrudLayout } from '@/layout';
 
@@ -106,6 +107,17 @@ function FixHeaderPanel({ config }) {
   );
 }
 
+/**
+ * One table and its forms, for one entity.
+ *
+ * Wrapped in ListFilterProvider because the per-user filter has to outlive the
+ * table that renders it: the create form, the edit form and the delete modal all
+ * re-fetch the list after a write, and each of them has to re-fetch it with the
+ * same filter or the table and the dropdown would disagree about what is being
+ * shown. See context/listFilter. The provider is mounted here rather than higher
+ * up, so leaving this page drops the selection - it names a person, and it means
+ * nothing on the next entity.
+ */
 function CrudModule({ config, createForm, updateForm, withUpload = false }) {
   const dispatch = useDispatch();
 
@@ -114,19 +126,21 @@ function CrudModule({ config, createForm, updateForm, withUpload = false }) {
   }, []);
 
   return (
-    <CrudLayout
-      config={config}
-      fixHeaderPanel={<FixHeaderPanel config={config} />}
-      sidePanelBottomContent={
-        <CreateForm config={config} formElements={createForm} withUpload={withUpload} />
-      }
-      sidePanelTopContent={
-        <SidePanelTopContent config={config} formElements={updateForm} withUpload={withUpload} />
-      }
-    >
-      <DataTable config={config} />
-      <DeleteModal config={config} />
-    </CrudLayout>
+    <ListFilterProvider>
+      <CrudLayout
+        config={config}
+        fixHeaderPanel={<FixHeaderPanel config={config} />}
+        sidePanelBottomContent={
+          <CreateForm config={config} formElements={createForm} withUpload={withUpload} />
+        }
+        sidePanelTopContent={
+          <SidePanelTopContent config={config} formElements={updateForm} withUpload={withUpload} />
+        }
+      >
+        <DataTable config={config} />
+        <DeleteModal config={config} />
+      </CrudLayout>
+    </ListFilterProvider>
   );
 }
 

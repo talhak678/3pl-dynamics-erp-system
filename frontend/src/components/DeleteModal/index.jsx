@@ -4,6 +4,7 @@ import { Modal } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { crud } from '@/redux/crud/actions';
 import { useCrudContext } from '@/context/crud';
+import { useListOptions } from '@/context/listFilter';
 import { useAppContext } from '@/context/appContext';
 import { selectDeletedItem } from '@/redux/crud/selectors';
 import { valueByString } from '@/utils/helpers';
@@ -19,6 +20,12 @@ export default function DeleteModal({ config }) {
     modalTitle = translate('delete_confirmation'),
   } = config;
   const dispatch = useDispatch();
+
+  // The refresh below has to keep whatever the table is currently filtered to,
+  // or the remaining rows would reappear in a list the dropdown claims is
+  // somebody else's.
+  const listOptions = useListOptions();
+
   const { current, isLoading, isSuccess } = useSelector(selectDeletedItem);
   const { state, crudContextAction } = useCrudContext();
   const { appContextAction } = useAppContext();
@@ -32,7 +39,7 @@ export default function DeleteModal({ config }) {
     if (isSuccess) {
       console.log('🚀 ~ useEffect ~ DeleteModal isSuccess:', isSuccess);
       modal.close();
-      dispatch(crud.list({ entity }));
+      dispatch(crud.list({ entity, options: listOptions() }));
       // dispatch(crud.resetAction({actionType:"delete"})); // check here maybe it wrong
     }
     if (current) {

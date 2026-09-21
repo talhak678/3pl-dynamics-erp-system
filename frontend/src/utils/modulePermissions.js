@@ -47,7 +47,10 @@ export const hasModule = (admin, moduleKey) => {
  * grant or deny anything. The worst it can do is misjudge that one notice: too
  * long and everyone sees it, too short and nobody does.
  *
- * Keep it in step with the server if MODULE_KEYS ever changes.
+ * Keep it in step with the server if MODULE_KEYS ever changes. It changed once
+ * already: 'report' was dropped, because it had no page, no route and no
+ * navigation entry — the Dashboard Summary Report PDF is served from an ungated
+ * route and 'dashboard' is what covers the report pages.
  */
 export const ALL_MODULES = [
   'dashboard',
@@ -64,7 +67,6 @@ export const ALL_MODULES = [
   'order',
   'expenses',
   'category/expenses',
-  'report',
   'generalSettings',
   'taxes',
   'help',

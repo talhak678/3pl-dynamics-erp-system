@@ -4,6 +4,9 @@ import { ERP_MODULES, MODULE_GROUPS, modulesInGroup } from '@/utils/erpModules';
 
 const { Text } = Typography;
 
+/** Every key the grid can render - i.e. every key the server still accepts. */
+const KNOWN_KEYS = new Set(ERP_MODULES.map((module) => module.key));
+
 /**
  * Grouped checkbox grid over the modules a Customer Admin may hand out.
  *
@@ -18,6 +21,12 @@ const { Text } = Typography;
  * empty selection is accepted and grants everything, so the notice warns about
  * it. Here the server refuses an empty selection outright, so the notice is a
  * validation message rather than a caution.
+ *
+ * The incoming value is filtered to keys the grid can render, which is the same
+ * thing as keys the server still accepts. A retired key rides along invisibly
+ * otherwise: no checkbox shows it, so it cannot be unticked, and the server now
+ * rejects the whole save for it. 'report' is the retired one, and it is the
+ * reason this filter exists.
  */
 export default function ModulePermissionsChecklist({
   value = [],
@@ -25,7 +34,7 @@ export default function ModulePermissionsChecklist({
   grantable = [],
   disabled = false,
 }) {
-  const selected = Array.isArray(value) ? value : [];
+  const selected = (Array.isArray(value) ? value : []).filter((key) => KNOWN_KEYS.has(key));
   const isEmpty = selected.length === 0;
 
   const available = ERP_MODULES.filter((module) => grantable.includes(module.key));

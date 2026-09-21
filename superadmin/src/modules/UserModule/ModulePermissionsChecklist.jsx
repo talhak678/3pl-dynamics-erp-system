@@ -5,7 +5,7 @@ import { ERP_MODULES, MODULE_GROUPS, modulesInGroup } from '@/utils/moduleList';
 const { Text } = Typography;
 
 /**
- * Grouped checkbox grid over the 18 ERP modules.
+ * Grouped checkbox grid over the 17 ERP modules.
  *
  * The warning banner is not decoration. The backend resolves an empty array to
  * "every module", so a super admin who clears all 18 boxes and saves has granted

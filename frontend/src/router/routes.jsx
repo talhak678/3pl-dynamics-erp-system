@@ -3,6 +3,7 @@ import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 
 import RequireModule from './RequireModule';
+import RequireModuleHome from './RequireModuleHome';
 import RequireOwner from './RequireOwner';
 import RequireSalesPipeline from './RequireSalesPipeline';
 
@@ -92,7 +93,15 @@ let routes = {
     },
     {
       path: '/',
-      element: guarded('dashboard', <Dashboard />),
+      // Not `guarded('dashboard', ...)`. This is where signing in lands, and an
+      // account without the dashboard module would be refused the page it was
+      // just sent to. The guard renders the dashboard when it is held and
+      // forwards to the first module that is otherwise - see RequireModuleHome.
+      element: (
+        <RequireModuleHome>
+          <Dashboard />
+        </RequireModuleHome>
+      ),
     },
     {
       path: '/customer',

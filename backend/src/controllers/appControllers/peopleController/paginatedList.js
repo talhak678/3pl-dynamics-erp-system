@@ -1,4 +1,4 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { ownerFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -6,6 +6,19 @@ const paginatedList = async (Model, req, res) => {
   const skip = page * limit - limit;
 
   const { sortBy = 'enabled', sortValue = -1, filter, equal } = req.query;
+
+  // The shared paginatedList refuses a reserved key here and this one did not,
+  // so the two disagreeing about which fields a caller may name was the only
+  // thing standing between them. The guard is hardening rather than a fix: the
+  // ownership clause is spread last below, so naming `createdBy` here could
+  // never actually have overridden it.
+  if (filter !== undefined && isReservedFilterKey(filter)) {
+    return res.status(400).json({
+      success: false,
+      result: [],
+      message: 'Invalid filter value',
+    });
+  }
 
   const fieldsArray = req.query.fields ? req.query.fields.split(',') : [];
 
@@ -18,12 +31,18 @@ const paginatedList = async (Model, req, res) => {
   }
 
   //  Query the database for a list of all results
+  //
+  //  The owner's per-user narrowing is spread on last, alongside the tenant
+  //  clause and for the same reason - nothing a caller puts in the query string
+  //  can reach past either of them. Both are {} for an account that is not the
+  //  workspace owner. See userFilter.
   const resultsPromise = Model.find({
     removed: false,
 
     [filter]: equal,
     ...fields,
     ...ownerFilter(req),
+    ...userFilter(Model, req),
   })
     .skip(skip)
     .limit(limit)
@@ -38,6 +57,7 @@ const paginatedList = async (Model, req, res) => {
     [filter]: equal,
     ...fields,
     ...ownerFilter(req),
+    ...userFilter(Model, req),
   });
 
   // Resolving both promises

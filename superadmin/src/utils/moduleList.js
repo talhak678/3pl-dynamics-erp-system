@@ -1,17 +1,21 @@
 /**
  * The ERP modules a tenant account can be granted.
  *
- * These 18 keys MUST stay byte-identical to MODULE_KEYS in the backend's
+ * These 17 keys MUST stay byte-identical to MODULE_KEYS in the backend's
  * src/utils/moduleList.js — that file is the validation whitelist, and a key
  * present here but absent there is rejected with a 400 "Unknown module key".
  * The backend deliberately does not expose its list over the API, so this is a
  * hand-maintained mirror.
  *
+ * 'report' was the eighteenth and is gone from both sides: it had no page, no
+ * route and no navigation entry, and the Dashboard Summary Report PDF it was
+ * named after is served from an ungated route. 'dashboard' covers the report
+ * pages.
+ *
  * An empty allow-list means EVERY module, not none — see EMPTY_MEANS_ALL below.
  */
 export const ERP_MODULES = [
   { key: 'dashboard', label: 'Dashboard', group: 'Overview' },
-  { key: 'report', label: 'Report', group: 'Overview' },
 
   { key: 'invoice', label: 'Invoices', group: 'Sales' },
   { key: 'quote', label: 'Quotes', group: 'Sales' },

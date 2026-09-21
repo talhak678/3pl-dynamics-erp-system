@@ -85,6 +85,14 @@ export const canUseSalesPipeline = (admin) =>
  * `company` meets the identical wall the moment they enter a contact rather
  * than a business - which is the same bug, one field over.
  *
+ * `taxes` is here for the same reason, one module over. A Sales Executive holds
+ * `quote` because quoting is how they close a lead, and the quote form has a tax
+ * picker that searches /api/taxes/* - resolved by the same guard to this key.
+ * Without it the picker renders empty and the quote cannot be saved. The pairing
+ * is recorded in utils/rolePresets.js, where every other picker dependency in
+ * the app is listed; this is the one entry that lives here instead, because this
+ * list predates that file and is still the preset the Sales Executive row reads.
+ *
  * There is deliberately no `salesPipeline` entry, and it must not be invented
  * here: the pipeline is a second view of `lead`, served by /api/lead/*, which
  * the same guard already resolves to that key. Listing a key the server does
@@ -104,4 +112,5 @@ export const SALES_EXECUTIVE_MODULES = [
   'company',
   'people',
   'quote',
+  'taxes',
 ];

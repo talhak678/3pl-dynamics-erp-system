@@ -37,22 +37,45 @@ const SYSTEM_ROLES = ['owner', 'superadmin'];
  * the UI, not identifiers - nothing branches on them, so their shape is a
  * presentation choice rather than an API contract.
  *
- * 'admin' is accepted by the API but is not offered by the tenant UI (see
- * MemberFormDrawer). It is a title here, not a privilege level: no gate in this
- * codebase reads it, so selecting it confers nothing beyond the label. It is
- * assignable only because the rule is a denylist of two, not an allowlist of
- * four - narrowing that would be a product decision, not a security one.
+ * This is the whole set the tenant UI offers and the whole set /api/team will
+ * accept. The frontend carries a mirror with the module preset that goes with
+ * each title (frontend/src/utils/rolePresets.js), and the two must be kept in
+ * step: a title here with no preset there would be assignable but would tick
+ * nothing, which reads to an admin as a broken form rather than a missing
+ * default.
  */
 const ASSIGNABLE_ROLES = [
   'employee',
-  'admin',
   'Sales Executive',
-  'Digital Marketer',
-  'Manager',
+  'Accountant',
+  'Marketing Manager',
+  'Inventory Manager',
+  'Customer Support',
 ];
 
+/**
+ * Titles this product no longer offers, but which accounts already carry.
+ *
+ * Deliberately still in ADMIN_ROLES and deliberately NOT in ASSIGNABLE_ROLES.
+ * That split is the whole point: `isAssignableRole` reads the list above, so
+ * none of these can be handed to anyone new, while the schema enum still
+ * accepts them - so an existing member carrying one can still be saved.
+ *
+ * Without this they would be orphaned rather than retired. The enum is checked
+ * on every write, so the next time an admin edited such a member's name the
+ * whole save would fail validation, on a field the admin never touched, with no
+ * way to fix it except changing that person's job title. 'Digital Marketer' was
+ * added deliberately (commit 8cc3d2d7), so accounts carrying it are likely
+ * rather than hypothetical.
+ *
+ * 'admin' is here for a different reason: the API accepted it as a title but the
+ * tenant UI never offered it. It was never a privilege level - no gate in this
+ * codebase reads it.
+ */
+const RETIRED_ROLES = ['admin', 'Digital Marketer', 'Manager'];
+
 /** The full enum the Admin schema accepts. */
-const ADMIN_ROLES = [...SYSTEM_ROLES, ...ASSIGNABLE_ROLES];
+const ADMIN_ROLES = [...SYSTEM_ROLES, ...ASSIGNABLE_ROLES, ...RETIRED_ROLES];
 
 /**
  * The one assignable role that narrows a data scope rather than only labelling
@@ -82,6 +105,7 @@ const isAssignableRole = (role) => ASSIGNABLE_ROLES.includes(role);
 module.exports = {
   SYSTEM_ROLES,
   ASSIGNABLE_ROLES,
+  RETIRED_ROLES,
   ADMIN_ROLES,
   SALES_EXECUTIVE_ROLE,
   DEFAULT_MEMBER_ROLE,

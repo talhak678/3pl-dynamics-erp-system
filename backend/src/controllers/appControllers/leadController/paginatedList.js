@@ -1,5 +1,5 @@
 const { migrate } = require('./migrate');
-const { leadFilter } = require('../../../middlewares/ownership');
+const { leadFilter, userFilter } = require('../../../middlewares/ownership');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -30,6 +30,16 @@ const paginatedList = async (Model, req, res) => {
   if (filter !== undefined) conditions.push({ [filter]: equal });
   if (fields.$or) conditions.push(fields);
   conditions.push(leadFilter(req));
+
+  // The owner's per-user narrowing. Pushed as its own entry rather than merged
+  // into the clause above, because leadFilter's Sales Executive branch already
+  // owns the top-level `$or` on this object - merging would let one replace the
+  // other. As a separate $and entry it only ever removes rows, and it is empty
+  // for everyone except a tenant owner, so an executive's own scope is
+  // untouched. See userFilter.
+  const perUser = userFilter(Model, req);
+
+  if (Object.keys(perUser).length > 0) conditions.push(perUser);
 
   const query = { $and: conditions };
 

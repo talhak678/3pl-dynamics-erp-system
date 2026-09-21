@@ -12,6 +12,14 @@
 //     (generalSettings, taxes, help) is granted.
 //   - 'paymentMode' appears there only inside a commented-out block, so it is
 //     not a live navigation item.
+//
+// 'report' used to be a key here and is not any more: it never had a page, a
+// route or a navigation entry. The Dashboard Summary Report PDF it was named
+// after is served from /api/report/*, which is ungated because no entity maps
+// to it either - so dropping the key costs nothing and stops a permission that
+// granted nothing from being handed out. 'dashboard' is what covers the report
+// pages. An account still carrying 'report' in its stored modulePermissions is
+// unaffected: an unknown string in that array grants nothing and gates nothing.
 const MODULE_KEYS = [
   'dashboard',
   'invoice',
@@ -27,7 +35,6 @@ const MODULE_KEYS = [
   'order',
   'expenses',
   'category/expenses',
-  'report',
   'generalSettings',
   'taxes',
   'help',

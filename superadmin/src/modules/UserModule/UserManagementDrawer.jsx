@@ -25,6 +25,7 @@ import {
 
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { updateUserStatus, updateUserPermissions } from '@/superadmin/superAdmin.service';
+import { MODULE_KEYS } from '@/utils/moduleList';
 import useDate from '@/settings/useDate';
 
 import ModulePermissionsChecklist from './ModulePermissionsChecklist';
@@ -47,10 +48,20 @@ export default function UserManagementDrawer({ open, user, onClose, onUpdated })
 
   // Re-seed the local copy whenever a different account is opened, so edits made
   // to one card never leak into the next.
+  //
+  // Filtered against the current key list, which drops keys this product has
+  // retired from the stored array - 'report' is the one. Without it the stale key
+  // rides along invisibly: no checkbox renders it, so it cannot be unticked, and
+  // the backend now rejects the whole save for it. Dropping it here also makes
+  // the dirty check below honest, since clearing it IS a change worth saving.
   useEffect(() => {
     if (!user) return;
     setIsActive(user.isActive !== false);
-    setPermissions(Array.isArray(user.modulePermissions) ? user.modulePermissions : []);
+    setPermissions(
+      Array.isArray(user.modulePermissions)
+        ? user.modulePermissions.filter((key) => MODULE_KEYS.includes(key))
+        : []
+    );
   }, [user]);
 
   const permissionsDirty = useMemo(() => {

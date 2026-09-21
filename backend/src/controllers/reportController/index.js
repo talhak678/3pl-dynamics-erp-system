@@ -4,6 +4,7 @@ const moment = require('moment');
 
 const custom = require('../pdfController');
 const { resolveModules } = require('../../utils/moduleList');
+const { canSeePipeline, buildPipelineReport } = require('./salesPipeline');
 
 // The assembled controllers, not the summary modules sitting beside them.
 //
@@ -22,6 +23,7 @@ const {
   offerController,
   paymentController,
   clientController,
+  leadController,
 } = require('../appControllers');
 
 // The same asset the sidebar renders (frontend/src/style/images/light-logo.png),
@@ -101,13 +103,27 @@ const downloadDashboardReport = async (req, res) => {
     const granted = resolveModules(admin);
     const can = (moduleKey) => granted.includes(moduleKey);
 
-    const [invoice, quote, offer, payment, client] = await Promise.all([
+    // Asked before the fetch rather than after it, so the leads are read only for
+    // an account whose report will actually carry them. An employee holding
+    // `lead` is not a pipeline role and gets no section, and reading the whole
+    // workspace's leads to discard them would be work with no purpose.
+    const wantsPipeline = canSeePipeline(admin);
+
+    const [invoice, quote, offer, payment, client, leads] = await Promise.all([
       can('invoice') ? collect(invoiceController.summary, req) : null,
       can('quote') ? collect(quoteController.summary, req) : null,
       can('offer') ? collect(offerController.summary, req) : null,
       can('payment') ? collect(paymentController.summary, req) : null,
       can('customer') ? collect(clientController.summary, req) : null,
+      wantsPipeline ? collect(leadController.listAll, req) : null,
     ]);
+
+    // Built from the leads listAll just returned rather than from a query of its
+    // own, so the isolation the Sales Executive is owed is applied once, by the
+    // handler the pipeline page itself calls. Returns null for an account with
+    // no pipeline - no `lead` grant, or a role that does not work leads - and
+    // the template then renders no pipeline section at all.
+    const pipeline = await buildPipelineReport({ admin, leads });
 
     const fullName = [admin.name, admin.surname].filter(Boolean).join(' ').trim();
 
@@ -126,6 +142,7 @@ const downloadDashboardReport = async (req, res) => {
       offer,
       payment,
       client,
+      pipeline,
     };
 
     const { pdfBuffer, htmlContent } = await custom.generatePdf(

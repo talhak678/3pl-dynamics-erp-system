@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Result, Space, Typography } from 'antd';
 
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
-import { hasModule } from '@/utils/modulePermissions';
 import useLanguage from '@/locale/useLanguage';
+import { landingPathFor } from '@/router/moduleHome';
 
 const { Text } = Typography;
 
@@ -23,11 +23,14 @@ export default function AccessDenied({ moduleKey = '' }) {
   const currentAdmin = useSelector(selectCurrentAdmin);
 
   // The dashboard is a module like any other, so an account can be refused the
-  // very page we would otherwise offer to send them to. Only show the button
-  // when it leads somewhere they are allowed to be. This is not a dead end
-  // either way: the sidebar stays mounted around this screen, so any module they
-  // do have is one click away.
-  const canSeeDashboard = hasModule(currentAdmin, 'dashboard');
+  // very page we would otherwise offer to send them to. This is the same
+  // question the home route asks, so it is the same answer: the first module
+  // this account actually holds, or nothing at all.
+  //
+  // Null is the genuine dead end - an allow-list with no module that has a page
+  // - and only then is signing out the useful offer. The sidebar stays mounted
+  // around this screen either way, so any module they do have is one click away.
+  const landing = landingPathFor(currentAdmin);
 
   return (
     <Result
@@ -45,8 +48,8 @@ export default function AccessDenied({ moduleKey = '' }) {
         </Space>
       }
       extra={
-        canSeeDashboard ? (
-          <Button type="primary" onClick={() => navigate('/')}>
+        landing ? (
+          <Button type="primary" onClick={() => navigate(landing)}>
             {translate('Back')}
           </Button>
         ) : (

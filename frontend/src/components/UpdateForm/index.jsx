@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useDispatch, useSelector } from 'react-redux';
 import { crud } from '@/redux/crud/actions';
 import { useCrudContext } from '@/context/crud';
+import { useListOptions } from '@/context/listFilter';
 import { selectUpdatedItem } from '@/redux/crud/selectors';
 
 import useLanguage from '@/locale/useLanguage';
@@ -16,6 +17,10 @@ export default function UpdateForm({ config, formElements, withUpload = false })
   const translate = useLanguage();
   const dispatch = useDispatch();
   const { current, isLoading, isSuccess } = useSelector(selectUpdatedItem);
+
+  // The refresh below has to keep whatever the table is currently filtered to,
+  // or the edited row appears in a list the dropdown claims is somebody else's.
+  const listOptions = useListOptions();
 
   const { state, crudContextAction } = useCrudContext();
 
@@ -87,7 +92,7 @@ export default function UpdateForm({ config, formElements, withUpload = false })
       panel.open();
       form.resetFields();
       dispatch(crud.resetAction({ actionType: 'update' }));
-      dispatch(crud.list({ entity }));
+      dispatch(crud.list({ entity, options: listOptions() }));
     }
   }, [isSuccess]);
 

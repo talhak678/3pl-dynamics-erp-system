@@ -1,31 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { Alert, Button, Drawer, Form, Input, Segmented, Select, Space } from 'antd';
 
-import { SALES_EXECUTIVE_MODULES, SALES_EXECUTIVE_ROLE } from '@/utils/salesPipeline';
+import { ASSIGNABLE_ROLE_OPTIONS, presetFor } from '@/utils/rolePresets';
 
 import ModulePermissionsChecklist from './ModulePermissionsChecklist';
-
-/**
- * The roles this form offers.
- *
- * Deliberately shorter than what the API accepts. The server allows any role
- * except 'owner' and 'superadmin', including 'admin'; that one is not offered
- * here because it is not a job title this product uses, and a dropdown is a
- * better place to be opinionated than an API. Nothing is lost by the omission -
- * a member carrying it still renders correctly, see the option merge below.
- *
- * The new titles carry their label as their value, because they are stored
- * verbatim and shown verbatim. 'employee' is the exception: it keeps the
- * lowercase value every account created before this change already carries, and
- * only its label is title-cased. Changing that value would orphan existing
- * members' roles.
- */
-const BASE_ROLE_OPTIONS = [
-  { label: 'Employee', value: 'employee' },
-  { label: 'Sales Executive', value: 'Sales Executive' },
-  { label: 'Digital Marketer', value: 'Digital Marketer' },
-  { label: 'Manager', value: 'Manager' },
-];
 
 /**
  * Create and edit an employee, in a drawer.
@@ -34,10 +12,16 @@ const BASE_ROLE_OPTIONS = [
  * differences are the title and whether a password is required - splitting it
  * would mean keeping two copies of the validation in step.
  *
- * Role is a constrained dropdown rather than a free choice. The server accepts
- * any role except 'owner' and 'superadmin' - the two values the rest of the
- * system authorises on, so assigning either would escalate rather than label.
- * Offering them here would be a control that is refused on save.
+ * Role is a constrained dropdown rather than a free choice, and which titles it
+ * may offer is decided in utils/rolePresets.js rather than here - the options and
+ * the module preset each one ticks are read together, and would drift apart if
+ * they were kept in separate files.
+ *
+ * The server accepts anything except 'owner' and 'superadmin', the two values
+ * the rest of the system authorises on: assigning either would escalate rather
+ * than label. It also still accepts the retired titles, so that an existing
+ * member carrying one can be saved - see the option merge below, which is what
+ * keeps such a member from appearing to have lost their job title.
  */
 export default function MemberFormDrawer({
   open,
@@ -52,18 +36,19 @@ export default function MemberFormDrawer({
   const isEdit = Boolean(member);
 
   const roleOptions = useMemo(() => {
-    // A member whose role was set through the API to something this dropdown
-    // does not offer - 'admin' is the live case - still has to appear as a real
-    // option. Without this the Select would fall back to rendering the bare
-    // value string, and the field would look like it had lost its selection
-    // even though saving it unchanged is perfectly valid.
+    // A member whose role is a retired one - 'Manager', 'Digital Marketer',
+    // 'admin' - still has to appear as a real option. Without this the Select
+    // would fall back to rendering the bare value string, and the field would
+    // look like it had lost its selection even though saving it unchanged is
+    // perfectly valid. Appending rather than offering them to everyone is what
+    // keeps a retired title from being handed to anyone new.
     const current = member?.role;
 
-    if (!current || BASE_ROLE_OPTIONS.some((option) => option.value === current)) {
-      return BASE_ROLE_OPTIONS;
+    if (!current || ASSIGNABLE_ROLE_OPTIONS.some((option) => option.value === current)) {
+      return ASSIGNABLE_ROLE_OPTIONS;
     }
 
-    return [...BASE_ROLE_OPTIONS, { label: current, value: current }];
+    return [...ASSIGNABLE_ROLE_OPTIONS, { label: current, value: current }];
   }, [member?.role]);
 
   useEffect(() => {
@@ -94,19 +79,19 @@ export default function MemberFormDrawer({
   }, [open, member, isEdit, form]);
 
   /**
-   * Prefills the module list when the role is set to Sales Executive.
+   * Prefills the module list from the role that was just picked.
    *
    * The role itself grants nothing - module access is decided entirely by
-   * `modulePermissions`. But these two are chosen together in practice: a Sales
-   * Executive who cannot open the leads module has nothing to execute against,
+   * `modulePermissions`. But the two are chosen together in practice: an
+   * accountant who cannot open the invoices module has nothing to account for,
    * and the admin filling this form has no reason to know that off-hand. So the
-   * title fills in the modules that go with it, and the checkboxes below stay
-   * fully editable.
+   * title ticks the modules that go with it, and the checkboxes below stay fully
+   * editable.
    *
    * Replaces the selection rather than adding to it. A union would be
    * fail-open in exactly the case that matters: an admin who has ticked
-   * everything and then picks this role would keep everything, and the prefill
-   * would have silently granted a sales rep the whole ERP.
+   * everything and then picks a role would keep everything, and the prefill
+   * would have silently granted that user the whole ERP.
    *
    * Filtered against `grantable` because the server refuses a grant the owner
    * does not hold themselves - offering one and then rejecting the save would
@@ -115,14 +100,21 @@ export default function MemberFormDrawer({
    * means "every module" to the server, so clearing it would be the one outcome
    * worse than doing nothing.
    *
-   * Only runs on a change the user made. Opening an existing Sales Executive for
-   * editing does not fire this, so a permission list that was deliberately
-   * customised is never quietly reset.
+   * `presetFor` returns null for a title with no preset - 'employee', whose
+   * whole point is to be the blank slate - and for a retired title that reached
+   * the dropdown by the merge in roleOptions. Both return without touching the
+   * checkboxes, which is the right answer for each.
+   *
+   * Only runs on a change the user made. Opening an existing member for editing
+   * does not fire this, so a permission list that was deliberately customised is
+   * never quietly reset.
    */
   const handleRoleChange = (role) => {
-    if (role !== SALES_EXECUTIVE_ROLE) return;
+    const preset = presetFor(role);
 
-    const next = SALES_EXECUTIVE_MODULES.filter((key) => grantable.includes(key));
+    if (!preset) return;
+
+    const next = preset.filter((key) => grantable.includes(key));
 
     if (next.length === 0) return;
 
@@ -232,7 +224,7 @@ export default function MemberFormDrawer({
           name="role"
           label="Role"
           rules={[{ required: true, message: 'Please choose a role' }]}
-          extra="A job title within your workspace. Only Sales Executive changes anything: it also ticks the modules that role works with, and fills in who owns the leads they enter."
+          extra="A job title within your workspace. Picking one ticks the modules that role works with - the checkboxes below stay yours to change. Sales Executive is the one title that also changes what the account can see: it fills in who owns the leads they enter."
         >
           <Select options={roleOptions} placeholder="Select a role" onChange={handleRoleChange} />
         </Form.Item>

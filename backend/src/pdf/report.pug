@@ -58,6 +58,13 @@ html
       }
 
       /* Title ------------------------------------------------------------- */
+      table.doc-head {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table.doc-head td {
+        vertical-align: bottom;
+      }
       .doc-title {
         font-size: 25px;
         font-weight: 700;
@@ -70,13 +77,78 @@ html
         color: #8c8c8c;
         margin: 5px 0 0;
       }
+      .doc-meta {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .doc-meta .meta-row {
+        font-size: 10px;
+        color: #1f2430;
+        margin-bottom: 3px;
+      }
+      .doc-meta .meta-row:last-child {
+        margin-bottom: 0;
+      }
+      .doc-meta .meta-label {
+        font-size: 8px;
+        letter-spacing: 0.9px;
+        text-transform: uppercase;
+        color: #9aa2ad;
+        margin-right: 6px;
+      }
+
+      /* Group heading ----------------------------------------------------- */
+      .group-head {
+        margin: 26px 0 2px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e8e2f1;
+      }
+      .group-title {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: #52008c;
+        margin: 0;
+        vertical-align: middle;
+      }
+      .group-note {
+        display: inline-block;
+        float: right;
+        font-size: 9px;
+        color: #9aa2ad;
+        vertical-align: middle;
+        padding-top: 1px;
+      }
+
+      /* Scope badge ------------------------------------------------------- */
+      .scope {
+        display: inline-block;
+        font-size: 8px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 9px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+      .scope.workspace {
+        background: #f0e6f7;
+        color: #52008c;
+      }
+      .scope.personal {
+        background: #e8f1fb;
+        color: #12558c;
+      }
 
       /* KPI grid ---------------------------------------------------------- */
       table.kpi {
         width: 100%;
         border-collapse: separate;
         border-spacing: 10px 10px;
-        margin: 16px -10px 6px;
+        margin: 12px -10px 6px;
       }
       td.kpi-cell {
         width: 33.33%;
@@ -91,12 +163,39 @@ html
         border: none;
         border-left: none;
       }
+      /* Tone is carried on the left edge and the wash behind it, so a reader
+         scanning the row sees which figure is an outcome and which is a warning
+         before reading any of the numbers. */
+      td.kpi-cell.good {
+        background: #f4fbf7;
+        border-color: #d8ece1;
+        border-left-color: #1a7f4b;
+      }
+      td.kpi-cell.bad {
+        background: #fdf6f5;
+        border-color: #f2dcd8;
+        border-left-color: #c0392b;
+      }
+      td.kpi-cell.warn {
+        background: #fdfaf3;
+        border-color: #f2e6cf;
+        border-left-color: #b25e09;
+      }
       .kpi-label {
         font-size: 10px;
         letter-spacing: 0.7px;
         text-transform: uppercase;
         color: #6b7280;
         font-weight: 700;
+      }
+      td.kpi-cell.good .kpi-label {
+        color: #1a7f4b;
+      }
+      td.kpi-cell.bad .kpi-label {
+        color: #c0392b;
+      }
+      td.kpi-cell.warn .kpi-label {
+        color: #b25e09;
       }
       .kpi-note {
         font-size: 9px;
@@ -120,13 +219,28 @@ html
         margin-top: 24px;
         page-break-inside: avoid;
       }
+      /* The executive table grows with the headcount, so it is the one section
+         allowed to run over a page. Its header repeats on the next one. */
+      .section-flow {
+        page-break-inside: auto;
+      }
       .section-title {
         font-size: 13px;
         font-weight: 700;
         color: #52008c;
         margin: 0;
-        padding-bottom: 6px;
+        padding: 0 0 6px 10px;
         border-bottom: 1px solid #e8e2f1;
+        position: relative;
+      }
+      .section-title::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 2px;
+        bottom: 9px;
+        width: 3px;
+        background: #52008c;
       }
       .section-note {
         font-size: 10px;
@@ -136,6 +250,12 @@ html
       table.data {
         width: 100%;
         border-collapse: collapse;
+      }
+      table.data thead {
+        display: table-header-group;
+      }
+      table.data tr {
+        page-break-inside: avoid;
       }
       table.data th {
         font-size: 9px;
@@ -158,7 +278,7 @@ html
         border-bottom: 1px solid #eef1f5;
         text-transform: capitalize;
       }
-      table.data tr:nth-child(even) td {
+      table.data tbody tr:nth-child(even) td {
         background: #fcfeff;
       }
       table.data tr.total-row td {
@@ -166,6 +286,42 @@ html
         color: #1f2430;
         border-top: 1px solid #5d6975;
         background: #ffffff;
+      }
+      /* The one cell that must not be capitalised: a stage is printed as the
+         board spells it, not as a title. */
+      table.data td.stage {
+        text-transform: none;
+      }
+      .cell-muted {
+        color: #9aa2ad;
+      }
+
+      /* Share bars -------------------------------------------------------- */
+      .bar {
+        display: inline-block;
+        width: 54px;
+        height: 6px;
+        background: #eef1f5;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      .bar span {
+        display: block;
+        height: 6px;
+        background: #52008c;
+      }
+      .bar span.good {
+        background: #1a7f4b;
+      }
+      .bar span.bad {
+        background: #c0392b;
+      }
+      .pct {
+        display: inline-block;
+        min-width: 30px;
+        vertical-align: middle;
       }
 
       .footnote {
@@ -175,6 +331,7 @@ html
         font-size: 9px;
         color: #9aa2ad;
         text-align: center;
+        line-height: 1.6;
       }
   body
     -
@@ -183,10 +340,23 @@ html
       const pct = (v) => String(Math.round(Number(v) || 0)) + '%';
       const countOf = (d) => perf(d).reduce((total, item) => total + (Number(item.count) || 0), 0);
 
-      const tiles = [];
+      // The KPI grid is three across, so every group is padded to whole rows
+      // rather than left ragged. An empty cell keeps the columns aligned when a
+      // tenant holds only some of the modules.
+      const padRows = (tiles) => {
+        const rows = [];
+        for (let i = 0; i < tiles.length; i += 3) {
+          const row = tiles.slice(i, i + 3);
+          while (row.length < 3) row.push(null);
+          rows.push(row);
+        }
+        return rows;
+      };
+
+      const financialTiles = [];
 
       if (model.payment) {
-        tiles.push({
+        financialTiles.push({
           label: 'Paid Invoices',
           note: 'This month',
           value: money(model.payment.total),
@@ -194,7 +364,7 @@ html
         });
       }
       if (model.invoice) {
-        tiles.push({
+        financialTiles.push({
           label: 'Unpaid Invoices',
           note: 'Awaiting payment',
           value: money(model.invoice.total_undue),
@@ -202,7 +372,7 @@ html
         });
       }
       if (model.quote) {
-        tiles.push({
+        financialTiles.push({
           label: 'Quotes',
           note: 'This month',
           value: money(model.quote.total),
@@ -210,7 +380,7 @@ html
         });
       }
       if (model.offer) {
-        tiles.push({
+        financialTiles.push({
           label: 'Offers',
           note: 'This month',
           value: money(model.offer.total),
@@ -218,27 +388,18 @@ html
         });
       }
       if (model.client) {
-        tiles.push({
+        financialTiles.push({
           label: 'New Customers',
           note: 'This month',
           value: pct(model.client.new),
           sub: 'share of all customers',
         });
-        tiles.push({
+        financialTiles.push({
           label: 'Active Customers',
           note: 'With invoices',
           value: pct(model.client.active),
           sub: 'share of all customers',
         });
-      }
-
-      // Padded to whole rows so the grid keeps its columns even when a tenant
-      // holds only some of the modules.
-      const tileRows = [];
-      for (let i = 0; i < tiles.length; i += 3) {
-        const row = tiles.slice(i, i + 3);
-        while (row.length < 3) row.push(null);
-        tileRows.push(row);
       }
 
       const breakdowns = [
@@ -255,6 +416,59 @@ html
           showMoney: perf(entry.data).some((item) => Number(item.total_amount) > 0),
         }));
 
+      // ---- Sales pipeline -------------------------------------------------
+      //
+      // Built by the server for the account that asked (see
+      // controllers/reportController/salesPipeline.js) and absent entirely for
+      // one with no pipeline, so this whole group is driven off its presence.
+      const pipeline = model.pipeline || null;
+      const personal = pipeline && pipeline.scope === 'personal';
+
+      const pipelineTiles = [];
+
+      if (pipeline) {
+        const t = pipeline.totals;
+
+        pipelineTiles.push({
+          label: 'Total Leads',
+          note: personal ? 'Assigned to you' : 'Whole workspace',
+          value: String(t.total),
+          sub: 'leads in the pipeline',
+        });
+        pipelineTiles.push({
+          label: 'Won',
+          note: 'Closed won',
+          tone: 'good',
+          value: String(t.won),
+          sub: t.total > 0 ? pct((t.won / t.total) * 100) + ' of all leads' : 'no leads yet',
+        });
+        pipelineTiles.push({
+          label: 'Lost',
+          note: 'Closed lost',
+          tone: 'bad',
+          value: String(t.lost),
+          sub: t.total > 0 ? pct((t.lost / t.total) * 100) + ' of all leads' : 'no leads yet',
+        });
+        pipelineTiles.push({
+          label: 'Open',
+          note: 'Still being worked',
+          tone: 'warn',
+          value: String(t.open),
+          sub: 'neither won nor lost',
+        });
+        pipelineTiles.push({
+          // Deliberately an em dash rather than 0% when nothing has closed:
+          // "no win rate" and "a win rate of zero" are different statements.
+          label: 'Win Rate',
+          note: 'Won of decided',
+          tone: t.hasDecided ? 'good' : '',
+          value: t.hasDecided ? pct(t.winRate) : '—',
+          sub: t.hasDecided ? String(t.won + t.lost) + ' lead(s) decided' : 'nothing decided yet',
+        });
+      }
+
+      const tone = (stage) => (stage === 'Won' ? 'good' : stage === 'Lost' ? 'bad' : '');
+
     table.masthead
       tr
         td
@@ -268,12 +482,25 @@ html
 
     .rule
 
-    h1.doc-title Dashboard Summary Report
-    p.doc-sub Generated on #{model.generatedAt}
+    table.doc-head
+      tr
+        td
+          h1.doc-title Dashboard Summary Report
+          p.doc-sub Generated on #{model.generatedAt}
+        td.doc-meta
+          .meta-row
+            span.meta-label Reference
+            | #{model.number}
+          .meta-row
+            span.meta-label Sections
+            | #{['Financial', pipeline ? 'Sales pipeline' : null].filter(Boolean).join(' · ')}
 
-    if tileRows.length
+    if financialTiles.length
+      .group-head
+        .group-title Financial Overview
+        .group-note This month unless stated otherwise
       table.kpi
-        each row in tileRows
+        each row in padRows(financialTiles)
           tr
             each tile in row
               td.kpi-cell(class=tile ? '' : 'kpi-empty')
@@ -299,15 +526,111 @@ html
               tr
                 td= row.status
                 td.num= row.count || 0
-                td.num= pct(row.percentage)
+                td.num
+                  .bar
+                    span(style='width:' + Math.min(100, Math.max(0, Number(row.percentage) || 0)) + '%')
+                  span.pct= pct(row.percentage)
                 if section.showMoney
                   td.num= money(row.total_amount)
             tr.total-row
               td Total
               td.num= countOf(section.data)
-              td.num= '100%'
+              td.num
+                span.pct= '100%'
               if section.showMoney
                 td.num= money(section.data.total)
 
+    if pipeline
+      .group-head
+        .group-title Sales Performance
+        span.scope(class=personal ? 'personal' : 'workspace')
+          = personal ? 'My pipeline only' : 'Whole workspace'
+
+      //- The scope is stated in words as well as in the badge. An executive
+      //- reading "Total leads: 12" has to be able to see that it means twelve of
+      //- theirs and not twelve in the company, and the same file is downloaded
+      //- by both roles.
+      p.section-note
+        if personal
+          | Every figure below covers only the leads assigned to or entered by you. Other members of the workspace are not included, and their leads are not counted in any total here.
+        else
+          | Every figure below covers the entire workspace, including leads worked by every member of the team.
+
+      table.kpi
+        each row in padRows(pipelineTiles)
+          tr
+            each tile in row
+              td.kpi-cell(class=tile ? (tile.tone || '') : 'kpi-empty')
+                if tile
+                  .kpi-label= tile.label
+                  .kpi-note= tile.note
+                  .kpi-value= tile.value
+                  .kpi-sub= tile.sub
+
+      .section
+        h2.section-title Pipeline Summary
+        p.section-note Where the leads are sitting right now, by stage.
+        table.data
+          thead
+            tr
+              th Stage
+              th.num Leads
+              th.num Share of pipeline
+          tbody
+            each stage in pipeline.stages
+              tr
+                td.stage= stage.label
+                td.num= stage.count
+                td.num
+                  .bar
+                    span(class=tone(stage.value) style='width:' + stage.share + '%')
+                  span.pct= pct(stage.share)
+            tr.total-row
+              td Total
+              td.num= pipeline.totals.total
+              td.num
+                span.pct= '100%'
+
+      if pipeline.byAssignee.length
+        .section.section-flow
+          h2.section-title Executive Performance Breakdown
+          p.section-note Leads worked per member of the team, busiest first. Win rate is won as a share of that person's decided leads.
+          table.data
+            thead
+              tr
+                th Executive
+                th.num Assigned
+                th.num Won
+                th.num Lost
+                th.num Open
+                th.num Win rate
+            tbody
+              each person in pipeline.byAssignee
+                tr
+                  td= person.name
+                  td.num= person.assigned
+                  td.num= person.won
+                  td.num= person.lost
+                  td.num= person.open
+                  td.num
+                    if person.won + person.lost > 0
+                      = pct(person.winRate)
+                    else
+                      span.cell-muted= '—'
+              tr.total-row
+                td Total
+                td.num= pipeline.totals.total
+                td.num= pipeline.totals.won
+                td.num= pipeline.totals.lost
+                td.num= pipeline.totals.open
+                td.num
+                  if pipeline.totals.hasDecided
+                    = pct(pipeline.totals.winRate)
+                  else
+                    span.cell-muted= '—'
+
     .footnote
       | This report covers every record visible to the account named above.
+      if pipeline && personal
+        br
+        | Sales figures are limited to your own leads; workspace-wide figures are not included.

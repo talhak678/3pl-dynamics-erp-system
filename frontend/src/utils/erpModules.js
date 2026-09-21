@@ -14,10 +14,14 @@ import { ALL_MODULES, resolveModules } from './modulePermissions';
  * backend and to ALL_MODULES without anyone deciding where it belongs in the
  * UI, and a visible oddity is a better outcome than a checkbox that silently
  * does not appear.
+ *
+ * The reverse - a line here for a key ALL_MODULES no longer carries - is simply
+ * unreachable, since this table is only read through the keys. One such line was
+ * deleted when 'report' was retired, rather than left as a lookup nothing
+ * reaches.
  */
 const PRESENTATION = {
   dashboard: ['Dashboard & Reports', 'Overview'],
-  report: ['Report', 'Overview'],
 
   invoice: ['Invoices', 'Sales'],
   quote: ['Quotes', 'Sales'],

@@ -6,7 +6,6 @@ import {
   DeleteOutlined,
   EllipsisOutlined,
   RedoOutlined,
-  ArrowRightOutlined,
   ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { Dropdown, Table, Button, Input } from 'antd';
@@ -22,6 +21,9 @@ import { useMoney, useDate } from '@/settings';
 import { generate as uniqueId } from 'shortid';
 
 import { useCrudContext } from '@/context/crud';
+import { useListOptions } from '@/context/listFilter';
+
+import UserFilterSelect from './UserFilterSelect';
 
 function AddNewItem({ config }) {
   const { crudContextAction } = useCrudContext();
@@ -152,28 +154,44 @@ export default function DataTable({ config, extra = [] }) {
 
   const dispatch = useDispatch();
 
-  const handelDataTableLoad = useCallback((pagination) => {
-    const options = { page: pagination.current || 1, items: pagination.pageSize || 10 };
-    dispatch(crud.list({ entity, options }));
-  }, []);
+  // Folds the workspace owner's "Filter by User" selection, if any, into every
+  // request this table makes. Nothing is added when no one is selected, so the
+  // default path is unchanged.
+  const listOptions = useListOptions();
+
+  const handelDataTableLoad = useCallback(
+    (pagination) => {
+      const options = listOptions({
+        page: pagination.current || 1,
+        items: pagination.pageSize || 10,
+      });
+      dispatch(crud.list({ entity, options }));
+    },
+    [dispatch, entity, listOptions]
+  );
 
   const filterTable = (e) => {
     const value = e.target.value;
-    const options = { q: value, fields: searchConfig?.searchFields || '' };
+    const options = listOptions({ q: value, fields: searchConfig?.searchFields || '' });
     dispatch(crud.list({ entity, options }));
   };
 
-  const dispatcher = () => {
-    dispatch(crud.list({ entity }));
-  };
+  const dispatcher = useCallback(() => {
+    dispatch(crud.list({ entity, options: listOptions() }));
+  }, [dispatch, entity, listOptions]);
 
+  // Runs on mount, and again whenever the filter selection changes - a new
+  // selection has to be a new request, and this is the one place that knows how
+  // to make one correctly. Pagination resets as a side effect, which is what a
+  // filter change should do anyway.
+  //
+  // No AbortController here: the previous version created one and never passed
+  // its signal to anything, so it cancelled nothing. A response that arrives
+  // after the user has moved on is written to the store either way, and the
+  // reducer has no notion of which request is current.
   useEffect(() => {
-    const controller = new AbortController();
     dispatcher();
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  }, [dispatcher]);
 
   return (
     <>
@@ -189,6 +207,9 @@ export default function DataTable({ config, extra = [] }) {
             placeholder={translate('search')}
             allowClear
           />,
+          // Renders nothing at all unless the signed-in account owns this
+          // workspace and the entity is one that records who entered a row.
+          <UserFilterSelect key={`userFilterDataTable`} entity={entity} />,
           <Button onClick={handelDataTableLoad} key={`${uniqueId()}`} icon={<RedoOutlined />}>
             {translate('Refresh')}
           </Button>,

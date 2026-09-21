@@ -8,6 +8,7 @@ import { hasModule } from '@/utils/modulePermissions';
 import { SALES_PIPELINE_MODULE, isPipelineRole } from '@/utils/salesPipeline';
 import AccessDenied from '@/components/AccessDenied';
 import useLanguage from '@/locale/useLanguage';
+import { landingPathFor } from './moduleHome';
 
 const { Text } = Typography;
 
@@ -34,6 +35,7 @@ export default function RequireSalesPipeline({ children }) {
   const translate = useLanguage();
   const navigate = useNavigate();
   const currentAdmin = useSelector(selectCurrentAdmin);
+  const landing = landingPathFor(currentAdmin);
 
   if (!isPipelineRole(currentAdmin)) {
     return (
@@ -52,8 +54,11 @@ export default function RequireSalesPipeline({ children }) {
           </Space>
         }
         extra={
-          hasModule(currentAdmin, 'dashboard') ? (
-            <Button type="primary" onClick={() => navigate('/')}>
+          // Same landing question the home route asks, so a sales executive who
+          // was never granted the dashboard still gets a way back into the pages
+          // they do have, rather than being offered a sign-out.
+          landing ? (
+            <Button type="primary" onClick={() => navigate(landing)}>
               {translate('Back')}
             </Button>
           ) : (

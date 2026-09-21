@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { crud } from '@/redux/crud/actions';
 import { useCrudContext } from '@/context/crud';
+import { useListOptions } from '@/context/listFilter';
 import { selectCreatedItem } from '@/redux/crud/selectors';
 
 import useLanguage from '@/locale/useLanguage';
@@ -18,6 +19,11 @@ export default function CreateForm({ config, formElements, withUpload = false })
   const { panel, collapsedBox, readBox } = crudContextAction;
   const [form] = Form.useForm();
   const translate = useLanguage();
+
+  // The refresh below has to keep whatever the table is currently filtered to,
+  // or the new row appears in a list the dropdown claims is somebody else's.
+  const listOptions = useListOptions();
+
   const onSubmit = (fieldsValue) => {
     // Manually trim values before submission
 
@@ -40,7 +46,7 @@ export default function CreateForm({ config, formElements, withUpload = false })
       panel.open();
       form.resetFields();
       dispatch(crud.resetAction({ actionType: 'create' }));
-      dispatch(crud.list({ entity }));
+      dispatch(crud.list({ entity, options: listOptions() }));
     }
   }, [isSuccess]);
 
