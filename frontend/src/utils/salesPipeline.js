@@ -85,13 +85,21 @@ export const canUseSalesPipeline = (admin) =>
  * `company` meets the identical wall the moment they enter a contact rather
  * than a business - which is the same bug, one field over.
  *
- * `taxes` is here for the same reason, one module over. A Sales Executive holds
- * `quote` because quoting is how they close a lead, and the quote form has a tax
- * picker that searches /api/taxes/* - resolved by the same guard to this key.
- * Without it the picker renders empty and the quote cannot be saved. The pairing
- * is recorded in utils/rolePresets.js, where every other picker dependency in
- * the app is listed; this is the one entry that lives here instead, because this
- * list predates that file and is still the preset the Sales Executive row reads.
+ * `quote` and `taxes` were both removed, and the pairing is the reason they had
+ * to go together. An executive used to hold `quote` - quoting being one way to
+ * close a lead - and the quote form's tax picker searches /api/taxes/*, so
+ * `taxes` had been added to keep that picker working. Dropping `quote` on its
+ * own would have left a grant behind for a module with no page the account can
+ * reach: `taxes` is fetched only from the invoice, offer and quote forms
+ * (InvoiceForm, OfferForm, QuoteForm), and an executive holds none of those
+ * three. Worth stating because the dependency runs one way only - `taxes` needs
+ * `quote`, `quote` does not need `taxes` - so removing them in the other order
+ * would have looked fine and left the dead grant in place.
+ *
+ * Nothing in the pipeline itself reaches for either. The board, the lead form
+ * and the dashboard's analytics touch only leads, companies and people, so an
+ * executive without quoting loses no part of the workflow this preset exists to
+ * set up.
  *
  * There is deliberately no `salesPipeline` entry, and it must not be invented
  * here: the pipeline is a second view of `lead`, served by /api/lead/*, which
@@ -111,6 +119,4 @@ export const SALES_EXECUTIVE_MODULES = [
   'customer',
   'company',
   'people',
-  'quote',
-  'taxes',
 ];
