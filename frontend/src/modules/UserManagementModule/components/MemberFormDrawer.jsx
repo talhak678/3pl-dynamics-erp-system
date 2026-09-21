@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { Alert, Button, Drawer, Form, Input, Segmented, Select, Space } from 'antd';
 
+import { SALES_EXECUTIVE_MODULES, SALES_EXECUTIVE_ROLE } from '@/utils/salesPipeline';
+
 import ModulePermissionsChecklist from './ModulePermissionsChecklist';
 
 /**
@@ -90,6 +92,42 @@ export default function MemberFormDrawer({
       form.setFieldsValue({ status: 'active', role: 'employee', modulePermissions: [] });
     }
   }, [open, member, isEdit, form]);
+
+  /**
+   * Prefills the module list when the role is set to Sales Executive.
+   *
+   * The role itself grants nothing - module access is decided entirely by
+   * `modulePermissions`. But these two are chosen together in practice: a Sales
+   * Executive who cannot open the leads module has nothing to execute against,
+   * and the admin filling this form has no reason to know that off-hand. So the
+   * title fills in the modules that go with it, and the checkboxes below stay
+   * fully editable.
+   *
+   * Replaces the selection rather than adding to it. A union would be
+   * fail-open in exactly the case that matters: an admin who has ticked
+   * everything and then picks this role would keep everything, and the prefill
+   * would have silently granted a sales rep the whole ERP.
+   *
+   * Filtered against `grantable` because the server refuses a grant the owner
+   * does not hold themselves - offering one and then rejecting the save would
+   * be worse than not offering it. If that filter leaves nothing, the selection
+   * is left alone rather than emptied: an empty list is refused on save and
+   * means "every module" to the server, so clearing it would be the one outcome
+   * worse than doing nothing.
+   *
+   * Only runs on a change the user made. Opening an existing Sales Executive for
+   * editing does not fire this, so a permission list that was deliberately
+   * customised is never quietly reset.
+   */
+  const handleRoleChange = (role) => {
+    if (role !== SALES_EXECUTIVE_ROLE) return;
+
+    const next = SALES_EXECUTIVE_MODULES.filter((key) => grantable.includes(key));
+
+    if (next.length === 0) return;
+
+    form.setFieldsValue({ modulePermissions: next });
+  };
 
   const handleFinish = (values) => {
     const payload = {
@@ -194,9 +232,9 @@ export default function MemberFormDrawer({
           name="role"
           label="Role"
           rules={[{ required: true, message: 'Please choose a role' }]}
-          extra="A job title within your workspace. It does not change which modules this user can open."
+          extra="A job title within your workspace. Only Sales Executive changes anything: it also ticks the modules that role works with, and fills in who owns the leads they enter."
         >
-          <Select options={roleOptions} placeholder="Select a role" />
+          <Select options={roleOptions} placeholder="Select a role" onChange={handleRoleChange} />
         </Form.Item>
 
         <Form.Item

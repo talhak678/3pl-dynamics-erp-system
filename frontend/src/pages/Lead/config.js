@@ -87,4 +87,22 @@ export const fields = {
     type: 'textarea',
     disableForTable: true,
   },
+  /**
+   * Who owns the lead, as a picker over the workspace's employees.
+   *
+   * `type: 'assignee'` is handled by components/AssigneeSelect, which fetches
+   * /api/team and renders nothing at all for an account that may not assign -
+   * a Sales Executive's leads are assigned to them by the server, so there is no
+   * choice to offer. See leadController/assignment.js.
+   *
+   * `disableForTable` is required rather than cosmetic. utils/dataStructure.jsx
+   * turns every field into a column unless this is set, and the field holds a
+   * bare ObjectId - so without it the leads list would gain a column of raw ids,
+   * and the value would need resolving per row to be worth reading.
+   */
+  assignedTo: {
+    type: 'assignee',
+    label: 'Assign To',
+    disableForTable: true,
+  },
 };

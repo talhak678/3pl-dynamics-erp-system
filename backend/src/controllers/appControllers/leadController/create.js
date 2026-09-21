@@ -3,7 +3,7 @@ const People = mongoose.model('People');
 const Company = mongoose.model('Company');
 
 const { ownerFilter } = require('../../../middlewares/ownership');
-const { validateAssignedTo } = require('./assignment');
+const { validateAssignedTo, canChooseAssignee } = require('./assignment');
 
 const create = async (Model, req, res) => {
   // Creating a new document in the collection
@@ -53,7 +53,15 @@ const create = async (Model, req, res) => {
   // An id from the client is not evidence the account exists, still less that it
   // belongs to this workspace - so it is resolved and checked before it is
   // written.
-  const assignment = await validateAssignedTo(req, req.body.assignedTo);
+  //
+  // A Sales Executive does not get to name one at all: their leads are theirs,
+  // because that is what their read scope is defined in terms of. The requested
+  // value is replaced before validation rather than after, so their own id goes
+  // through exactly the same workspace check as an owner's choice would - one
+  // code path, and no id written that the check has not seen.
+  const requestedAssignee = canChooseAssignee(req) ? req.body.assignedTo : req.admin._id;
+
+  const assignment = await validateAssignedTo(req, requestedAssignee);
 
   if (assignment.error) {
     return res.status(assignment.status).json({

@@ -2,23 +2,9 @@ import { Avatar, Empty, Progress, Spin, Tag, Tooltip, Typography } from 'antd';
 
 import { UserOutlined } from '@ant-design/icons';
 
-import { FILE_BASE_URL } from '@/config/serverApiConfig';
+import { avatarSrc, initialsOf } from '@/utils/avatar';
 
 const { Text } = Typography;
-
-const avatarSrc = (person) => {
-  if (!person?.photo) return undefined;
-  if (person.photo.startsWith('data:') || person.photo.startsWith('http')) return person.photo;
-  return `${FILE_BASE_URL}${person.photo}`;
-};
-
-const initialsOf = (name) =>
-  name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
 
 /**
  * How many leads each executive is carrying, and how many they have won.

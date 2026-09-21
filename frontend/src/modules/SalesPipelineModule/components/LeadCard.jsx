@@ -12,33 +12,10 @@ import {
 
 import dayjs from 'dayjs';
 
-import { FILE_BASE_URL } from '@/config/serverApiConfig';
 import { SALES_STAGES, stageOf } from '@/utils/salesStages';
+import { avatarSrc, initialsOf } from '@/utils/avatar';
 
 const { Text } = Typography;
-
-/**
- * The photo as a usable URL, or undefined so the Avatar falls back to initials.
- *
- * Two shapes arrive here depending on how the account was created: a stored
- * filename, which needs the file host prefixing, and a data: or http URL, which
- * must not be. Same rule as the header's avatar and the profile page, which is
- * where this was taken from - three different treatments of the same field would
- * show the same person three different ways.
- */
-const avatarSrc = (person) => {
-  if (!person?.photo) return undefined;
-  if (person.photo.startsWith('data:') || person.photo.startsWith('http')) return person.photo;
-  return `${FILE_BASE_URL}${person.photo}`;
-};
-
-const initialsOf = (name) =>
-  name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
 
 /**
  * One lead, as a card on the board.

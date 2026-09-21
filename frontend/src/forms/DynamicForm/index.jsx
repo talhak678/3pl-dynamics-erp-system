@@ -6,6 +6,7 @@ import useLanguage from '@/locale/useLanguage';
 import { useMoney, useDate } from '@/settings';
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
 import SelectAsync from '@/components/SelectAsync';
+import AssigneeSelect from '@/components/AssigneeSelect';
 import { generate as uniqueId } from 'shortid';
 
 import { countryList } from '@/utils/countryList';
@@ -292,6 +293,11 @@ function FormElement({ field, feedback, setFeedback }) {
     array: <ArrayComponent />,
     country: <CountryComponent />,
     search: <SearchComponent />,
+    // Defined in components/AssigneeSelect rather than here, because it is the
+    // only control on this form that fetches its own options and the only one
+    // that decides for itself whether to render at all. Both need imports and
+    // hooks this file has no other use for.
+    assignee: <AssigneeSelect field={field} />,
   };
 
   const compunedComponent = {

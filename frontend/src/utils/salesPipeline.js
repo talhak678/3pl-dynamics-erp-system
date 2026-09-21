@@ -64,3 +64,21 @@ export const isPipelineRole = (admin) =>
  */
 export const canUseSalesPipeline = (admin) =>
   isPipelineRole(admin) && hasModule(admin, SALES_PIPELINE_MODULE);
+
+/**
+ * The modules a Sales Executive needs to do the job, ticked automatically when
+ * that role is chosen in User Management.
+ *
+ * Four keys, not five. The obvious fifth - a `salesPipeline` module - does not
+ * exist and must not be invented here: the pipeline is a second view of `lead`,
+ * served by /api/lead/*, which the backend guard already resolves to that key.
+ * Listing a key the server does not know would make the whole save fail with
+ * "Unknown module key(s)", so a convenience prefilled with it would break the
+ * form it was meant to speed up. See SALES_PIPELINE_MODULE above.
+ *
+ * A default, not a rule. The admin can untick any of these or add others - the
+ * server's only constraint is that they grant nothing they do not hold
+ * themselves (see teamController/permissions.js), which is why the caller
+ * filters this list against what it may grant before applying it.
+ */
+export const SALES_EXECUTIVE_MODULES = ['dashboard', SALES_PIPELINE_MODULE, 'customer', 'quote'];

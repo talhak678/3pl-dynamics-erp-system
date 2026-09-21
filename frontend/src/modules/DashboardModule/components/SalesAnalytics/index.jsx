@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Alert, Col, Row } from 'antd';
 
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
+import { canReadTeamDirectory } from '@/hooks/useAssigneeDirectory';
 
 import OutcomeCard from './OutcomeCard';
 import StageBreakdownCard from './StageBreakdownCard';
@@ -22,6 +23,12 @@ import usePipelineAnalytics from './usePipelineAnalytics';
  * restating the totals beside it, and the shape of the card - a colleague's name
  * and workload - is not theirs to see.
  *
+ * "Owner" is read through canReadTeamDirectory rather than spelled out here.
+ * That is the same predicate the assignee picker uses, and it is the same
+ * question both times - whether this account may see the workspace's employees -
+ * so the two cannot drift apart and leave one screen naming colleagues while the
+ * other refuses to.
+ *
  * Mounted only while the account holds the `lead` module, by the dashboard. That
  * is what makes the empty dependency list in the hook safe, and it is the same
  * rule the other cards on this page follow: a card for a module the account does
@@ -30,7 +37,7 @@ import usePipelineAnalytics from './usePipelineAnalytics';
 export default function SalesAnalytics() {
   const currentAdmin = useSelector(selectCurrentAdmin);
 
-  const isOwner = currentAdmin?.role === 'owner' && currentAdmin?.isSuperAdmin !== true;
+  const isOwner = canReadTeamDirectory(currentAdmin);
 
   const { isLoading, hasFailed, outcomes, stages, byAssignee } = usePipelineAnalytics({
     currentAdmin,

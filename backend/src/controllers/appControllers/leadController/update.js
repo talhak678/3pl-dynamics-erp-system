@@ -4,7 +4,7 @@ const Company = mongoose.model('Company');
 
 const { migrate } = require('./migrate');
 const { ownerFilter, leadFilter } = require('../../../middlewares/ownership');
-const { validateAssignedTo } = require('./assignment');
+const { validateAssignedTo, canChooseAssignee } = require('./assignment');
 
 const update = async (Model, req, res) => {
   // Find document by id and update with the required fields
@@ -40,9 +40,20 @@ const update = async (Model, req, res) => {
     }
   }
 
-  // validated before the write, so a reassignment to an account outside the
-  // workspace is refused rather than stored and discovered later.
-  if (req.body.assignedTo !== undefined) {
+  // Reassignment is the owner's to make. A Sales Executive does not get to
+  // name an assignee on creation (see create.js) and does not get to move one
+  // afterwards either, so the field is dropped rather than validated - the lead
+  // keeps whoever it already had, and the request succeeds as an ordinary edit.
+  //
+  // Dropped rather than forced to the caller, deliberately. Forcing would take
+  // back a lead an owner had assigned away, and an executive's edit of a lead
+  // that is no longer theirs - they created it, so leadFilter still shows it to
+  // them - is not an attempt to reclaim it.
+  if (!canChooseAssignee(req)) {
+    delete req.body.assignedTo;
+  } else if (req.body.assignedTo !== undefined) {
+    // validated before the write, so a reassignment to an account outside the
+    // workspace is refused rather than stored and discovered later.
     const assignment = await validateAssignedTo(req, req.body.assignedTo);
 
     if (assignment.error) {
