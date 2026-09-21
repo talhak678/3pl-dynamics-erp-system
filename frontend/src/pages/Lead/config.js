@@ -105,4 +105,27 @@ export const fields = {
     label: 'Assign To',
     disableForTable: true,
   },
+  /**
+   * When the lead is next due to be worked.
+   *
+   * The pipeline card already renders this and turns it red once the day has
+   * passed, and the API has always accepted it - what was missing was any way to
+   * set it from the UI, so every card read "No follow-up set".
+   *
+   * Optional, and left so deliberately: an unset follow-up is a state the card
+   * has its own message for, not a gap to be filled in before saving.
+   *
+   * `type: 'date'` is rendered by DynamicForm, which converts the stored ISO
+   * string into the Dayjs a DatePicker requires. See the note there for why the
+   * inbound direction needs converting and the outbound one does not.
+   *
+   * `disableForTable` because utils/dataStructure.jsx turns every field into a
+   * column unless it is set. The date already has a home on the pipeline card,
+   * and a column here would put the raw stored value in the leads table.
+   */
+  followUpDate: {
+    type: 'date',
+    label: 'Follow-Up Date',
+    disableForTable: true,
+  },
 };

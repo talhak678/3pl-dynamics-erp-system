@@ -69,16 +69,39 @@ export const canUseSalesPipeline = (admin) =>
  * The modules a Sales Executive needs to do the job, ticked automatically when
  * that role is chosen in User Management.
  *
- * Four keys, not five. The obvious fifth - a `salesPipeline` module - does not
- * exist and must not be invented here: the pipeline is a second view of `lead`,
- * served by /api/lead/*, which the backend guard already resolves to that key.
- * Listing a key the server does not know would make the whole save fail with
- * "Unknown module key(s)", so a convenience prefilled with it would break the
- * form it was meant to speed up. See SALES_PIPELINE_MODULE above.
+ * `company` and `people` are here because they are not optional in practice,
+ * however much they read like neighbouring modules rather than part of the job.
+ * A lead hangs off exactly one of them, and the lead form's picker for each
+ * searches /api/company/* or /api/people/* - both of which the backend guard
+ * resolves to these keys and refuses without them. The failure is worth naming
+ * because it arrives as two symptoms that never mention the module: the picker
+ * renders "No data" instead of an error, so the form has nothing to submit, and
+ * leadController/create.js then rejects the save with its own 403 ('Please
+ * select a company' / 'Please select a people'). One missing grant, two errors,
+ * neither of them pointing here.
+ *
+ * Both are needed, not just the one a tester happens to exercise. Which picker
+ * renders is decided by the lead's `type`, so an executive granted only
+ * `company` meets the identical wall the moment they enter a contact rather
+ * than a business - which is the same bug, one field over.
+ *
+ * There is deliberately no `salesPipeline` entry, and it must not be invented
+ * here: the pipeline is a second view of `lead`, served by /api/lead/*, which
+ * the same guard already resolves to that key. Listing a key the server does
+ * not know would make the whole save fail with "Unknown module key(s)", so a
+ * convenience prefilled with it would break the form it was meant to speed up.
+ * See SALES_PIPELINE_MODULE above.
  *
  * A default, not a rule. The admin can untick any of these or add others - the
  * server's only constraint is that they grant nothing they do not hold
  * themselves (see teamController/permissions.js), which is why the caller
  * filters this list against what it may grant before applying it.
  */
-export const SALES_EXECUTIVE_MODULES = ['dashboard', SALES_PIPELINE_MODULE, 'customer', 'quote'];
+export const SALES_EXECUTIVE_MODULES = [
+  'dashboard',
+  SALES_PIPELINE_MODULE,
+  'customer',
+  'company',
+  'people',
+  'quote',
+];

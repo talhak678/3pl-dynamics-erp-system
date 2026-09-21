@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { DatePicker, Input, Form, Select, InputNumber, Switch, Tag } from 'antd';
 
 import { CloseOutlined, CheckOutlined } from '@ant-design/icons';
+
+import dayjs from 'dayjs';
+
 import useLanguage from '@/locale/useLanguage';
 import { useMoney, useDate } from '@/settings';
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
@@ -373,21 +376,36 @@ function FormElement({ field, feedback, setFeedback }) {
   }
 
   if (customFormItem) return <>{customFormItem}</>;
-  else {
-    return (
-      <Form.Item
-        label={translate(field.label)}
-        name={field.name}
-        rules={[
-          {
-            required: field.required || false,
-            type: filedType[field.type] ?? 'any',
-          },
-        ]}
-        valuePropName={field.type === 'boolean' ? 'checked' : 'value'}
-      >
-        {renderComponent}
-      </Form.Item>
-    );
-  }
+
+  // antd requires a DatePicker's value to be a Dayjs, but this form is seeded
+  // from the raw API record, where a date arrives as an ISO string - and
+  // UpdateForm only reformats the handful of field names it knows about, which
+  // does not include every date a config may add. Converting here is what lets
+  // a stored value be displayed and edited; without it the field is handed
+  // something it has no way to render.
+  //
+  // Only the inbound direction needs help. A Dayjs serialises itself through
+  // toJSON when the request body is stringified, so what goes back out is an
+  // ISO string the schema parses as a Date.
+  const dateValueProps =
+    field.type === 'date'
+      ? { getValueProps: (value) => ({ value: value ? dayjs(value) : null }) }
+      : {};
+
+  return (
+    <Form.Item
+      label={translate(field.label)}
+      name={field.name}
+      rules={[
+        {
+          required: field.required || false,
+          type: filedType[field.type] ?? 'any',
+        },
+      ]}
+      valuePropName={field.type === 'boolean' ? 'checked' : 'value'}
+      {...dateValueProps}
+    >
+      {renderComponent}
+    </Form.Item>
+  );
 }
