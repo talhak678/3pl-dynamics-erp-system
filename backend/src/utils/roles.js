@@ -43,14 +43,25 @@ const SYSTEM_ROLES = ['owner', 'superadmin'];
  * step: a title here with no preset there would be assignable but would tick
  * nothing, which reads to an admin as a broken form rather than a missing
  * default.
+ *
+ * The order is the order the dropdown offers, which is why it is not
+ * alphabetical: 'Sales Manager' leads because it is the role most accounts are
+ * given, and the rest run from the closest to the sales workflow outward.
+ *
+ * 'employee' and 'Customer Support' were renamed to 'Sales Manager' and
+ * 'Support Agent'. The rename is of the LABEL only - neither string was ever
+ * compared against, so nothing in the codebase changed behaviour. That is worth
+ * stating because one of the two survivors is not a label: 'Sales Executive'
+ * narrows a data scope, and renaming THAT would have been a fail-open change.
+ * The two that moved are in RETIRED_ROLES below.
  */
 const ASSIGNABLE_ROLES = [
-  'employee',
+  'Sales Manager',
   'Sales Executive',
   'Accountant',
   'Marketing Manager',
   'Inventory Manager',
-  'Customer Support',
+  'Support Agent',
 ];
 
 /**
@@ -71,8 +82,32 @@ const ASSIGNABLE_ROLES = [
  * 'admin' is here for a different reason: the API accepted it as a title but the
  * tenant UI never offered it. It was never a privilege level - no gate in this
  * codebase reads it.
+ *
+ * 'employee' and 'Customer Support' are here because they were RENAMED, not
+ * dropped - to 'Sales Manager' and 'Support Agent' respectively. An account
+ * created before the rename still carries the old string in the database, and
+ * this list is what keeps it valid: it is in ADMIN_ROLES, so the schema enum
+ * accepts it on every later write, instead of the account failing validation on
+ * a field the admin never touched. They stay frozen at the old label - the value
+ * is what the document holds, and rewriting it on read would make the record
+ * disagree with itself. A member is moved onto the new title the next time an
+ * admin picks one for them.
+ *
+ * Being in this list is not on its own enough to let such a member be saved. The
+ * enum only decides what the schema will store; the endpoint decides what it
+ * will accept, and validateRequestedRole refuses anything absent from
+ * ASSIGNABLE_ROLES. That is why it takes an `unchangedFrom` argument: a retired
+ * title restated unchanged on the account that already carries it is not an
+ * assignment and is allowed through. Without that, the rename would break
+ * exactly the accounts it was meant to leave alone.
  */
-const RETIRED_ROLES = ['admin', 'Digital Marketer', 'Manager'];
+const RETIRED_ROLES = [
+  'admin',
+  'Digital Marketer',
+  'Manager',
+  'employee',
+  'Customer Support',
+];
 
 /** The full enum the Admin schema accepts. */
 const ADMIN_ROLES = [...SYSTEM_ROLES, ...ASSIGNABLE_ROLES, ...RETIRED_ROLES];
@@ -94,11 +129,17 @@ const SALES_EXECUTIVE_ROLE = 'Sales Executive';
 /**
  * What a member gets when the request omits a role.
  *
- * 'employee' rather than the schema default of 'owner' - inheriting the schema
- * default here would mint a tenant owner from a request that simply forgot the
- * field.
+ * 'Sales Manager' rather than the schema default of 'owner' - inheriting the
+ * schema default here would mint a tenant owner from a request that simply
+ * forgot the field.
+ *
+ * It has to be an ASSIGNABLE role, and deliberately not the retired 'employee'
+ * it used to be: a default that is no longer offered would assign, on the very
+ * request that stated nothing, a title the admin cannot then choose from the
+ * dropdown. The generic title is the one that was renamed to this, not a new
+ * one invented for it.
  */
-const DEFAULT_MEMBER_ROLE = 'employee';
+const DEFAULT_MEMBER_ROLE = 'Sales Manager';
 
 const isAssignableRole = (role) => ASSIGNABLE_ROLES.includes(role);
 

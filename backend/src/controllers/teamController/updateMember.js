@@ -113,10 +113,18 @@ const updateMember = async (req, res) => {
   // Guarded on `undefined` rather than always run, because this handler treats
   // every absent field as "leave it alone" - and validateRequestedRole resolves
   // an absent role to its default. Calling it unconditionally would silently
-  // demote every member to 'employee' on any partial update, such as the status
-  // toggle the card's drawer sends.
+  // rewrite every member's job title to DEFAULT_MEMBER_ROLE on any partial
+  // update, such as the status toggle the card's drawer sends.
+  //
+  // `unchangedFrom` is this member's current title, and it is what lets an
+  // account carrying a retired one - 'Manager', 'Digital Marketer', 'admin', or
+  // the pre-rename 'employee' and 'Customer Support' - still be edited. The
+  // drawer echoes the title it was given when it has no option for it, so
+  // without this the request would carry a retired title and be refused, and
+  // such a member's name or status could not be changed without changing their
+  // job title as a side effect of saving. See teamController/roles.js.
   if (role !== undefined) {
-    const roleAssignment = validateRequestedRole(role);
+    const roleAssignment = validateRequestedRole(role, { unchangedFrom: member.role });
 
     if (roleAssignment.error) {
       return res.status(roleAssignment.status).json({

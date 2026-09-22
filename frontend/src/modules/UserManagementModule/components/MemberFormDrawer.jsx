@@ -1,9 +1,39 @@
 import { useEffect, useMemo } from 'react';
 import { Alert, Button, Drawer, Form, Input, Segmented, Select, Space } from 'antd';
 
-import { ASSIGNABLE_ROLE_OPTIONS, presetFor } from '@/utils/rolePresets';
+import { ASSIGNABLE_ROLE_OPTIONS, presetFor, roleLabel } from '@/utils/rolePresets';
 
 import ModulePermissionsChecklist from './ModulePermissionsChecklist';
+
+/**
+ * The one entry in the Role dropdown that cannot be chosen.
+ *
+ * A preview of a role this build does not sell yet. It is kept out of
+ * ASSIGNABLE_ROLE_OPTIONS deliberately, because that array is the set the server
+ * accepts and therefore the set this form is allowed to submit: an option that
+ * lived there could be selected and sent, and `validateRequestedRole` would
+ * answer "Unknown role". Held here instead, the list the API is asked about and
+ * the list the admin is shown differ by exactly one entry, and that entry is
+ * inert.
+ *
+ * `disabled` is what refuses the pick. The inline `cursor: not-allowed` is what
+ * says so before the click - antd greys a disabled row but leaves the pointer
+ * unchanged, so without it the option reads as merely dimmed rather than closed.
+ * `title` becomes a native tooltip, which is the only kind a disabled option can
+ * carry: it is not focusable, so nothing that needs focus to appear would ever
+ * be seen. A string title would otherwise be set from the label anyway (see
+ * rc-select's OptionList), so this is the one place it has to be stated.
+ *
+ * Frozen because it is shared into a memoised array that antd may re-render
+ * across many opens, and a mutation there would be very hard to trace back here.
+ */
+const VIEWER_ROLE_OPTION = Object.freeze({
+  label: 'Read Only / Viewer',
+  value: 'Read Only / Viewer',
+  disabled: true,
+  title: 'only for premium users',
+  style: { cursor: 'not-allowed' },
+});
 
 /**
  * Create and edit an employee, in a drawer.
@@ -37,18 +67,30 @@ export default function MemberFormDrawer({
 
   const roleOptions = useMemo(() => {
     // A member whose role is a retired one - 'Manager', 'Digital Marketer',
-    // 'admin' - still has to appear as a real option. Without this the Select
-    // would fall back to rendering the bare value string, and the field would
-    // look like it had lost its selection even though saving it unchanged is
-    // perfectly valid. Appending rather than offering them to everyone is what
-    // keeps a retired title from being handed to anyone new.
+    // 'admin', or the pre-rename 'employee' / 'Customer Support' - still has to
+    // appear as a real option. Without this the Select would fall back to
+    // rendering the bare value string, and the field would look like it had lost
+    // its selection even though saving it unchanged is perfectly valid.
+    // Appending rather than offering them to everyone is what keeps a retired
+    // title from being handed to anyone new.
     const current = member?.role;
 
-    if (!current || ASSIGNABLE_ROLE_OPTIONS.some((option) => option.value === current)) {
-      return ASSIGNABLE_ROLE_OPTIONS;
+    const options = [...ASSIGNABLE_ROLE_OPTIONS];
+
+    if (current && !ASSIGNABLE_ROLE_OPTIONS.some((option) => option.value === current)) {
+      // Labelled through roleLabel so a lowercase stored title reads the same
+      // here as it does on the member card. The value stays exactly as stored -
+      // it is what gets submitted, and the schema enum still accepts it.
+      options.push({ label: roleLabel(current), value: current });
     }
 
-    return [...ASSIGNABLE_ROLE_OPTIONS, { label: current, value: current }];
+    // Last, always - including after a retired title appended above, so the
+    // teaser holds the bottom of the list whichever shape the list takes. A new
+    // array rather than a push onto ASSIGNABLE_ROLE_OPTIONS, which is a shared
+    // module constant and would otherwise grow by one every time this ran.
+    options.push(VIEWER_ROLE_OPTION);
+
+    return options;
   }, [member?.role]);
 
   useEffect(() => {
@@ -71,10 +113,10 @@ export default function MemberFormDrawer({
       });
     } else {
       form.resetFields();
-      // 'employee' rather than leaving it blank, to match the server's default
-      // for an omitted role. A blank select would be a required field the user
-      // has to visit before they can save.
-      form.setFieldsValue({ status: 'active', role: 'employee', modulePermissions: [] });
+      // 'Sales Manager' rather than leaving it blank, to match the server's
+      // default for an omitted role. A blank select would be a required field
+      // the user has to visit before they can save.
+      form.setFieldsValue({ status: 'active', role: 'Sales Manager', modulePermissions: [] });
     }
   }, [open, member, isEdit, form]);
 
@@ -100,10 +142,10 @@ export default function MemberFormDrawer({
    * means "every module" to the server, so clearing it would be the one outcome
    * worse than doing nothing.
    *
-   * `presetFor` returns null for a title with no preset - 'employee', whose
-   * whole point is to be the blank slate - and for a retired title that reached
-   * the dropdown by the merge in roleOptions. Both return without touching the
-   * checkboxes, which is the right answer for each.
+   * `presetFor` returns null for a title with no preset, which is now only a
+   * retired title that reached the dropdown by the merge in roleOptions - every
+   * assignable title has one. Those, and the disabled preview entry, return
+   * without touching the checkboxes, which is the right answer for each.
    *
    * Only runs on a change the user made. Opening an existing member for editing
    * does not fire this, so a permission list that was deliberately customised is

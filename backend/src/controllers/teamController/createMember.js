@@ -24,8 +24,8 @@ const serializeMember = require('./serializeMember');
  * `role` IS taken from the body, but only from the assignable set: 'owner' and
  * 'superadmin' are refused because they are the two values the rest of the
  * system authorises on, so assigning either would escalate rather than label.
- * The reasoning lives in roles.js. An omitted role falls back to 'employee'
- * rather than the schema default of 'owner'.
+ * The reasoning lives in roles.js. An omitted role falls back to 'Sales Manager'
+ * (DEFAULT_MEMBER_ROLE) rather than the schema default of 'owner'.
  *
  * `enabled` is set true because its schema default is false and a new account
  * would otherwise be refused at login.

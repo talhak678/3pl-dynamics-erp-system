@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 
 import useDate from '@/settings/useDate';
 import { describePermissions } from '@/utils/erpModules';
+import { roleLabel } from '@/utils/rolePresets';
 
 const { Text, Title } = Typography;
 
@@ -113,7 +114,7 @@ export default function MemberCard({ member, onOpen }) {
           </Tooltip>
 
           <Tag icon={<IdcardOutlined />} style={{ marginInlineEnd: 0 }}>
-            {member.role === 'employee' ? 'Employee' : member.role}
+            {roleLabel(member.role)}
           </Tag>
         </div>
 

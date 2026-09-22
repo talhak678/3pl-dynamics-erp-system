@@ -18,16 +18,29 @@ function findKeyByPrefix(object, prefix) {
  * stored session — setting it when there is a token, removing it when there is
  * not.
  *
- * The removal is the important half. These headers live on the shared axios
- * instance for the life of the page, so a token only ever assigned here outlives
- * the sign-out that deleted it from localStorage — and every request made
- * afterwards still carries it. That is the stale request behind the "jwt
- * malformed" banner: the sign-out flow clears 'auth' and only then calls the
- * logout endpoint, so the logout request itself was being sent with the token it
- * was trying to retire. Clearing on the way past means there is no stale token
- * left to send.
+ * Both halves are load-bearing, and for opposite callers.
+ *
+ * The set half is what authenticates the sign-out. POST /api/logout sits behind
+ * isValidAuthToken, so a logout request sent without a header is refused at the
+ * guard — and because the guard returns before the handler, the token is never
+ * revoked, leaving the session alive behind a sign-out that appeared to fail.
+ * That is why redux/auth/actions.js calls the endpoint while the token is still
+ * stored and calls this first: the header has to be right at the moment the
+ * request is made, not left over from whatever ran last.
+ *
+ * The removal half is what stops the retired token outliving the sign-out.
+ * These headers live on the shared axios instance for the life of the page, so a
+ * token assigned here survives the localStorage entry being deleted, and every
+ * request made afterwards still carries it. The sign-out therefore calls this
+ * again once it has cleared 'auth' — arriving here with no token to find, it
+ * takes the removal path and leaves nothing stale to send.
+ *
+ * Exported because the auth service and the auth actions both need it at a
+ * point where no request.* helper is involved: logout is the one flow that
+ * manages the header around the request rather than leaning on these helpers to
+ * do it.
  */
-function includeToken() {
+export function includeToken() {
   axios.defaults.baseURL = API_BASE_URL;
 
   axios.defaults.withCredentials = true;

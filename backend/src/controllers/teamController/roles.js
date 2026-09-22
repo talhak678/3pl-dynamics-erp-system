@@ -1,6 +1,7 @@
 const {
   ADMIN_ROLES,
   ASSIGNABLE_ROLES,
+  RETIRED_ROLES,
   DEFAULT_MEMBER_ROLE,
   isAssignableRole,
 } = require('../../utils/roles');
@@ -17,11 +18,21 @@ const {
  * Everything else is a job title that nothing branches on, so accepting it is
  * purely descriptive and there is nothing to protect.
  *
+ * The second argument covers the one case the denylist above gets wrong: an
+ * account whose title this product has retired. Those are absent from
+ * ASSIGNABLE_ROLES, so a request that carries one is refused - and the edit form
+ * carries one whenever it saves a member whose title it did not offer, which
+ * means a retired account could not have its name or status changed without its
+ * job title being changed too. `unchangedFrom` is the current value on the
+ * account being edited: when the request repeats it exactly, nothing is being
+ * handed out and there is nothing to refuse. See updateMember.js, which is the
+ * only caller that passes it.
+ *
  * Returns `{ value }` on success or `{ error, status }` on refusal, matching the
  * shape permissions.js uses for modules so the two read the same at the call
  * site.
  */
-const validateRequestedRole = (requested) => {
+const validateRequestedRole = (requested, { unchangedFrom } = {}) => {
   // Absent means "not stated", not "no role". Defaulting here rather than
   // falling through to the schema default matters: the schema defaults to
   // 'owner', so a create that simply omitted the field would mint a tenant
@@ -37,6 +48,17 @@ const validateRequestedRole = (requested) => {
   const role = requested.trim();
 
   if (isAssignableRole(role)) {
+    return { value: role };
+  }
+
+  // A retired title, restated unchanged. Deliberately narrowed to RETIRED_ROLES
+  // rather than "anything equal to the current value": that wider rule would
+  // also accept a member already carrying 'owner' or 'superadmin', and those two
+  // are refused unconditionally - an account that somehow has one should not be
+  // able to have it written back through this endpoint. The gate is meant to be
+  // the only thing that reads 'owner', and leaving a second writer in place for
+  // the no-op case would make that harder to keep true.
+  if (role === unchangedFrom && RETIRED_ROLES.includes(role)) {
     return { value: role };
   }
 
