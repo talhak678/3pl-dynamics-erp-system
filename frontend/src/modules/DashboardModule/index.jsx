@@ -164,11 +164,29 @@ export default function DashboardModule() {
       title: translate('Quotes For Customers'),
     },
     {
+      /*
+       * The tile that reads like a quote and is not one.
+       *
+       * An Offer is the document that goes to a lead and a Quote the one that
+       * goes to a customer, so this tile's title names the AUDIENCE while its
+       * data, its endpoint and its gate all name the module: offerResult, which
+       * only the can('offer') branch above ever fetches, from /api/offer/summary,
+       * which the server resolves to `offer`. Nothing here is a copy-paste slip,
+       * and can('quote') would be the wrong gate twice over - a quote-only
+       * account would get a tile whose data was never requested, falling back to
+       * the all-zero defaults, and an offer-only account would lose the one tile
+       * that is theirs.
+       *
+       * Worded to match the sidebar entry for the same module ('Offers for
+       * Leads' in NavigationContainer) rather than the 'Quotes For Leads' this
+       * used to say. Two screens were describing one module in two different
+       * words, which is what got this reported as a permission bug.
+       */
       result: offerResult,
       isLoading: offerLoading,
       entity: 'offer',
       moduleKey: 'offer',
-      title: translate('Quotes For Leads'),
+      title: translate('Offers for Leads'),
     },
   ].filter((data) => can(data.moduleKey));
 
