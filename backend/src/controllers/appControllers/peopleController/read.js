@@ -1,11 +1,11 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const read = async (Model, req, res) => {
   // Find document by id
   const result = await Model.findOne({
     _id: req.params.id,
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   })
     .populate('company', 'name')
     .exec();

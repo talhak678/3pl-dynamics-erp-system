@@ -1,4 +1,4 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const remove = async (Model, req, res) => {
   // Find the document by id and delete it
@@ -9,7 +9,7 @@ const remove = async (Model, req, res) => {
   const result = await Model.findOneAndUpdate(
     {
       _id: req.params.id,
-      ...ownerFilter(req),
+      ...scopedFilter(Model, req),
     },
     { $set: updates },
     {

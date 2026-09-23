@@ -1,4 +1,4 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const search = async (Model, req, res) => {
   // console.log(req.query.fields)
@@ -23,7 +23,7 @@ const search = async (Model, req, res) => {
 
   let results = await Model.find({
     ...fields,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   })
 
     .where('removed', false)

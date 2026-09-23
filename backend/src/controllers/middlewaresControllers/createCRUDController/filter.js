@@ -1,4 +1,4 @@
-const { ownerFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+const { scopedFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
 
 const filter = async (Model, req, res) => {
   if (req.query.filter === undefined || req.query.equal === undefined) {
@@ -18,7 +18,7 @@ const filter = async (Model, req, res) => {
   }
   const result = await Model.find({
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   })
     .where(req.query.filter)
     .equals(req.query.equal)

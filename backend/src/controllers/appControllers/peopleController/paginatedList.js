@@ -1,4 +1,4 @@
-const { ownerFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+const { scopedFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -41,7 +41,7 @@ const paginatedList = async (Model, req, res) => {
 
     [filter]: equal,
     ...fields,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
     ...userFilter(Model, req),
   })
     .skip(skip)
@@ -56,7 +56,7 @@ const paginatedList = async (Model, req, res) => {
 
     [filter]: equal,
     ...fields,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
     ...userFilter(Model, req),
   });
 

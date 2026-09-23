@@ -1,4 +1,4 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const remove = async (Model, req, res) => {
   // Find the document by id and soft-delete it
@@ -9,7 +9,7 @@ const remove = async (Model, req, res) => {
     {
       _id: req.params.id,
       removed: false,
-      ...ownerFilter(req),
+      ...scopedFilter(Model, req),
     },
     { $set: updates },
     {

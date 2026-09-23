@@ -1,4 +1,4 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const update = async (Model, req, res) => {
   // Find document by id and updates with the required fields
@@ -9,7 +9,7 @@ const update = async (Model, req, res) => {
     {
       _id: req.params.id,
       removed: false,
-      ...ownerFilter(req),
+      ...scopedFilter(Model, req),
     },
     req.body,
     {

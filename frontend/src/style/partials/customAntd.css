@@ -2,6 +2,33 @@
   background: var(--app-bg) !important;
 }
 
+/*
+ * The app shell is at least as tall as the viewport.
+ *
+ * The sidebar is an Ant `Sider` inside `<Layout hasSider>`. That Layout is a
+ * flex row and the Sider carries no height of its own - it takes one by
+ * stretching to its container. Nothing above it supplies a height: `html`,
+ * `body` and `#root` are all content-height (see index.html and rest.css), so
+ * this element is the first in the chain that can hold a floor.
+ *
+ * Without one, a page too short to scroll - the Customers list, an empty table -
+ * collapsed the container to the height of its content, and the sidebar stopped
+ * partway down the screen with the page background showing beneath it.
+ *
+ * `min-height` rather than `height`, so a long table still grows the shell and
+ * the page scrolls exactly as before. Only the outer Layout carries
+ * `has-sider`; the inner one is a column and is left alone.
+ *
+ * Scoped to the desktop breakpoint that navigation.css already uses for its
+ * mobile rules. On mobile the Sider is not rendered at all - NavigationContainer
+ * swaps in a Drawer - so this deliberately does not reach it.
+ */
+@media (min-width: 769px) {
+  .ant-layout.ant-layout-has-sider {
+    min-height: 100vh;
+  }
+}
+
 .site-layout .site-layout-background,
 .ant-layout-header,
 .ant-drawer-content,

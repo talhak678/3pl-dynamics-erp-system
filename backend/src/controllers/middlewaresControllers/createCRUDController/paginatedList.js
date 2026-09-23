@@ -1,4 +1,4 @@
-const { ownerFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+const { scopedFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -33,7 +33,7 @@ const paginatedList = async (Model, req, res) => {
   // The owner's per-user narrowing, or {} for everyone else and for every model
   // that does not record authorship. ANDed with the tenant clause below, never a
   // replacement for it - see userFilter.
-  const scope = { ...ownerFilter(req), ...userFilter(Model, req) };
+  const scope = { ...scopedFilter(Model, req), ...userFilter(Model, req) };
 
   //  Query the database for a list of all results
   const resultsPromise = Model.find({

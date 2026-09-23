@@ -1,4 +1,4 @@
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const listAll = async (Model, req, res) => {
   const sort = req.query.sort || 'desc';
@@ -10,7 +10,7 @@ const listAll = async (Model, req, res) => {
   if (enabled === undefined) {
     result = await Model.find({
       removed: false,
-      ...ownerFilter(req),
+      ...scopedFilter(Model, req),
     })
       .sort({ created: sort })
       .populate()
@@ -19,7 +19,7 @@ const listAll = async (Model, req, res) => {
     result = await Model.find({
       removed: false,
       enabled: enabled,
-      ...ownerFilter(req),
+      ...scopedFilter(Model, req),
     })
       .sort({ created: sort })
       .populate()

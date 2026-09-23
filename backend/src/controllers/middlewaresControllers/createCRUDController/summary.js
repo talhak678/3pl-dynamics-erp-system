@@ -1,13 +1,13 @@
-const { ownerFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+const { scopedFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
 
 const summary = async (Model, req, res) => {
   const countPromise = Model.countDocuments({
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   }).exec();
 
   const filter = typeof req.query.filter === 'string' ? req.query.filter.trim() : '';
-  let filteredQuery = Model.countDocuments({ removed: false, ...ownerFilter(req) });
+  let filteredQuery = Model.countDocuments({ removed: false, ...scopedFilter(Model, req) });
 
   if (filter && !isReservedFilterKey(filter) && Model.schema.path(filter)) {
     filteredQuery = filteredQuery.where(filter).equals(req.query.equal);
