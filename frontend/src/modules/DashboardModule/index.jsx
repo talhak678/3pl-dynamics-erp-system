@@ -200,6 +200,23 @@ export default function DashboardModule() {
   const showRecentTables = showInvoiceTable || showQuoteTable;
 
   /**
+   * Whether the two middle sections have anything to draw at all.
+   *
+   * Both are read before the layout is written, because a section with nothing
+   * in it is not free: the row still renders and the gap underneath it is still
+   * emitted. An account holding none of the financial modules was therefore
+   * paying for them in vertical space - a full row's height of nothing between
+   * the header and the first card it could actually use, which is the space the
+   * sales cards were being pushed down by.
+   *
+   * `statisticCards` rather than `entityData`: the filter above has already
+   * dropped the modules the account does not hold, so this length is the number
+   * of cards that will really be drawn.
+   */
+  const showFinancialSummary = can('payment') || can('invoice') || can('quote') || can('offer');
+  const showStatisticsRow = statisticCards.length > 0 || showCustomerCard;
+
+  /**
    * The sales analytics section, gated exactly as the pipeline board is.
    *
    * Deliberately not `can('lead')`. Holding the leads module is not the same as
@@ -276,71 +293,84 @@ export default function DashboardModule() {
             </Button>
           </Col>
         </Row>
-        <Row gutter={[32, 32]}>
-          {can('payment') && (
-            <SummaryCard
-              title={translate('Paid Invoice')}
-              prefix={translate('This month')}
-              isLoading={paymentLoading}
-              data={paymentResult?.total}
-            />
-          )}
-          {can('invoice') && (
-            <SummaryCard
-              title={translate('Unpaid Invoice')}
-              prefix={translate('Not Paid')}
-              isLoading={invoiceLoading}
-              data={invoiceResult?.total_undue}
-            />
-          )}
-          {can('quote') && (
-            <SummaryCard
-              title={translate('Quote')}
-              prefix={translate('This month')}
-              isLoading={quoteLoading}
-              data={quoteResult?.total}
-            />
-          )}
-          {can('offer') && (
-            <SummaryCard
-              title={translate('Offer')}
-              prefix={translate('This month')}
-              isLoading={offerLoading}
-              data={offerResult?.total}
-            />
-          )}
-        </Row>
-        <div className="space30"></div>
-        <Row gutter={[32, 32]}>
-          {statisticCards.length > 0 && (
-            <Col
-              className="gutter-row w-full"
-              sm={{ span: 24 }}
-              md={{ span: 24 }}
-              lg={{ span: showCustomerCard ? 18 : 24 }}
-            >
-              <div className="whiteBox shadow" style={{ height: 458 }}>
-                <Row className="pad20" gutter={[0, 0]}>
-                  {statisticCards}
-                </Row>
-              </div>
-            </Col>
-          )}
-          {showCustomerCard && (
-            <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
-              <CustomerPreviewCard
-                isLoading={clientLoading}
-                activeCustomer={clientResult?.active}
-                newCustomer={clientResult?.new}
-              />
-            </Col>
-          )}
-        </Row>
-        <div className="space30"></div>
+        {showFinancialSummary && (
+          <>
+            <Row gutter={[32, 32]}>
+              {can('payment') && (
+                <SummaryCard
+                  title={translate('Paid Invoice')}
+                  prefix={translate('This month')}
+                  isLoading={paymentLoading}
+                  data={paymentResult?.total}
+                />
+              )}
+              {can('invoice') && (
+                <SummaryCard
+                  title={translate('Unpaid Invoice')}
+                  prefix={translate('Not Paid')}
+                  isLoading={invoiceLoading}
+                  data={invoiceResult?.total_undue}
+                />
+              )}
+              {can('quote') && (
+                <SummaryCard
+                  title={translate('Quote')}
+                  prefix={translate('This month')}
+                  isLoading={quoteLoading}
+                  data={quoteResult?.total}
+                />
+              )}
+              {can('offer') && (
+                <SummaryCard
+                  title={translate('Offer')}
+                  prefix={translate('This month')}
+                  isLoading={offerLoading}
+                  data={offerResult?.total}
+                />
+              )}
+            </Row>
+            <div className="space30"></div>
+          </>
+        )}
+        {showStatisticsRow && (
+          <>
+            <Row gutter={[32, 32]}>
+              {statisticCards.length > 0 && (
+                <Col
+                  className="gutter-row w-full"
+                  sm={{ span: 24 }}
+                  md={{ span: 24 }}
+                  lg={{ span: showCustomerCard ? 18 : 24 }}
+                >
+                  <div className="whiteBox shadow" style={{ height: 458 }}>
+                    <Row className="pad20" gutter={[0, 0]}>
+                      {statisticCards}
+                    </Row>
+                  </div>
+                </Col>
+              )}
+              {showCustomerCard && (
+                <Col
+                  className="gutter-row w-full"
+                  sm={{ span: 24 }}
+                  md={{ span: 24 }}
+                  lg={{ span: statisticCards.length > 0 ? 6 : 24 }}
+                >
+                  <CustomerPreviewCard
+                    isLoading={clientLoading}
+                    activeCustomer={clientResult?.active}
+                    newCustomer={clientResult?.new}
+                  />
+                </Col>
+              )}
+            </Row>
+            <div className="space30"></div>
+          </>
+        )}
         {showSalesAnalytics && (
           <>
             <SalesAnalytics />
-            <div className="space30"></div>
+            {showRecentTables && <div className="space30"></div>}
           </>
         )}
         {showRecentTables && (
