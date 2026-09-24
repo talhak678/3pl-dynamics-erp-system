@@ -4,6 +4,7 @@ const moment = require('moment');
 const Model = mongoose.model('Invoice');
 
 const { loadSettings } = require('../../../middlewares/settings');
+const { assignmentFilter } = require('../../../middlewares/ownership');
 
 const summary = async (req, res) => {
   let defaultType = 'month';
@@ -30,11 +31,22 @@ const summary = async (req, res) => {
 
   const statuses = ['draft', 'pending', 'overdue', 'paid', 'unpaid', 'partially'];
 
+  // An aggregation does not pass through scopedFilter, so a child account's
+  // own-record scope has to be written into each $match by hand. Without it this
+  // card would report the whole workspace's invoices to an account whose invoice
+  // list shows only its own - the totals would contradict the table underneath
+  // them. Empty for the owner and for a super admin, so their figures are
+  // unchanged. See middlewares/ownership.js.
+  const scope = {
+    createdBy: req.admin.tenantId,
+    ...assignmentFilter(Model, req),
+  };
+
   const response = await Model.aggregate([
     {
       $match: {
         removed: false,
-        createdBy: req.admin.tenantId,
+        ...scope,
         // date: {
         //   $gte: startDate.toDate(),
         //   $lte: endDate.toDate(),
@@ -167,7 +179,7 @@ const summary = async (req, res) => {
     {
       $match: {
         removed: false,
-        createdBy: req.admin.tenantId,
+        ...scope,
 
         // date: {
         //   $gte: startDate.toDate(),

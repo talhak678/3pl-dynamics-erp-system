@@ -7,6 +7,28 @@ const quoteSchema = new mongoose.Schema({
   },
   createdBy: { type: mongoose.Schema.ObjectId, ref: 'Admin', required: true },
 
+  /**
+   * Authorship and assignment - the two halves of the child-account read scope.
+   *
+   * `createdBy` above holds the TENANT this record belongs to, which every
+   * tenancy filter in the app matches on, so it cannot also name a person: for
+   * anyone but the workspace owner those are two different ids. These two are
+   * the person-shaped fields, and middlewares/ownership.js is where they become
+   * a query - a child account sees a quote it entered OR one assigned to it,
+   * and the workspace owner sees everything.
+   *
+   * Both are server-written. `createdByUser` is set from the session on create
+   * (see quoteController/create.js) and is stripped from every update, so
+   * authorship cannot be claimed or given away. `assignedTo` is honoured only
+   * from the workspace owner - see utils/assignee.js.
+   *
+   * Null on records that predate them. Those stay visible to the owner and are
+   * simply not matched by a child account's scope, which is the safe direction
+   * to fail in.
+   */
+  createdByUser: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
+  assignedTo: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
+
   converted: {
     type: Boolean,
     default: false,

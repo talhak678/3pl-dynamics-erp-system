@@ -30,18 +30,35 @@ const paginatedList = async (Model, req, res) => {
     filterCondition = { [filter]: equal };
   }
 
-  // The owner's per-user narrowing, or {} for everyone else and for every model
-  // that does not record authorship. ANDed with the tenant clause below, never a
-  // replacement for it - see userFilter.
-  const scope = { ...scopedFilter(Model, req), ...userFilter(Model, req) };
+  /*
+   * Three separate things contribute an `$or` to this query, and two `$or` keys
+   * cannot live in one object - whichever is spread last replaces the other.
+   *
+   *   fields        the text search, when ?q= and ?fields= are given
+   *   scopedFilter  a child account's "mine or assigned to me"
+   *   userFilter    the owner's "show me only this person's rows"
+   *
+   * Spreading them together is how a search silently returns the caller's whole
+   * list instead of their matches: the scope swallows the query and the table
+   * looks like search is broken. Pushing each as its own `$and` entry keeps all
+   * three, and reduces to exactly the previous query when only one is present.
+   * This is the shape leadController/paginatedList.js already used for the same
+   * reason.
+   */
+  const conditions = [{ removed: false }];
+
+  if (Object.keys(filterCondition).length > 0) conditions.push(filterCondition);
+  if (fields.$or) conditions.push(fields);
+  conditions.push(scopedFilter(Model, req));
+
+  const perUser = userFilter(Model, req);
+
+  if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  const query = { $and: conditions };
 
   //  Query the database for a list of all results
-  const resultsPromise = Model.find({
-    removed: false,
-    ...filterCondition,
-    ...fields,
-    ...scope,
-  })
+  const resultsPromise = Model.find(query)
     .skip(skip)
     .limit(limit)
     .sort({ [sortBy]: sortValue })
@@ -49,12 +66,7 @@ const paginatedList = async (Model, req, res) => {
     .exec();
 
   // Counting the total documents
-  const countPromise = Model.countDocuments({
-    removed: false,
-    ...filterCondition,
-    ...fields,
-    ...scope,
-  });
+  const countPromise = Model.countDocuments(query);
   // Resolving both promises
   const [result, count] = await Promise.all([resultsPromise, countPromise]);
 

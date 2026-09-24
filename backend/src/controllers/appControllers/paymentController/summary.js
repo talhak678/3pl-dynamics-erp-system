@@ -3,6 +3,7 @@ const moment = require('moment');
 
 const Model = mongoose.model('Payment');
 const { loadSettings } = require('../../../middlewares/settings');
+const { assignmentFilter } = require('../../../middlewares/ownership');
 
 const summary = async (req, res) => {
   let defaultType = 'month';
@@ -28,11 +29,22 @@ const summary = async (req, res) => {
   let endDate = currentDate.clone().endOf(defaultType);
 
   // get total amount of invoices
+  //
+  // An aggregation does not pass through scopedFilter, so a child account's
+  // own-record scope has to be written in by hand - otherwise this card would
+  // total the whole workspace's payments for an account whose payment list shows
+  // only its own. Empty for the owner and for a super admin. See
+  // middlewares/ownership.js.
+  const scope = {
+    createdBy: req.admin.tenantId,
+    ...assignmentFilter(Model, req),
+  };
+
   const result = await Model.aggregate([
     {
       $match: {
         removed: false,
-        createdBy: req.admin.tenantId,
+        ...scope,
 
         // date: {
         //   $gte: startDate.toDate(),

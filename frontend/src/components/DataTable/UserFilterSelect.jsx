@@ -10,18 +10,34 @@ import { useListFilter } from '@/context/listFilter';
 /**
  * The entities whose tables offer the per-user filter.
  *
- * Must be exactly the entities that record authorship - the four models given a
- * `createdByUser` field plus Lead, which already had one. On anything else the
- * backend ignores the parameter (see middlewares/ownership.js, which checks the
- * model's schema before applying it), so offering the control would produce a
+ * Must be exactly the entities that record authorship - the models listed in
+ * SCOPED_MODEL_NAMES on the backend (middlewares/ownership.js), each of which
+ * carries a `createdByUser`, an `assignedTo`, or both. On anything else the
+ * backend ignores the parameter, so offering the control would produce a
  * dropdown that visibly does nothing: the owner picks a colleague and the table
  * does not move.
  *
- * `client` rather than `customer`, because that is the entity name the API and
- * the pages use. See moduleForEntity in the backend's utils/moduleList.js for
- * the same mapping.
+ * Both halves have to agree, and the list is written out rather than derived
+ * because the backend's copy is keyed on Mongoose model names ('Client',
+ * 'ExpenseCategory') and this one on the API's entity names ('client',
+ * 'expensecategory') - see moduleForEntity in the backend's utils/moduleList.js
+ * for the same mapping. Products, product categories, taxes, payment modes,
+ * employees and shipments are deliberately absent: they stay workspace-global,
+ * as does every setting.
  */
-const FILTERABLE_ENTITIES = ['client', 'people', 'company', 'lead', 'offer'];
+const FILTERABLE_ENTITIES = [
+  'client',
+  'people',
+  'company',
+  'lead',
+  'offer',
+  'quote',
+  'invoice',
+  'payment',
+  'order',
+  'expense',
+  'expensecategory',
+];
 
 /**
  * Whether this account owns the workspace it is signed in to.

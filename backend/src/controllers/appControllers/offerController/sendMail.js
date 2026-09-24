@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const OfferModel = mongoose.model('Offer');
 const { Resend } = require('resend');
 const { loadSettings } = require('../../../middlewares/settings');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 const { useAppSettings } = require('../../../settings');
 
 const mail = async (req, res) => {
@@ -19,7 +19,7 @@ const mail = async (req, res) => {
   const result = await OfferModel.findOne({
     _id: id,
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(OfferModel, req),
   }).exec();
 
   // Throw error if no result
@@ -59,7 +59,7 @@ const mail = async (req, res) => {
 
       if (mailId) {
         OfferModel.findOneAndUpdate(
-          { _id: id, removed: false, ...ownerFilter(req) },
+          { _id: id, removed: false, ...scopedFilter(OfferModel, req) },
           { status: 'sent' }
         )
           .exec()

@@ -4,7 +4,8 @@ const Model = mongoose.model('Invoice');
 
 const { calculate } = require('../../../helpers');
 const { increaseBySettingKey } = require('../../../middlewares/settings');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
+const { applyAssignedTo } = require('../../../utils/assignee');
 const schema = require('./schemaValidate');
 
 const create = async (req, res) => {
@@ -48,11 +49,28 @@ const create = async (req, res) => {
   body['paymentStatus'] = paymentStatus;
   body['createdBy'] = req.admin.tenantId;
 
+  // Authorship rather than ownership - see the note on the generic create in
+  // middlewaresControllers/createCRUDController/create.js. This controller is
+  // bespoke, so it has to set the field itself; the shared one never runs here.
+  body['createdByUser'] = req.admin._id;
+
+  // Delegation, where the workspace owner names an assignee. Everyone else has
+  // the field dropped. See utils/assignee.js.
+  const assignment = await applyAssignedTo(Model, req);
+
+  if (!assignment.ok) {
+    return res.status(assignment.status).json({
+      success: false,
+      result: null,
+      message: assignment.error,
+    });
+  }
+
   // Creating a new document in the collection
   const result = await new Model(body).save();
   const fileId = 'invoice-' + result._id + '.pdf';
   const updateResult = await Model.findOneAndUpdate(
-    { _id: result._id, ...ownerFilter(req) },
+    { _id: result._id, ...scopedFilter(Model, req) },
     { pdf: fileId },
     {
       new: true,

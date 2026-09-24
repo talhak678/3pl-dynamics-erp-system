@@ -7,6 +7,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { DatePicker } from 'antd';
 
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
+import AssigneeSelect from '@/components/AssigneeSelect';
 
 import ItemRow from '@/modules/ErpPanelModule/ItemRow';
 
@@ -172,6 +173,18 @@ function LoadQuoteForm({ subTotal = 0, current = null }) {
           <Form.Item label={translate('Note')} name="notes">
             <Input />
           </Form.Item>
+        </Col>
+      </Row>
+      {/*
+        Who inside the workspace owns this quote. AssigneeSelect brings its own
+        Form.Item and renders nothing at all for an account that may not assign,
+        so an owner gains a picker here and everyone else sees the form they had
+        before. Given its own Row because the header above already fills a
+        24-column grid.
+      */}
+      <Row gutter={[12, 0]}>
+        <Col className="gutter-row" span={8}>
+          <AssigneeSelect />
         </Col>
       </Row>
       <Divider dashed />

@@ -5,7 +5,8 @@ const Model = mongoose.model('Quote');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
+const { applyAssignedTo, stripAuthorship } = require('../../../utils/assignee');
 
 const update = async (req, res) => {
   const { items = [], taxRate = 0, discount = 0 } = req.body;
@@ -49,9 +50,23 @@ const update = async (req, res) => {
 
   // Ownership is immutable: never let a caller reassign a record to someone else.
   delete body.createdBy;
+  // Nor is authorship, which is what a child account's read scope matches on.
+  stripAuthorship(req);
+
+  // Delegation: honoured from the workspace owner only, and dropped from anyone
+  // else's body so an existing assignee survives their edit. See utils/assignee.js.
+  const assignment = await applyAssignedTo(Model, req);
+
+  if (!assignment.ok) {
+    return res.status(assignment.status).json({
+      success: false,
+      result: null,
+      message: assignment.error,
+    });
+  }
 
   const result = await Model.findOneAndUpdate(
-    { _id: req.params.id, removed: false, ...ownerFilter(req) },
+    { _id: req.params.id, removed: false, ...scopedFilter(Model, req) },
     body,
     {
       new: true, // return the new result instead of the old one

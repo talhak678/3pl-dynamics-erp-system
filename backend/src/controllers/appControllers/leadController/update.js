@@ -72,9 +72,9 @@ const update = async (Model, req, res) => {
       _id: req.params.id,
       removed: false,
       // leadFilter, not ownerFilter: an owner keeps the tenant-wide view, while a
-      // Sales Executive can only reach a lead assigned to them or entered by
+      // child account can only reach a lead assigned to them or entered by
       // them. Scoping the lookup rather than checking after it means another
-      // executive's lead is a 404 - indistinguishable from one that does not
+      // account's lead is a 404 - indistinguishable from one that does not
       // exist - instead of a 403 that would confirm it is real.
       ...leadFilter(req),
     },

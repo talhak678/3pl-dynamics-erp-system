@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   EyeOutlined,
   EditOutlined,
@@ -19,7 +19,10 @@ import useLanguage from '@/locale/useLanguage';
 import { erp } from '@/redux/erp/actions';
 import { selectListItems } from '@/redux/erp/selectors';
 import { useErpContext } from '@/context/erp';
+import { useListOptions } from '@/context/listFilter';
 import { useNavigate } from 'react-router-dom';
+
+import UserFilterSelect from '@/components/DataTable/UserFilterSelect';
 
 import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 
@@ -150,25 +153,36 @@ export default function DataTable({ config, extra = [] }) {
 
   const dispatch = useDispatch();
 
-  const handelDataTableLoad = (pagination) => {
-    const options = { page: pagination.current || 1, items: pagination.pageSize || 10 };
-    dispatch(erp.list({ entity, options }));
-  };
+  // Folds the workspace owner's "Filter by User" selection, if any, into every
+  // request this table makes. Nothing is added when no one is selected, so the
+  // default path is unchanged. See context/listFilter.
+  const listOptions = useListOptions();
 
-  const dispatcher = () => {
-    dispatch(erp.list({ entity }));
-  };
+  const handelDataTableLoad = useCallback(
+    (pagination) => {
+      const options = listOptions({
+        page: pagination.current || 1,
+        items: pagination.pageSize || 10,
+      });
+      dispatch(erp.list({ entity, options }));
+    },
+    [dispatch, entity, listOptions]
+  );
 
+  const dispatcher = useCallback(() => {
+    dispatch(erp.list({ entity, options: listOptions() }));
+  }, [dispatch, entity, listOptions]);
+
+  // Runs on mount, and again whenever the filter selection changes - a new
+  // selection has to be a new request, and this is the one place that knows how
+  // to make one correctly. Pagination resets as a side effect, which is what a
+  // filter change should do anyway.
   useEffect(() => {
-    const controller = new AbortController();
     dispatcher();
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  }, [dispatcher]);
 
   const filterTable = (value) => {
-    const options = { equal: value, filter: searchConfig?.entity };
+    const options = listOptions({ equal: value, filter: searchConfig?.entity });
     dispatch(erp.list({ entity, options }));
   };
 
@@ -190,6 +204,9 @@ export default function DataTable({ config, extra = [] }) {
             // withRedirect
             // urlToRedirect={'/customer'}
           />,
+          // Renders nothing at all unless the signed-in account owns this
+          // workspace and the entity is one that records who entered a row.
+          <UserFilterSelect key="user-filter" entity={entity} />,
           <Button onClick={handelDataTableLoad} key="refresh-button" icon={<RedoOutlined />}>
             {translate('Refresh')}
           </Button>,

@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Form, Input, InputNumber } from 'antd';
 import { DatePicker } from 'antd';
 import SelectAsync from '@/components/SelectAsync';
+import AssigneeSelect from '@/components/AssigneeSelect';
 import { useMoney, useDate } from '@/settings';
 
 import useLanguage from '@/locale/useLanguage';
@@ -74,6 +75,12 @@ export default function PaymentForm({ maxAmount = null, isUpdateForm = false }) 
       <Form.Item label={translate('Description')} name="description">
         <TextArea />
       </Form.Item>
+      {/*
+        Who inside the workspace owns this payment. Brings its own Form.Item and
+        renders nothing at all for an account that may not assign, so an owner
+        gains a picker here and everyone else sees the form they had before.
+      */}
+      <AssigneeSelect />
     </>
   );
 }

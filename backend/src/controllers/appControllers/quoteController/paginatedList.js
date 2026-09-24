@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const Model = mongoose.model('Quote');
 
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter, userFilter } = require('../../../middlewares/ownership');
 
 const paginatedList = async (req, res) => {
   const page = req.query.page || 1;
@@ -23,13 +23,27 @@ const paginatedList = async (req, res) => {
   }
 
   //  Query the database for a list of all results
-  const resultsPromise = Model.find({
-    removed: false,
+  //
+  //  Three things here can contribute an `$or`, and two `$or` keys cannot share
+  //  one object - the later spread replaces the earlier, so a text search would
+  //  quietly return the caller's whole list instead of their matches. Each goes
+  //  in as its own `$and` entry, which is the shape leadController uses.
+  //
+  //  `userFilter` is what answers `?user=<id>` for this entity, and it is the
+  //  workspace owner alone who gets a clause back - a child account asking for
+  //  someone else keeps the scope its own account already has. See userFilter.
+  const conditions = [{ removed: false }, { [filter]: equal }];
 
-    [filter]: equal,
-    ...fields,
-    ...ownerFilter(req),
-  })
+  if (fields.$or) conditions.push(fields);
+  conditions.push(scopedFilter(Model, req));
+
+  const perUser = userFilter(Model, req);
+
+  if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  const query = { $and: conditions };
+
+  const resultsPromise = Model.find(query)
     .skip(skip)
     .limit(limit)
     .sort({ [sortBy]: sortValue })
@@ -37,13 +51,7 @@ const paginatedList = async (req, res) => {
     .exec();
 
   // Counting the total documents
-  const countPromise = Model.countDocuments({
-    removed: false,
-
-    [filter]: equal,
-    ...fields,
-    ...ownerFilter(req),
-  });
+  const countPromise = Model.countDocuments(query);
 
   // Resolving both promises
   const [result, count] = await Promise.all([resultsPromise, countPromise]);

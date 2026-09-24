@@ -19,13 +19,15 @@ const search = async (Model, req, res) => {
   for (const field of fieldsArray) {
     fields.$or.push({ [field]: { $regex: new RegExp(req.query.q, 'i') } });
   }
-  // console.log(fields)
 
-  let results = await Model.find({
-    ...fields,
-    ...scopedFilter(Model, req),
+  // `fields` is always an $or, and so is a child account's scope. Spreading them
+  // into one object would let the scope replace the search term, so the account
+  // would get its whole list back whatever it typed. $and holds both, and
+  // reduces to exactly the old query for anyone whose scope is {} - which is the
+  // workspace owner, a super admin, and every unscoped model.
+  const results = await Model.find({
+    $and: [fields, scopedFilter(Model, req)],
   })
-
     .where('removed', false)
     .limit(20)
     .exec();

@@ -24,11 +24,11 @@ const summary = async (Model, req, res) => {
   let endDate = currentDate.clone().endOf(defaultType);
 
   // Resolved once and spread into all three $match stages. An aggregation does
-  // not go through ownerFilter, so a Sales Executive's narrowed scope has to be
+  // not go through ownerFilter, so a child account's narrowed scope has to be
   // written in by hand here - and the counts must agree with the list they sit
   // above, or the dashboard would report leads the pipeline refuses to show.
-  // leadFilter still returns plain ownerFilter for everyone else, including the
-  // owner and any super admin.
+  // leadFilter still returns plain ownerFilter for the workspace owner and for
+  // any super admin.
   const scope = leadFilter(req);
 
   const pipeline = [

@@ -10,24 +10,25 @@ import { avatarSrc, initialsOf } from '@/utils/avatar';
 const { Text } = Typography;
 
 /**
- * The "Assign To" control, for the forms of entities that carry an `assignedTo`.
+ * The "Assign To" control, for the forms of the records that carry an
+ * `assignedTo` - the models listed in SCOPED_MODEL_NAMES on the backend.
  *
  * Renders nothing at all for an account that cannot use it, and that is the
  * deliberate design rather than a hidden field. Who may assign is a server rule
- * (see leadController/assignment.js): a Sales Executive's leads are theirs
- * automatically, so there is no choice for the form to offer them. An unmounted
- * field is never submitted, so the server's rule is the only thing deciding the
- * outcome and the UI has no opinion of its own to get wrong.
+ * (see utils/assignee.js): only the workspace owner may, and a child account's
+ * records are theirs through `createdByUser` whether or not anything was
+ * assigned. An unmounted field is never submitted, so the server's rule is the
+ * only thing deciding the outcome and the UI has no opinion of its own to get
+ * wrong.
  *
- * The gate is `canReadTeamDirectory`, which is wider than "not a Sales
- * Executive" and needs to be. The options come from /api/team, which only an
- * owner may read, so an employee granted the `lead` module but not the owner
- * role would be shown a dropdown that could never fill itself, offering a
- * choice the server would then override.
+ * The gate is `canReadTeamDirectory`, which is the same test the server makes.
+ * The options come from /api/team, which only an owner may read, so an employee
+ * granted the module but not the owner role would be shown a dropdown that could
+ * never fill itself, offering a choice the server would then discard.
  *
  * The counterpart: a hidden field cannot clear an assignment either. That is
- * correct for the accounts it hides from - an owner is the only one who was
- * ever meant to move a lead between people.
+ * correct for the accounts it hides from - an owner is the only one who was ever
+ * meant to move a record between people.
  */
 export default function AssigneeSelect({ field = {} }) {
   const translate = useLanguage();
@@ -51,7 +52,7 @@ export default function AssigneeSelect({ field = {} }) {
   // A deactivated account is kept as an option when it is the current value.
   // Dropping it would leave the field holding an id with no option to render
   // it, which Ant Design shows as the raw ObjectId - an id where a name belongs,
-  // on the one form where the admin is choosing who should own the lead.
+  // on the one form where the admin is choosing who should own the record.
   const options = (directory ?? [])
     .filter((person) => person.isActive || person.id === selectedId)
     .map((person) => ({
@@ -80,7 +81,7 @@ export default function AssigneeSelect({ field = {} }) {
       ),
     }));
 
-  // A lead assigned to an account that has since been deleted - rather than
+  // A record assigned to an account that has since been deleted - rather than
   // merely deactivated - has no directory entry left to name it. Saying so beats
   // the bare id the Select would otherwise render.
   if (selectedId && !options.some((option) => option.value === selectedId)) {
@@ -100,12 +101,13 @@ export default function AssigneeSelect({ field = {} }) {
     <Form.Item
       label={translate(field.label ?? 'Assign To')}
       name={name}
-      extra="Only accounts in your own workspace can be assigned. Leave empty to keep the lead unassigned."
+      extra="Only accounts in your own workspace can be assigned. Leave empty to keep this record unassigned."
       // The clear button on a single Select reports `undefined`, and a key
       // holding undefined is dropped by JSON.stringify - so clearing the field
       // would submit no `assignedTo` at all, and an update would leave the
-      // previous assignee in place while the form showed the lead as unassigned.
-      // Normalising to null makes the clear an explicit, sendable value.
+      // previous assignee in place while the form showed the record as
+      // unassigned. Normalising to null makes the clear an explicit, sendable
+      // value.
       normalize={(value) => (value === undefined ? null : value)}
     >
       <Select

@@ -32,6 +32,19 @@ const schema = new mongoose.Schema({
    */
   createdByUser: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
 
+  /**
+   * The account this record was handed to, if the workspace owner delegated it.
+   *
+   * The second half of the child-account read scope: a person is visible to the
+   * account that entered it OR to the account it was assigned to, and to nobody
+   * else. See middlewares/ownership.js, which is where that rule lives and which
+   * names this model among the ones it narrows.
+   *
+   * Only the workspace owner may set it. Anyone else sending the field has it
+   * dropped before the write - see utils/assignee.js.
+   */
+  assignedTo: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
+
   firstname: {
     type: String,
     trim: true,

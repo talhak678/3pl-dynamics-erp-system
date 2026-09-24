@@ -1,3 +1,5 @@
+const { applyAssignedTo } = require('../../../utils/assignee');
+
 const create = async (Model, req, res) => {
   // Creating a new document in the collection
   req.body.removed = false;
@@ -6,7 +8,7 @@ const create = async (Model, req, res) => {
 
   // Authorship, which is a different question from ownership. `createdBy` above
   // is the tenant that holds the record; this is the account that actually
-  // entered it, and it is what the owner's per-user filter matches on. Assigned
+  // entered it, and it is what a child account's read scope matches on. Assigned
   // here rather than read from the body, so a request cannot claim to be someone
   // else's work - and set after the tenant field so it is never the same
   // assignment by accident.
@@ -17,6 +19,20 @@ const create = async (Model, req, res) => {
   // between models rather than an error anyone would see.
   if (Model.schema.path('createdByUser')) {
     req.body.createdByUser = req.admin._id;
+  }
+
+  // Delegation, where the model records an assignee. Only the workspace owner
+  // may name one; everyone else has the field dropped, which leaves the record
+  // theirs through createdByUser above. Runs after the two assignments so a
+  // caller cannot displace either of them. See utils/assignee.js.
+  const assignment = await applyAssignedTo(Model, req);
+
+  if (!assignment.ok) {
+    return res.status(assignment.status).json({
+      success: false,
+      result: null,
+      message: assignment.error,
+    });
   }
 
   const result = await new Model({

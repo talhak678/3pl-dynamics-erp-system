@@ -5,7 +5,8 @@ const Invoice = mongoose.model('Invoice');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
+const { applyAssignedTo, stripAuthorship } = require('../../../utils/assignee');
 
 const update = async (req, res) => {
   if (req.body.amount === 0) {
@@ -19,7 +20,7 @@ const update = async (req, res) => {
   const previousPayment = await Model.findOne({
     _id: req.params.id,
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   });
 
   if (!previousPayment) {
@@ -54,6 +55,24 @@ const update = async (req, res) => {
       ? 'partially'
       : 'unpaid';
 
+  // Authorship is never editable - see utils/assignee.js. The `updates` object
+  // below is built field by field rather than spread from the body, so there is
+  // nothing to strip; this is called for symmetry with the other update paths.
+  stripAuthorship(req);
+
+  // Delegation, which for this controller has to be carried into `updates` by
+  // hand for the same reason. Only the workspace owner gets a value here, and an
+  // owner who did not mention the field leaves it absent - see applyAssignedTo.
+  const assignment = await applyAssignedTo(Model, req);
+
+  if (!assignment.ok) {
+    return res.status(assignment.status).json({
+      success: false,
+      result: null,
+      message: assignment.error,
+    });
+  }
+
   const updatedDate = new Date();
   const updates = {
     number: req.body.number,
@@ -65,8 +84,12 @@ const update = async (req, res) => {
     updated: updatedDate,
   };
 
+  if (Object.prototype.hasOwnProperty.call(req.body, 'assignedTo')) {
+    updates.assignedTo = req.body.assignedTo;
+  }
+
   const result = await Model.findOneAndUpdate(
-    { _id: req.params.id, removed: false, ...ownerFilter(req) },
+    { _id: req.params.id, removed: false, ...scopedFilter(Model, req) },
     { $set: updates },
     {
       new: true, // return the new result instead of the old one
@@ -74,7 +97,7 @@ const update = async (req, res) => {
   ).exec();
 
   const updateInvoice = await Invoice.findOneAndUpdate(
-    { _id: result.invoice._id.toString(), ...ownerFilter(req) },
+    { _id: result.invoice._id.toString(), ...scopedFilter(Invoice, req) },
     {
       $inc: { credit: changedAmount },
       $set: {

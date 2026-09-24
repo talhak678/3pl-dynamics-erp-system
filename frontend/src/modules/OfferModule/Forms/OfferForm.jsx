@@ -7,6 +7,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { DatePicker } from 'antd';
 
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
+import AssigneeSelect from '@/components/AssigneeSelect';
 import SelectAsync from '@/components/SelectAsync';
 
 import ItemRow from '@/modules/ErpPanelModule/ItemRow';
@@ -174,6 +175,25 @@ function LoadOfferForm({ subTotal = 0, current = null }) {
           <Form.Item label={translate('Note')} name="notes">
             <Input />
           </Form.Item>
+        </Col>
+      </Row>
+      {/*
+        Who inside the workspace owns this offer.
+
+        Not one of the entities the brief named for an "Assign To" control, but
+        Offer is one of the models a child account's read scope narrows, so
+        without this the owner would have no way to hand an offer to anyone -
+        the record would be reachable only by whoever typed it in. Lead, its
+        sibling in the pipeline, already has the same control.
+
+        AssigneeSelect brings its own Form.Item and renders nothing at all for an
+        account that may not assign, so an owner gains a picker here and everyone
+        else sees the form they had before. Given its own Row because the header
+        above already fills a 24-column grid.
+      */}
+      <Row gutter={[12, 0]}>
+        <Col className="gutter-row" span={8}>
+          <AssigneeSelect />
         </Col>
       </Row>
       <Divider dashed />

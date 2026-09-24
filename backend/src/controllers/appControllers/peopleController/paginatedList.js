@@ -32,18 +32,27 @@ const paginatedList = async (Model, req, res) => {
 
   //  Query the database for a list of all results
   //
-  //  The owner's per-user narrowing is spread on last, alongside the tenant
-  //  clause and for the same reason - nothing a caller puts in the query string
-  //  can reach past either of them. Both are {} for an account that is not the
-  //  workspace owner. See userFilter.
-  const resultsPromise = Model.find({
-    removed: false,
+  //  Three things here can contribute an `$or`, and two `$or` keys cannot share
+  //  one object - the later spread replaces the earlier, so a text search would
+  //  quietly return the caller's whole list instead of their matches. Each goes
+  //  in as its own `$and` entry, which is the shape leadController uses.
+  //
+  //  The owner's per-user narrowing and the child account's own-record scope are
+  //  both {} for the accounts they do not describe, and neither can reach past
+  //  the tenant clause: that clause is one of the entries, so it only ever
+  //  intersects. See scopedFilter and userFilter.
+  const conditions = [{ removed: false }, { [filter]: equal }];
 
-    [filter]: equal,
-    ...fields,
-    ...scopedFilter(Model, req),
-    ...userFilter(Model, req),
-  })
+  if (fields.$or) conditions.push(fields);
+  conditions.push(scopedFilter(Model, req));
+
+  const perUser = userFilter(Model, req);
+
+  if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  const query = { $and: conditions };
+
+  const resultsPromise = Model.find(query)
     .skip(skip)
     .limit(limit)
     .sort({ [sortBy]: sortValue })
@@ -51,14 +60,7 @@ const paginatedList = async (Model, req, res) => {
     .exec();
 
   // Counting the total documents
-  const countPromise = Model.countDocuments({
-    removed: false,
-
-    [filter]: equal,
-    ...fields,
-    ...scopedFilter(Model, req),
-    ...userFilter(Model, req),
-  });
+  const countPromise = Model.countDocuments(query);
 
   // Resolving both promises
   const [result, count] = await Promise.all([resultsPromise, countPromise]);

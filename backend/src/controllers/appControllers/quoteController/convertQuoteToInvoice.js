@@ -4,14 +4,14 @@ const moment = require('moment');
 const Model = mongoose.model('Quote');
 const InvoiceModel = mongoose.model('Invoice');
 
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const convertQuoteToInvoice = async (req, res) => {
   // Fetch the quote from the database
   const quote = await Model.findOne({
     _id: req.params.id,
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   }).exec();
 
   if (!quote) {
@@ -55,6 +55,17 @@ const convertQuoteToInvoice = async (req, res) => {
   };
 
   invoiceData['createdBy'] = req.admin.tenantId;
+
+  // The invoice is a new record, so it needs its own authorship and assignee -
+  // neither is inherited by creating it. Authorship is the account performing
+  // the conversion, matching every other create path: whoever enters a record
+  // can see it. The assignee is carried over from the quote so an invoice raised
+  // from a colleague's assigned quote lands with the same person, rather than
+  // with nobody.
+  invoiceData['createdByUser'] = req.admin._id;
+
+  if (quote.assignedTo) invoiceData['assignedTo'] = quote.assignedTo;
+
   // Creating a new document in the collection
 
   // Create the invoice document

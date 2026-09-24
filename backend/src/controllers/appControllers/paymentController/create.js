@@ -5,7 +5,8 @@ const Invoice = mongoose.model('Invoice');
 const custom = require('../../pdfController');
 
 const { calculate } = require('../../../helpers');
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
+const { applyAssignedTo } = require('../../../utils/assignee');
 
 const create = async (req, res) => {
   // Creating a new document in the collection
@@ -17,10 +18,13 @@ const create = async (req, res) => {
     });
   }
 
+  // The invoice this payment settles is read through the caller's own scope, not
+  // the tenant's: a child account settling invoices it cannot open is not a
+  // workflow this app offers, and paying one requires reading its totals below.
   const currentInvoice = await Invoice.findOne({
     _id: req.body.invoice,
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Invoice, req),
   });
 
   if (!currentInvoice) {
@@ -48,6 +52,23 @@ const create = async (req, res) => {
   }
   req.body['createdBy'] = req.admin.tenantId;
 
+  // Authorship rather than ownership - see the note on the generic create in
+  // middlewaresControllers/createCRUDController/create.js. This controller is
+  // bespoke, so it has to set the field itself; the shared one never runs here.
+  req.body['createdByUser'] = req.admin._id;
+
+  // Delegation, where the workspace owner names an assignee. Everyone else has
+  // the field dropped. See utils/assignee.js.
+  const assignment = await applyAssignedTo(Model, req);
+
+  if (!assignment.ok) {
+    return res.status(assignment.status).json({
+      success: false,
+      result: null,
+      message: assignment.error,
+    });
+  }
+
   const result = await Model.create(req.body);
 
   const fileId = 'payment-' + result._id + '.pdf';
@@ -55,7 +76,7 @@ const create = async (req, res) => {
     {
       _id: result._id.toString(),
       removed: false,
-      ...ownerFilter(req),
+      ...scopedFilter(Model, req),
     },
     { pdf: fileId },
     {
@@ -75,7 +96,7 @@ const create = async (req, res) => {
       : 'unpaid';
 
   const invoiceUpdate = await Invoice.findOneAndUpdate(
-    { _id: req.body.invoice, ...ownerFilter(req) },
+    { _id: req.body.invoice, ...scopedFilter(Invoice, req) },
     {
       $push: { payment: paymentId.toString() },
       $inc: { credit: amount },

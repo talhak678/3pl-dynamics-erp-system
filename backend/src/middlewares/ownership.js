@@ -18,15 +18,17 @@ const USER_FILTER_PARAM = 'user';
 /**
  * The field that records who a record was handed to, where a model has one.
  *
- * Only Lead carries it. It is here because "this person's rows" is genuinely two
- * questions and a filter that answers only one of them reads as a broken filter:
- * a lead assigned to a colleague was never theirs to enter, so a test of
- * authorship alone hides every lead that person is actually working - which is
- * the thing an owner opens this filter to look at. See userFilter.
+ * Every model in SCOPED_MODEL_NAMES carries it, so "this person's rows" is
+ * genuinely two questions and a filter that answered only one of them would read
+ * as a broken filter: a record assigned to a colleague was never theirs to
+ * enter, so a test of authorship alone hides everything that person is actually
+ * working - which is the thing an owner opens this filter to look at. See
+ * userFilter.
  *
- * A model without it is one the assignee half cannot describe, and asking the
- * schema rather than assuming keeps that honest as models gain and lose the
- * field.
+ * Still asked of the schema rather than assumed, so a model that gains or loses
+ * the field stays honest without this file being edited. A model without it is
+ * one the assignee half cannot describe, and it degrades to the authorship
+ * clause alone rather than to a query that means something else.
  */
 const ASSIGNEE_FIELD = 'assignedTo';
 
@@ -82,25 +84,53 @@ const isSalesExecutive = (admin) =>
   Boolean(admin) && admin.isSuperAdmin !== true && admin.role === SALES_EXECUTIVE_ROLE;
 
 /**
+ * Whether this account is a child of the workspace it is signed in to - that is,
+ * everyone except the account that owns it.
+ *
+ * This is the predicate the whole isolation model turns on. It is written as
+ * "not the owner" rather than as a list of employee titles because the titles
+ * are open-ended: roles.js documents every assignable title except Sales
+ * Executive as a label nothing branches on, and an account may carry a retired
+ * title ('employee', 'Manager', 'Customer Support') that no current list would
+ * name. Enumerating the child titles would therefore leak data to exactly the
+ * accounts whose titles had drifted, which is the failure mode hardest to
+ * notice. Asking the one question that has a stable answer - are you the owner -
+ * fails the other way, and the other way is closed.
+ *
+ * The isSuperAdmin exclusion is not decoration, and mirrors isSalesExecutive's.
+ * A super admin owns no tenant: tenantIdOf resolves to their own id and their
+ * queries already match nothing. But the control plane's accounts are not
+ * tenant children and must not be pulled into a tenant-shaped clause at all.
+ * Every branch below falls through to plain ownerFilter for them, so the Super
+ * Admin portal behaves exactly as it did before this mechanism existed.
+ */
+const isChildUser = (admin) =>
+  Boolean(admin) && admin.isSuperAdmin !== true && admin.role !== 'owner';
+
+/**
  * The scope for Lead queries: the tenant, narrowed to the caller's own leads
- * when the caller is a Sales Executive.
+ * when the caller is a child account.
  *
  * Deliberately a separate function rather than a change to ownerFilter.
  * ownerFilter is spread into roughly forty query sites across every entity in
  * the app, so widening its meaning would silently rescope invoices, quotes,
- * payments and clients at the same time - a change nothing asked for and one
- * that would be very hard to notice. Only the lead controllers opt in to this.
+ * payments and clients at the same time. Only the models named in
+ * SCOPED_MODEL_NAMES opt in to this - and since Lead is the one that needed it
+ * first, this predates the rest of that list. Today it resolves to exactly what
+ * scopedFilter gives Lead; it is kept because Lead's read paths are overridden
+ * one by one and pinning their scope to a shared controller would be a worse
+ * trade than one duplicated wrapper. See leadController/filter.js.
  *
- * Two clauses, matching the requirement that an executive keeps sight of leads
- * they created as well as ones assigned to them:
+ * Two clauses, matching the requirement that an account keeps sight of records
+ * it created as well as ones handed to it:
  *
- *   assignedTo     the lead is theirs to work
+ *   assignedTo     it was assigned to them to work
  *   createdByUser  they entered it, and reassigning it to a colleague should
  *                  not make it vanish from the person who typed it in
  *
  * `createdByUser` exists because `createdBy` cannot serve here: it holds the
- * TENANT id, not the acting account's (see leadController/create.js). For an
- * executive those two ids differ, so a test of `createdBy === req.admin._id`
+ * TENANT id, not the acting account's (see leadController/create.js). For a
+ * child account those two ids differ, so a test of `createdBy === req.admin._id`
  * could never be true and the "created by me" half of the rule would be dead
  * code.
  *
@@ -111,11 +141,11 @@ const leadFilter = (req) => {
   const admin = req && req.admin;
   const base = ownerFilter(req);
 
-  if (!isSalesExecutive(admin)) return base;
+  if (!isChildUser(admin)) return base;
 
   return {
     ...base,
-    $or: [{ assignedTo: admin._id }, { createdByUser: admin._id }],
+    ...assignmentClause(admin, true, true),
   };
 };
 
@@ -130,71 +160,125 @@ const isTenantOwner = (admin) =>
   Boolean(admin) && admin.isSuperAdmin !== true && admin.role === 'owner';
 
 /**
- * The three entities a Sales Executive's read scope narrows.
+ * The entities a child account's read scope narrows.
  *
- * Named rather than inferred, because "has a createdByUser path" is not the same
- * set: Offer carries the field too, and narrowing it was not asked for. Testing
- * the model by name keeps the narrowed set a decision someone made rather than a
- * consequence of which schemas happen to carry a column.
+ * Named explicitly rather than inferred from "the schema has a createdByUser
+ * path", because those are not the same set and the difference is load-bearing
+ * in both directions:
+ *
+ *   - Product and ProductCategory carry tenancy fields but must stay global.
+ *     They are the catalogue every account works from; an inventory manager who
+ *     could only see products they had personally entered would have an empty
+ *     picker and no way to fill it.
+ *   - Taxes, PaymentMode, Employee and Shipment are deliberately absent. The
+ *     first two are reference data that the Invoice, Quote, Offer and Payment
+ *     forms fetch to populate their own pickers, and those forms have no
+ *     "assign to" control to delegate them with - so narrowing them would empty
+ *     a picker on a form the child account is otherwise entitled to use, and
+ *     break document creation outright. Employee and Shipment are entities with
+ *     no page, no navigation entry and no call site anywhere in the frontend.
+ *
+ * Keeping the set a written decision rather than a consequence of which schemas
+ * happen to carry a column is the point: adding a field to a model should never
+ * silently enrol it in tenant-wide data narrowing.
  */
-const CONTACT_MODEL_NAMES = ['Client', 'Company', 'People'];
+const SCOPED_MODEL_NAMES = [
+  'Client',
+  'Company',
+  'People',
+  'Lead',
+  'Offer',
+  'Quote',
+  'Invoice',
+  'Payment',
+  'Order',
+  'Expense',
+  'ExpenseCategory',
+];
 
-const isContactModel = (Model) =>
-  Boolean(Model) && CONTACT_MODEL_NAMES.includes(Model.modelName);
+const isScopedModel = (Model) =>
+  Boolean(Model) && SCOPED_MODEL_NAMES.includes(Model.modelName);
 
 /**
- * The scope for the three contact entities: the tenant, narrowed to the
- * executive's own records when the caller is a Sales Executive.
+ * The "mine, or handed to me" clause, built from the paths the model actually
+ * has.
  *
- * The reported behaviour was that an employee saw every Customer, Company and
- * People record the admin had ever entered. These three were the gap: Lead was
- * already narrowed by leadFilter, but nothing else was, so a Sales Executive's
- * contact lists were the whole workspace's.
- *
- * Authorship only - `createdByUser` - and deliberately without the second half
- * of leadFilter's rule. That half matches records reached through a lead
- * assigned to the caller, and it cannot be expressed here for the reason the
- * model does not carry: a Lead references a Company and a People, but nothing
- * references a Client at all, and no controller converts a lead into one. So
- * "customers tied to my leads" has no path to travel. Authorship is the one
- * relation all three entities actually record, and using it for all three keeps
- * their behaviour identical rather than subtly different per entity.
- *
- * Scoped to Sales Executives because that is the only role this codebase
- * narrows - see roles.js, which documents every other assignable title as a
- * label nothing branches on. An accountant still sees every client, which is
- * what keeps invoicing workable; a role-wide narrowing here would empty the
- * client picker in the Invoice and Quote forms for anyone who did not
- * personally enter the customer.
+ * A model carrying both paths gets the $or the requirement describes. A model
+ * carrying only one gets that clause alone, so nothing answers with a different
+ * kind of query than it can honour. A model carrying neither - which a scoped
+ * name should never be, since every one of them declares `createdByUser` - gets
+ * a clause that matches nothing rather than an empty object. That direction is
+ * the whole point: an empty object would mean "no narrowing", which for a child
+ * account is a tenant-wide read, so a schema mistake would fail open into a data
+ * leak. `_id` is used because it exists on every schema, so Mongoose keeps the
+ * clause instead of stripping it in strict mode.
  */
-const contactFilter = (Model, req) => {
-  const admin = req && req.admin;
+const assignmentClause = (admin, hasUserField, hasAssigneeField) => {
+  const clauses = [];
 
-  if (!isSalesExecutive(admin)) return {};
+  if (hasUserField) clauses.push({ [USER_FIELD]: admin._id });
+  if (hasAssigneeField) clauses.push({ [ASSIGNEE_FIELD]: admin._id });
 
-  if (!isContactModel(Model)) return {};
+  if (clauses.length === 1) return clauses[0];
+  if (clauses.length === 2) return { $or: clauses };
 
-  if (!Model.schema || !Model.schema.path(USER_FIELD)) return {};
-
-  return { [USER_FIELD]: admin._id };
+  return { _id: { $in: [] } };
 };
 
 /**
- * The tenant clause and the contact narrowing together, for the methods that
+ * The narrowing a child account reads a scoped entity through: the records it
+ * created, plus the ones assigned to it.
+ *
+ * Returns {} - meaning "no narrowing" - for the workspace owner, for a super
+ * admin, and for every entity outside SCOPED_MODEL_NAMES. The owner returning {}
+ * is the requirement that the Customer Admin sees everything, and it is why this
+ * composes with ownerFilter rather than replacing it.
+ *
+ * This is the successor to the Sales-Executive-only contact narrowing these
+ * three lines replaced. The rule it implements is broader in two ways at once -
+ * every child account rather than one title, and every scoped entity rather than
+ * the three contact models - so a single function answering both is what keeps
+ * the two from drifting apart. See scopedFilter, its only caller.
+ */
+const assignmentFilter = (Model, req) => {
+  const admin = req && req.admin;
+
+  if (!isChildUser(admin)) return {};
+
+  if (!isScopedModel(Model)) return {};
+
+  if (!Model.schema) return {};
+
+  return assignmentClause(
+    admin,
+    Boolean(Model.schema.path(USER_FIELD)),
+    Boolean(Model.schema.path(ASSIGNEE_FIELD))
+  );
+};
+
+/**
+ * The tenant clause and the per-account narrowing together, for the methods that
  * serve more than one entity.
  *
  * The shared CRUD methods are reached by every model, so they cannot call
- * ownerFilter and contactFilter separately without each one having to know which
- * models narrow. Composing them here keeps those call sites a single token, and
- * makes the pairing itself the thing under test.
+ * ownerFilter and assignmentFilter separately without each one having to know
+ * which models narrow. Composing them here keeps those call sites a single
+ * token, and makes the pairing itself the thing under test.
  *
- * Identical to ownerFilter for every account that is not a Sales Executive and
- * for every model that is not one of the three - contactFilter returns {} in
- * both cases, so the spread adds nothing.
+ * Identical to ownerFilter for the workspace owner, for a super admin, and for
+ * every model outside SCOPED_MODEL_NAMES - assignmentFilter returns {} in all
+ * three cases, so the spread adds nothing.
+ *
+ * Composition warning for callers: a narrowed model contributes a top-level
+ * `$or`, and so does a text search (`fields`) and userFilter. Two `$or` keys in
+ * one object cannot coexist - the later spread replaces the earlier - so any
+ * call site that combines this with another $or must compose through `$and`
+ * instead of spreading both. See createCRUDController/paginatedList.js and
+ * leadController/paginatedList.js for the two shapes that do it.
  */
 const scopedFilter = (Model, req) => ({
   ...ownerFilter(req),
-  ...contactFilter(Model, req),
+  ...assignmentFilter(Model, req),
 });
 
 /**
@@ -239,12 +323,13 @@ const scopedFilter = (Model, req) => ({
  * something the tenant clause already proves.
  *
  * Composition note for whoever gives another model an assignee: this returns a
- * top-level `$or`, and createCRUDController/paginatedList.js spreads the result
- * into the same object as the text search's `$or`, where one would replace the
- * other. That is safe today only because Lead - the one model carrying the field
- * - has its own paginatedList, which pushes this clause as a separate $and entry
- * for precisely this reason. A second model with an assignee needs the same
- * treatment at its call site before this clause is correct for it.
+ * top-level `$or`, and so do assignmentFilter and a text search. Two `$or` keys
+ * in one object cannot coexist - the later spread replaces the earlier - so a
+ * call site that combines this with either must push each as its own `$and`
+ * entry rather than spreading both into one object. Every model in
+ * SCOPED_MODEL_NAMES now carries the field, so every one of their list
+ * endpoints needs that treatment; leadController/paginatedList.js was the first
+ * and createCRUDController/paginatedList.js follows the same shape.
  */
 const userFilter = (Model, req) => {
   if (!isTenantOwner(req && req.admin)) return {};
@@ -273,15 +358,17 @@ module.exports = {
   ASSIGNEE_FIELD,
   USER_FILTER_PARAM,
   RESERVED_FILTER_KEYS,
-  CONTACT_MODEL_NAMES,
+  SCOPED_MODEL_NAMES,
   ownerFilter,
   leadFilter,
-  contactFilter,
+  assignmentClause,
+  assignmentFilter,
   scopedFilter,
   userFilter,
   tenantIdOf,
   isSalesExecutive,
-  isContactModel,
+  isScopedModel,
+  isChildUser,
   isTenantOwner,
   isReservedFilterKey,
 };

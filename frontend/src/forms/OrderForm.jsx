@@ -2,6 +2,7 @@ import React from 'react';
 import { Form, Input, Select, InputNumber } from 'antd';
 
 import useLanguage from '@/locale/useLanguage';
+import AssigneeSelect from '@/components/AssigneeSelect';
 
 export default function OrderForm({ isUpdateForm = false }) {
   const translate = useLanguage();
@@ -97,6 +98,12 @@ export default function OrderForm({ isUpdateForm = false }) {
       >
         <Input.TextArea rows={4} />
       </Form.Item>
+      {/*
+        Who inside the workspace owns this order. Brings its own Form.Item and
+        renders nothing at all for an account that may not assign, so an owner
+        gains a picker here and everyone else sees the form they had before.
+      */}
+      <AssigneeSelect />
     </>
   );
 }

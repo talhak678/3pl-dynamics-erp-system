@@ -3,14 +3,14 @@ const mongoose = require('mongoose');
 const Model = mongoose.model('Payment');
 const Invoice = mongoose.model('Invoice');
 
-const { ownerFilter } = require('../../../middlewares/ownership');
+const { scopedFilter } = require('../../../middlewares/ownership');
 
 const remove = async (req, res) => {
   // Find document by id and updates with the required fields
   const previousPayment = await Model.findOne({
     _id: req.params.id,
     removed: false,
-    ...ownerFilter(req),
+    ...scopedFilter(Model, req),
   });
 
   if (!previousPayment) {
@@ -30,7 +30,7 @@ const remove = async (req, res) => {
   };
   // Find the document by id and delete it
   const result = await Model.findOneAndUpdate(
-    { _id: req.params.id, removed: false, ...ownerFilter(req) },
+    { _id: req.params.id, removed: false, ...scopedFilter(Model, req) },
     { $set: updates },
     {
       new: true, // return the new result instead of the old one
@@ -46,7 +46,7 @@ const remove = async (req, res) => {
       : 'unpaid';
 
   const updateInvoice = await Invoice.findOneAndUpdate(
-    { _id: invoiceId, ...ownerFilter(req) },
+    { _id: invoiceId, ...scopedFilter(Invoice, req) },
     {
       $pull: {
         payment: paymentId,

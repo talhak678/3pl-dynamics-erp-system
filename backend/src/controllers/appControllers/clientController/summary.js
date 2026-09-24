@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const moment = require('moment');
 
-const { contactFilter } = require('../../../middlewares/ownership');
+const { assignmentFilter } = require('../../../middlewares/ownership');
 
 const InvoiceModel = mongoose.model('Invoice');
 
@@ -25,23 +25,23 @@ const summary = async (Model, req, res) => {
 
   /*
    * The tenant clause every stage below shares, plus the own-record narrowing a
-   * Sales Executive's client reads carry everywhere else.
+   * child account's client reads carry everywhere else.
    *
    * Spelled here rather than through scopedFilter because this method builds an
    * aggregation pipeline rather than a query filter: there is no ownerFilter call
    * to swap, the tenant id is written into each $match directly. The narrowing is
    * the same one, though - this card is a Client read, and leaving it tenant-wide
-   * would put a workspace-wide customer count on the dashboard of the one role
-   * that cannot open the customer list it describes.
+   * would put a workspace-wide customer count on the dashboard of an account that
+   * cannot open the customer list it describes.
    *
-   * Only the client half narrows. The `invoice.*` keys describe invoices, which
-   * this task does not touch, and an executive's active-client ratio is still
-   * their own active clients over their own clients - both sides of the fraction
-   * move together, so the percentage stays meaningful.
+   * Only the client half narrows. The `invoice.*` keys describe invoices, and the
+   * "active client" ratio is the caller's own active clients over their own
+   * clients - both sides of the fraction move together, so the percentage stays
+   * meaningful.
    */
   const clientScope = {
     createdBy: req.admin.tenantId,
-    ...contactFilter(Model, req),
+    ...assignmentFilter(Model, req),
   };
 
   const pipeline = [

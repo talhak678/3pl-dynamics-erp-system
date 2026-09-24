@@ -3,6 +3,7 @@ const moment = require('moment');
 
 const Model = mongoose.model('Quote');
 const { loadSettings } = require('../../../middlewares/settings');
+const { assignmentFilter } = require('../../../middlewares/ownership');
 
 const summary = async (req, res) => {
   let defaultType = 'month';
@@ -29,11 +30,21 @@ const summary = async (req, res) => {
 
   const statuses = ['draft', 'pending', 'sent', 'expired', 'declined', 'accepted'];
 
+  // An aggregation does not pass through scopedFilter, so a child account's
+  // own-record scope has to be written in by hand - otherwise this card would
+  // report the whole workspace's quotes to an account whose quote list shows
+  // only its own. Empty for the owner and for a super admin. See
+  // middlewares/ownership.js.
+  const scope = {
+    createdBy: req.admin.tenantId,
+    ...assignmentFilter(Model, req),
+  };
+
   const result = await Model.aggregate([
     {
       $match: {
         removed: false,
-        createdBy: req.admin.tenantId,
+        ...scope,
 
         // date: {
         //   $gte: startDate.toDate(),
