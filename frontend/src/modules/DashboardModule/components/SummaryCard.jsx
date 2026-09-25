@@ -3,17 +3,31 @@ import { useMoney } from '@/settings';
 import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { useSelector } from 'react-redux';
 
-export default function AnalyticSummaryCard({ title, tagColor, data, prefix, isLoading = false }) {
+/**
+ * The column widths used when the caller names none: a quarter of the row on a
+ * desktop grid.
+ *
+ * That is what this card was hardcoded to before it took a `span`, and it is
+ * correct only for a row of exactly four. The dashboard's financial row has four
+ * of these, but a child account may hold fewer of the modules behind them, and
+ * the widths have to come from how many cards are really being drawn - a count
+ * this component has no way to know. So the count is passed in, and this is the
+ * answer for any caller that has no count to offer.
+ */
+const DEFAULT_SPAN = { xs: { span: 24 }, sm: { span: 12 }, md: { span: 12 }, lg: { span: 6 } };
+
+export default function AnalyticSummaryCard({
+  title,
+  tagColor,
+  data,
+  prefix,
+  isLoading = false,
+  span,
+}) {
   const { moneyFormatter } = useMoney();
   const money_format_settings = useSelector(selectMoneyFormat);
   return (
-    <Col
-      className="gutter-row"
-      xs={{ span: 24 }}
-      sm={{ span: 12 }}
-      md={{ span: 12 }}
-      lg={{ span: 6 }}
-    >
+    <Col className="gutter-row" {...(span || DEFAULT_SPAN)}>
       <div
         className="whiteBox shadow"
         style={{

@@ -10,20 +10,30 @@ import { useListFilter } from '@/context/listFilter';
 /**
  * The entities whose tables offer the per-user filter.
  *
- * Must be exactly the entities that record authorship - the models listed in
- * SCOPED_MODEL_NAMES on the backend (middlewares/ownership.js), each of which
- * carries a `createdByUser`, an `assignedTo`, or both. On anything else the
- * backend ignores the parameter, so offering the control would produce a
- * dropdown that visibly does nothing: the owner picks a colleague and the table
- * does not move.
+ * Every entity whose records name the account that entered them - the models in
+ * SCOPED_MODEL_NAMES on the backend (middlewares/ownership.js), plus Product and
+ * ProductCategory. On anything else the backend ignores the parameter, so
+ * offering the control would produce a dropdown that visibly does nothing: the
+ * owner picks a colleague and the table does not move.
+ *
+ * The two catalogue entities are the reason this list is not simply a mirror of
+ * the backend's. They record authorship, so the filter has something to match,
+ * but they are deliberately NOT scoped: the catalogue is shared, a child account
+ * still reads all of it, and the filter removes rows for the owner alone. So the
+ * same control means "show me only this person's rows" in one case and "show me
+ * who entered what" in the other, and the backend decides which by whether the
+ * model's name is in SCOPED_MODEL_NAMES. See userFilter.
+ *
+ * Taxes, payment modes, employees and shipments stay out of both lists. The
+ * first two are reference data with no authorship and no page of their own worth
+ * filtering; the last two have no page at all. Every setting is out for the same
+ * reason as taxes.
  *
  * Both halves have to agree, and the list is written out rather than derived
  * because the backend's copy is keyed on Mongoose model names ('Client',
  * 'ExpenseCategory') and this one on the API's entity names ('client',
  * 'expensecategory') - see moduleForEntity in the backend's utils/moduleList.js
- * for the same mapping. Products, product categories, taxes, payment modes,
- * employees and shipments are deliberately absent: they stay workspace-global,
- * as does every setting.
+ * for the same mapping.
  */
 const FILTERABLE_ENTITIES = [
   'client',
@@ -37,6 +47,8 @@ const FILTERABLE_ENTITIES = [
   'order',
   'expense',
   'expensecategory',
+  'product',
+  'productcategory',
 ];
 
 /**

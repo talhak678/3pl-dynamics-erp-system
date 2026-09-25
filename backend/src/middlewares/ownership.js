@@ -343,6 +343,16 @@ const userFilter = (Model, req) => {
   // Both questions, where the model can answer both. A model with no assignee
   // keeps the single-clause shape, so nothing that does not record assignment
   // starts answering with a different kind of query.
+  //
+  // Product and ProductCategory are the two models that land here, and their
+  // shape is the point of this branch. They record authorship but no assignee,
+  // because the catalogue is shared and there is nothing to hand from one person
+  // to another - so the owner's filter means "who entered this", and nothing
+  // else. Neither is in SCOPED_MODEL_NAMES, so this is the only clause they ever
+  // gain: the base query stays tenant-wide, every child account keeps seeing the
+  // whole catalogue, and the filter removes rows for the owner alone. That is
+  // the difference between a filter and isolation, and it is decided by which
+  // list a model's name appears in, not by which fields it happens to carry.
   if (Model.schema.path(ASSIGNEE_FIELD)) {
     return {
       $or: [{ [ASSIGNEE_FIELD]: requested }, { [USER_FIELD]: requested }],

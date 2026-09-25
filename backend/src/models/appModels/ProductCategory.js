@@ -15,6 +15,27 @@ const productCategorySchema = new mongoose.Schema({
     ref: 'Admin',
   },
 
+  /**
+   * Authorship: which account entered this category.
+   *
+   * `createdBy` above holds the TENANT, which every tenancy filter in the app
+   * matches on, so it cannot also name a person - for anyone but the workspace
+   * owner those are two different ids.
+   *
+   * This field does NOT narrow anybody's view of the catalogue. ProductCategory
+   * is deliberately absent from SCOPED_MODEL_NAMES, so a child account still
+   * reads every category in the workspace and the category picker on the product
+   * form stays full. What it exists for is the workspace owner's "Filter by
+   * User" control: an owner can ask to see only the categories one colleague
+   * entered. See userFilter in middlewares/ownership.js.
+   *
+   * There is no `assignedTo` beside it, and that is the difference between this
+   * model and the eleven that carry both. Assignment exists to hand a record to
+   * one person and hide it from everyone else; the catalogue is shared, so there
+   * is nothing to hand over and no "Assign To" control on this form.
+   */
+  createdByUser: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
+
   name: {
     type: String,
     required: true,

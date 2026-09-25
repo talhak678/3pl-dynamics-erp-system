@@ -218,20 +218,104 @@ export default function DashboardModule() {
   const showRecentTables = showInvoiceTable || showQuoteTable;
 
   /**
-   * Whether the two middle sections have anything to draw at all.
+   * The four financial summary cards, built as data and filtered by permission
+   * before anything is rendered.
    *
-   * Both are read before the layout is written, because a section with nothing
-   * in it is not free: the row still renders and the gap underneath it is still
-   * emitted. An account holding none of the financial modules was therefore
-   * paying for them in vertical space - a full row's height of nothing between
-   * the header and the first card it could actually use, which is the space the
-   * sales cards were being pushed down by.
+   * Gathered into an array because the number that survive decides how wide each
+   * one has to be, and a number is only available once the permits have been
+   * applied. Written as four inline conditionals - which is what this was - the
+   * row is rendered without ever knowing its own length, and each card falls
+   * back to the quarter-width default it was built with. For an account holding
+   * only two of the four modules that is two quarter-width cards and half a row
+   * of empty space to their right. Nothing is wrong with either card; the row is
+   * simply not full, and only the count can say so.
+   *
+   * Each card's own props are resolved here rather than at the call site, so the
+   * titles and the endpoints they read from cannot drift apart.
+   */
+  const financialCards = [
+    {
+      moduleKey: 'payment',
+      title: translate('Paid Invoice'),
+      prefix: translate('This month'),
+      isLoading: paymentLoading,
+      data: paymentResult?.total,
+    },
+    {
+      moduleKey: 'invoice',
+      title: translate('Unpaid Invoice'),
+      prefix: translate('Not Paid'),
+      isLoading: invoiceLoading,
+      data: invoiceResult?.total_undue,
+    },
+    {
+      moduleKey: 'quote',
+      title: translate('Quote'),
+      prefix: translate('This month'),
+      isLoading: quoteLoading,
+      data: quoteResult?.total,
+    },
+    {
+      moduleKey: 'offer',
+      title: translate('Offer'),
+      prefix: translate('This month'),
+      isLoading: offerLoading,
+      data: offerResult?.total,
+    },
+  ].filter((card) => can(card.moduleKey));
+
+  /**
+   * How wide one financial card is, given how many are being drawn.
+   *
+   * The rule is that every row is full. Four cards are a quarter each and three
+   * a third, which is the desktop case this was reported for - but the rule has
+   * to hold as the row narrows too, or the fix only moves the gap to a smaller
+   * screen. So four cards are two per row at `md` rather than four of a sixth,
+   * and three cards stack at `sm` rather than leaving a third of the row empty
+   * beneath a pair. One and two cards already filled every breakpoint and are
+   * unchanged.
+   *
+   * Beyond four there is nothing to say: this dashboard has four cards and
+   * cannot grow a fifth without someone editing the array above, so the
+   * four-card answer is the fallback rather than a lookup that returns undefined
+   * and leaves Ant Design's default of 24 to stack them silently.
+   *
+   * The three-card entry is the one that changes anything an account could
+   * already see: it is the only count the previous layout got wrong on the
+   * desktop grid as well as on the way down.
+   */
+  const SPANS_BY_CARD_COUNT = {
+    1: { xs: { span: 24 }, sm: { span: 24 }, md: { span: 24 }, lg: { span: 24 } },
+    2: { xs: { span: 24 }, sm: { span: 12 }, md: { span: 12 }, lg: { span: 12 } },
+    3: { xs: { span: 24 }, sm: { span: 24 }, md: { span: 24 }, lg: { span: 8 } },
+    4: { xs: { span: 24 }, sm: { span: 12 }, md: { span: 12 }, lg: { span: 6 } },
+  };
+
+  const financialCardSpan = SPANS_BY_CARD_COUNT[financialCards.length] ?? SPANS_BY_CARD_COUNT[4];
+
+  /**
+   * Whether the financial row has anything to draw at all.
+   *
+   * Read off the filtered array rather than repeating the four permits, so the
+   * gate and the cards it guards cannot come to disagree - the same reason the
+   * row below reads `statisticCards.length`.
+   */
+  const showFinancialSummary = financialCards.length > 0;
+
+  /**
+   * Whether the statistics row has anything to draw at all.
+   *
+   * Both sections are read before the layout is written, because a section with
+   * nothing in it is not free: the row still renders and the gap underneath it
+   * is still emitted. An account holding none of the financial modules was
+   * therefore paying for them in vertical space - a full row's height of nothing
+   * between the header and the first card it could actually use, which is the
+   * space the sales cards were being pushed down by.
    *
    * `statisticCards` rather than `entityData`: the filter above has already
    * dropped the modules the account does not hold, so this length is the number
    * of cards that will really be drawn.
    */
-  const showFinancialSummary = can('payment') || can('invoice') || can('quote') || can('offer');
   const showStatisticsRow = statisticCards.length > 0 || showCustomerCard;
 
   /**
@@ -314,38 +398,20 @@ export default function DashboardModule() {
         {showFinancialSummary && (
           <>
             <Row gutter={[32, 32]}>
-              {can('payment') && (
+              {financialCards.map((card) => (
                 <SummaryCard
-                  title={translate('Paid Invoice')}
-                  prefix={translate('This month')}
-                  isLoading={paymentLoading}
-                  data={paymentResult?.total}
+                  key={card.moduleKey}
+                  title={card.title}
+                  prefix={card.prefix}
+                  isLoading={card.isLoading}
+                  data={card.data}
+                  // One span for the whole row, from the count of cards in it.
+                  // Every card in a row of N takes 1/N of the width, which is
+                  // what makes the row fill exactly rather than leaving whatever
+                  // the missing modules used to occupy sitting empty on the end.
+                  span={financialCardSpan}
                 />
-              )}
-              {can('invoice') && (
-                <SummaryCard
-                  title={translate('Unpaid Invoice')}
-                  prefix={translate('Not Paid')}
-                  isLoading={invoiceLoading}
-                  data={invoiceResult?.total_undue}
-                />
-              )}
-              {can('quote') && (
-                <SummaryCard
-                  title={translate('Quote')}
-                  prefix={translate('This month')}
-                  isLoading={quoteLoading}
-                  data={quoteResult?.total}
-                />
-              )}
-              {can('offer') && (
-                <SummaryCard
-                  title={translate('Offer')}
-                  prefix={translate('This month')}
-                  isLoading={offerLoading}
-                  data={offerResult?.total}
-                />
-              )}
+              ))}
             </Row>
             <div className="space30"></div>
           </>
