@@ -17,7 +17,6 @@ import { useTheme } from '@/context/ThemeContext';
 import useResponsive from '@/hooks/useResponsive';
 
 import {
-  SettingOutlined,
   CustomerServiceOutlined,
   ContainerOutlined,
   FileSyncOutlined,
@@ -35,6 +34,8 @@ import {
   ShoppingCartOutlined,
   TeamOutlined,
   FunnelPlotOutlined,
+  PercentageOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -101,11 +102,18 @@ const filterByModules = (items, admin) => {
       return visible;
     }
 
-    // 'settingsMenu' is a container, not a module, so it has no entry in the
-    // server's MODULE_KEYS and can never appear in the allow-list. Matching it
-    // on its own key would drop the whole Settings group even for an account
-    // granted generalSettings, taxes or help. It survives on its children and
-    // falls away only once none of them are granted.
+    // A container entry - one that renders a disclosure triangle over `children`
+    // - is not a module and has no key in the server's MODULE_KEYS, so it can
+    // never appear in the allow-list. Matching one on its own key would drop the
+    // whole group even for an account granted every module inside it; it has to
+    // survive on its children and fall away only once none of them are granted.
+    //
+    // Nothing in `items` above is shaped that way any more. The Settings group
+    // was the last one, and Taxes and Help were promoted out of it to top-level
+    // entries. The branch stays because dropping it would not fail loudly: the
+    // fall-through below would match a container on its own key, find nothing,
+    // and silently delete any nested entry someone adds later for exactly the
+    // restricted tenants the filter exists to serve.
     if (Array.isArray(item.children)) {
       const children = item.children.filter((child) => granted.includes(child.key));
       if (children.length > 0) visible.push({ ...item, children });
@@ -252,28 +260,22 @@ function Sidebar({ collapsible, isMobile = false }) {
           },
         ]
       : []),
+    // Taxes and Help used to live inside a "Settings" dropdown, and that group
+    // is gone: /settings is reachable from the profile menu in the header, so
+    // the sidebar was offering the same page twice while burying two modules of
+    // their own behind a disclosure triangle. Both are now top-level entries, in
+    // the same place in the list a Leads or Products entry would occupy, and
+    // gated the same way - by their own module key, through filterByModules
+    // below. Nothing about the permission changed; only the nesting did.
     {
-      label: translate('Settings'),
-      key: 'settingsMenu',
-      icon: <SettingOutlined />,
-      children: [
-        {
-          key: 'generalSettings',
-          label: <Link to={'/settings'}>{translate('settings')}</Link>,
-        },
-        // {
-        //   key: 'paymentMode',
-        //   label: <Link to={'/payment/mode'}>{translate('payments_mode')}</Link>,
-        // },
-        {
-          key: 'taxes',
-          label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
-        },
-        {
-          key: 'help',
-          label: <Link to={'/help'}>{translate('Help')}</Link>,
-        },
-      ],
+      key: 'taxes',
+      icon: <PercentageOutlined />,
+      label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
+    },
+    {
+      key: 'help',
+      icon: <QuestionCircleOutlined />,
+      label: <Link to={'/help'}>{translate('Help')}</Link>,
     },
   ];
 

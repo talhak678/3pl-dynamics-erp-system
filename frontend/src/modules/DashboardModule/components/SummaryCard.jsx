@@ -23,9 +23,34 @@ export default function AnalyticSummaryCard({
   prefix,
   isLoading = false,
   span,
+  isSingleCard = false,
 }) {
   const { moneyFormatter } = useMoney();
   const money_format_settings = useSelector(selectMoneyFormat);
+
+  /**
+   * A lone card is laid out left, and every other count is laid out exactly as
+   * it was before this prop existed.
+   *
+   * The width is not the problem when one card survives - the caller already
+   * gives it the full row, and that is correct. What goes wrong is everything
+   * inside it: the title is centred and the value is centred, which is the right
+   * arrangement for a quarter-width card in a row of four and reads as stretched
+   * across a whole desktop dashboard. So both move to the left edge and the
+   * caption and the amount sit together at the start of the row, which is what a
+   * single wide figure should look like.
+   *
+   * Every value below is written as a ternary whose false branch is the original
+   * literal, rather than as a shared base style with the single-card case
+   * layered on top. The requirement is that two, three and four cards render as
+   * they always have, and a ternary that returns the old value verbatim is the
+   * only shape where that is checkable by reading it. The tag's own maxWidth and
+   * ellipsis are deliberately untouched in both branches: the amount stays a
+   * compact tag at the start of the row instead of being allowed to run wide,
+   * and long values keep the tooltip they already had.
+   */
+  const align = isSingleCard ? 'left' : 'center';
+
   return (
     <Col className="gutter-row" {...(span || DEFAULT_SPAN)}>
       <div
@@ -37,7 +62,10 @@ export default function AnalyticSummaryCard({
           height: '100%',
         }}
       >
-        <div className="pad15 strong" style={{ textAlign: 'center', justifyContent: 'center' }}>
+        <div
+          className="pad15 strong"
+          style={{ textAlign: align, justifyContent: isSingleCard ? 'flex-start' : 'center' }}
+        >
           <h3
             style={{
               color: 'var(--app-text)',
@@ -51,7 +79,11 @@ export default function AnalyticSummaryCard({
         </div>
         <Divider style={{ padding: 0, margin: 0 }}></Divider>
         <div className="pad15">
-          <Row gutter={[0, 0]} justify="space-between" wrap={false}>
+          <Row
+            gutter={[0, 0]}
+            justify={isSingleCard ? 'flex-start' : 'space-between'}
+            wrap={false}
+          >
             <Col className="gutter-row" flex="85px" style={{ textAlign: 'left' }}>
               <div className="left" style={{ whiteSpace: 'nowrap' }}>
                 {prefix}
@@ -71,7 +103,7 @@ export default function AnalyticSummaryCard({
               flex="auto"
               style={{
                 display: 'flex',
-                justifyContent: 'center',
+                justifyContent: isSingleCard ? 'flex-start' : 'center',
                 alignItems: 'center',
               }}
             >
@@ -87,7 +119,7 @@ export default function AnalyticSummaryCard({
                   <Tag
                     color={tagColor}
                     style={{
-                      margin: '0 auto',
+                      margin: isSingleCard ? 0 : '0 auto',
                       justifyContent: 'center',
                       maxWidth: '110px',
                       overflow: 'hidden',

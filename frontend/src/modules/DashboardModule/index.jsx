@@ -410,6 +410,14 @@ export default function DashboardModule() {
                   // what makes the row fill exactly rather than leaving whatever
                   // the missing modules used to occupy sitting empty on the end.
                   span={financialCardSpan}
+                  // A lone card is the one case the width alone cannot fix. It
+                  // fills the row, and a centred title with a centred value
+                  // spread across the full width of a desktop dashboard is the
+                  // arrangement this was reported for - the card is right, the
+                  // alignment inside it is what reads as stretched. The card
+                  // left-aligns its own contents when it is told it is alone;
+                  // with two or more it lays out exactly as it always has.
+                  isSingleCard={financialCards.length === 1}
                 />
               ))}
             </Row>
