@@ -4,6 +4,7 @@ const Company = mongoose.model('Company');
 
 const { ownerFilter } = require('../../../middlewares/ownership');
 const { validateAssignedTo, canChooseAssignee } = require('./assignment');
+const { syncStageAndStatus } = require('./stageSync');
 
 const create = async (Model, req, res) => {
   // Creating a new document in the collection
@@ -79,6 +80,13 @@ const create = async (Model, req, res) => {
   } else {
     req.body.assignedTo = assignment.value;
   }
+
+  // A lead created with a stage - which is what a lead created from anywhere but
+  // the leads page would carry - gets a matching status, so it lands in the
+  // leads list's Status column already agreeing with the board it will appear on.
+  // A lead created with neither keeps the schema's own defaults, which is what
+  // this did before. See stageSync.js.
+  syncStageAndStatus(Model, req.body);
 
   const result = await new Model({
     ...req.body,

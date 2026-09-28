@@ -53,22 +53,34 @@ export default function HeaderContent() {
   };
 
   /**
-   * Whether this account may open App Settings.
+   * The Settings submenu, and the rule that builds it.
    *
-   * Asked of the module allow-list rather than of the role, and that is the
-   * point: /settings is guarded by guarded('generalSettings', <Settings />) in
-   * routes.jsx, which renders Access Denied through the same hasModule() call.
-   * A role check here would agree with that route for the accounts that happen
-   * to be employees and disagree for every other case - an owner who granted
-   * generalSettings to a colleague would hand them a page whose menu entry they
-   * could not see, and the two screens would be describing different rules.
-   * Reading the one predicate both of them already use is what keeps the menu
-   * entry and the route from drifting apart.
+   * Each entry is asked for by its own module key through hasModule(), which is
+   * the same predicate the sidebar filter and the route guard read - so the menu
+   * entry and the page it opens can never disagree about who may open it. A
+   * child user without `generalSettings`, `taxes` or `help` gets no entry for it
+   * at all: the item is never built, rather than built and hidden, because a
+   * hidden menu entry is one devtools inspection away from being a clickable
+   * one.
    *
-   * The sidebar used to carry a second link to the same page. It no longer does:
-   * Settings lives here and only here, so this is the only way to reach it.
+   * The keys are the route paths minus their leading slash, which is what the
+   * sidebar used for the same three entries before they moved here. Nothing
+   * about the permissions changed in the move - only which surface offers them.
    */
-  const canOpenSettings = hasModule(currentAdmin, 'generalSettings');
+  const settingsItems = [
+    {
+      key: 'generalSettings',
+      label: <Link to={'/settings'}>{translate('general_settings')}</Link>,
+    },
+    {
+      key: 'taxes',
+      label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
+    },
+    {
+      key: 'help',
+      label: <Link to={'/help'}>{translate('Help')}</Link>,
+    },
+  ].filter((item) => hasModule(currentAdmin, item.key));
 
   const items = [
     {
@@ -87,18 +99,18 @@ export default function HeaderContent() {
         </Link>
       ),
     },
-    // Built only when the account holds the module. Appended rather than
-    // filtered out afterwards so that a child user without the grant has no such
-    // item in the tree at all - a hidden menu entry is one devtools inspection
-    // away from being a clickable one. Removing it leaves one divider between
-    // Profile Settings and Logout rather than two, so the menu still reads
-    // cleanly.
-    ...(canOpenSettings
+    // The whole group disappears when none of its three children are held, so
+    // an account with no settings access at all sees no Settings entry rather
+    // than an empty submenu it can open and find nothing in. Removed rather than
+    // rendered empty, and the menu is left with one divider between Profile
+    // Settings and Logout rather than two.
+    ...(settingsItems.length > 0
       ? [
           {
             icon: <ToolOutlined />,
-            key: 'settingApp',
-            label: <Link to={'/settings'}>{translate('settings')}</Link>,
+            key: 'settingsMenu',
+            label: translate('settings'),
+            children: settingsItems,
           },
         ]
       : []),

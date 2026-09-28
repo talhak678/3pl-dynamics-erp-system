@@ -16,7 +16,7 @@ import MoneyInputFormItem from '@/components/MoneyInputFormItem';
 
 import calculate from '@/utils/calculate';
 import { selectFinanceSettings } from '@/redux/settings/selectors';
-import { useDate } from '@/settings';
+import { useDate, useMoney } from '@/settings';
 import { useSelector } from 'react-redux';
 import useLanguage from '@/locale/useLanguage';
 import SelectCurrency from '@/components/SelectCurrency';
@@ -34,29 +34,55 @@ export default function OfferForm({ subTotal = 0, current = null }) {
 function LoadOfferForm({ subTotal = 0, current = null }) {
   const translate = useLanguage();
   const { dateFormat } = useDate();
+  const { currency_symbol, currency_position, cent_precision } = useMoney();
   const { last_offer_number } = useSelector(selectFinanceSettings);
   const [lastNumber, setLastNumber] = useState(() => last_offer_number + 1);
   const [total, setTotal] = useState(0);
   const [taxRate, setTaxRate] = useState(0);
   const [taxTotal, setTaxTotal] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const handelTaxChange = (value) => {
     setTaxRate(value / 100);
   };
+  /**
+   * The discount on the offer, as money taken off the subtotal.
+   *
+   * Held in state as well as in the form because the totals below are worked out
+   * from it as it is typed - the form field is what gets submitted, this is what
+   * the running figures are computed from, the same split the tax rate above
+   * already uses.
+   *
+   * An emptied input reports null, which is no discount rather than a missing
+   * value; it is also written to the form as null, and the server reads that as
+   * zero too.
+   */
+  const handelDiscountChange = (value) => {
+    setDiscount(value || 0);
+  };
 
   useEffect(() => {
     if (current) {
-      const { taxRate = 0, year, number } = current;
+      const { taxRate = 0, year, number, discount = 0 } = current;
       setTaxRate(taxRate / 100);
+      setDiscount(discount);
       setCurrentYear(year);
       setLastNumber(number);
     }
   }, [current]);
   useEffect(() => {
-    const currentTotal = calculate.add(calculate.multiply(subTotal, taxRate), subTotal);
-    setTaxTotal(calculate.multiply(subTotal, taxRate));
-    setTotal(currentTotal);
-  }, [subTotal, taxRate]);
+    // The same order of operations as the server, so the figures on screen are
+    // the ones the saved offer will carry: the discount comes off the subtotal
+    // and the tax is worked out on what is left. Clamped the same way too - the
+    // server refuses a discount larger than the subtotal, and a preview showing
+    // the resulting negative total would be promising a figure the saved record
+    // would not keep. See offerController/create.js.
+    const discountAmount = Math.min(Math.max(discount || 0, 0), subTotal);
+    const payableSubTotal = calculate.sub(subTotal, discountAmount);
+
+    setTaxTotal(calculate.multiply(payableSubTotal, taxRate));
+    setTotal(calculate.add(calculate.multiply(payableSubTotal, taxRate), payableSubTotal));
+  }, [subTotal, taxRate, discount]);
 
   const addField = useRef(false);
 
@@ -258,6 +284,49 @@ function LoadOfferForm({ subTotal = 0, current = null }) {
           </Col>
           <Col className="gutter-row" span={5}>
             <MoneyInputFormItem readOnly value={subTotal} />
+          </Col>
+        </Row>
+        {/*
+          The discount, and the only editable figure in this column.
+
+          Bound to the form by name so it is submitted with the rest of the
+          fields, which is what makes it a real reduction rather than a number
+          the form merely displays: the server takes it off the subtotal before
+          the tax is worked out, so the subtotal, the tax and the total all move
+          as it is typed.
+
+          Left as a bare InputNumber rather than wrapped in MoneyInputFormItem
+          because that component renders its own unnamed Form.Item - it is a
+          read-only display, and has no way to carry a value into the
+          submission. It gets the same moneyInput class and the same currency
+          addon, so it reads as part of the same column.
+        */}
+        <Row gutter={[12, -5]}>
+          <Col className="gutter-row" span={4} offset={15}>
+            <p
+              style={{
+                paddingLeft: '12px',
+                paddingTop: '5px',
+                margin: 0,
+                textAlign: 'right',
+              }}
+            >
+              {translate('Discount')} :
+            </p>
+          </Col>
+          <Col className="gutter-row" span={5}>
+            <Form.Item name="discount" initialValue={0}>
+              <InputNumber
+                className="moneyInput"
+                min={0}
+                precision={cent_precision || 2}
+                controls={false}
+                style={{ width: '100%' }}
+                addonBefore={currency_position === 'before' ? currency_symbol : undefined}
+                addonAfter={currency_position === 'after' ? currency_symbol : undefined}
+                onChange={handelDiscountChange}
+              />
+            </Form.Item>
           </Col>
         </Row>
         <Row gutter={[12, -5]}>

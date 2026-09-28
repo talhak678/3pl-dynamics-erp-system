@@ -311,6 +311,15 @@ html
             tr
               td(colspan='3') #{translate('SUB TOTAL')}
               td.total #{moneyFormatter({amount:model.subTotal})}
+            //- The discount is the reason the tax below is charged on less than
+            //- the subtotal, so it is printed between the two - out of this
+            //- order the figures look like an error. Only when there is one:
+            //- an offer with no discount would otherwise carry a line of
+            //- arithmetic reading 0.00.
+            if model.discount
+              tr
+                td(colspan='3') #{translate('DISCOUNT')}
+                td.total - #{moneyFormatter({amount:model.discount})}
             tr
               td(colspan='3') #{translate('TAX')} #{model.taxRate} %
               td.total #{moneyFormatter({amount:model.taxTotal})}

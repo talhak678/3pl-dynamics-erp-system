@@ -1,6 +1,57 @@
 const { resolveModules, moduleForEntity } = require('../utils/moduleList');
 
 /**
+ * The read-only verbs. Everything the router exposes under an entity that only
+ * ever reads: `create`, `update` and `delete` are deliberately absent, along
+ * with `summary` - a summary is the module's own dashboard figure, not a lookup
+ * another module needs.
+ *
+ * Defined by verb rather than as a list of the two endpoints a dropdown happens
+ * to call today, so a form that reaches for listAll or filter instead of list
+ * is not a second, quieter version of the same bug.
+ */
+const READ_ONLY_ACTIONS = new Set(['read', 'list', 'listAll', 'search', 'filter']);
+
+/**
+ * Entities whose read endpoints any authenticated account may call, whatever
+ * modules it holds.
+ *
+ * Every entry is here for the same reason: a form belonging to some OTHER
+ * module has to fill a picker from it, so gating that read on this entity's own
+ * grant means a child account cannot use a page it is otherwise entitled to -
+ * a 403 on a dropdown. That is the shape of all three:
+ *
+ *   taxes             the invoice, quote, offer and order forms each fetch the
+ *                     tax list to build their selector.
+ *   productcategory   the product form fetches the category list for its
+ *                     category picker (see pages/Product/config.js).
+ *   expensecategory   the expense form does the same (pages/Expense/config.js).
+ *
+ * The permission being enforced on these reads was "may configure taxes" / "may
+ * configure categories", and reading a rate or a category name to put on a
+ * record is not configuring anything.
+ *
+ * Only the read is opened. `create`, `update` and `delete` still go through the
+ * full check below, so an account without the module cannot add a tax, change a
+ * rate, add a category or rename one - it can only see what already exists,
+ * which it could already see as soon as it put one on a record it was allowed to
+ * make.
+ *
+ * Deliberately a written list rather than derived from "is this entity
+ * referenced by another module's form", because that question has no cheap
+ * answer and the wrong guess in the other direction silently reopens the bug.
+ * Adding an entity here is a decision to make deliberately.
+ *
+ * What does NOT belong here: people, company, client and lead. Those are not
+ * reference data - they are the CRM's own records, each with a module and a read
+ * scope of its own - and opening their reads would let an account holding one
+ * module browse another module's content, which is the opposite of what this
+ * guard is for. A picker on those is a question about permissions, not about
+ * lookups.
+ */
+const SHARED_REFERENCE_ENTITIES = new Set(['taxes', 'productcategory', 'expensecategory']);
+
+/**
  * Enforces modulePermissions on the app API (routes/appRoutes/appApi.js — the
  * invoice, quote, payment, client, product … entity routes).
  *
@@ -37,8 +88,15 @@ const requireModuleAccess = (req, res, next) => {
   if (admin && admin.isSuperAdmin === true) return next();
 
   // Inside this router req.path is relative to the /api mount it is attached to,
-  // so the first segment is the entity: /api/invoice/list -> 'invoice'.
-  const entity = (req.path || '').split('/').filter(Boolean)[0];
+  // so the first segment is the entity and the second the action:
+  // /api/invoice/list -> 'invoice', 'list'.
+  const [entity, action] = (req.path || '').split('/').filter(Boolean);
+
+  // A reference entity's read endpoints are open to any signed-in account. The
+  // account is already authenticated by the time this runs, so this widens who
+  // may read a tax rate, not who may reach the API at all.
+  if (SHARED_REFERENCE_ENTITIES.has(entity) && READ_ONLY_ACTIONS.has(action)) return next();
+
   const moduleKey = moduleForEntity(entity);
 
   // An entity no module covers (see ENTITY_MODULE_MAP) is allowed through.

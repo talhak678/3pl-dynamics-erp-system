@@ -34,8 +34,6 @@ import {
   ShoppingCartOutlined,
   TeamOutlined,
   FunnelPlotOutlined,
-  PercentageOutlined,
-  QuestionCircleOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -260,23 +258,17 @@ function Sidebar({ collapsible, isMobile = false }) {
           },
         ]
       : []),
-    // Taxes and Help used to live inside a "Settings" dropdown, and that group
-    // is gone: /settings is reachable from the profile menu in the header, so
-    // the sidebar was offering the same page twice while burying two modules of
-    // their own behind a disclosure triangle. Both are now top-level entries, in
-    // the same place in the list a Leads or Products entry would occupy, and
-    // gated the same way - by their own module key, through filterByModules
-    // below. Nothing about the permission changed; only the nesting did.
-    {
-      key: 'taxes',
-      icon: <PercentageOutlined />,
-      label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
-    },
-    {
-      key: 'help',
-      icon: <QuestionCircleOutlined />,
-      label: <Link to={'/help'}>{translate('Help')}</Link>,
-    },
+    // Nothing below here belongs to the sidebar any more. Taxes and Help used to
+    // sit in a "Settings" group at this position, and General Settings in the
+    // same group; all three now live in a nested Settings submenu on the profile
+    // dropdown in the header, which is where an account looks for its own
+    // configuration. The sidebar is left carrying the modules that are work -
+    // the pipeline, the records, the documents - rather than a second copy of
+    // the app's settings screens.
+    //
+    // Their module keys are unchanged and still gate them: the header asks
+    // hasModule() for the same 'generalSettings', 'taxes' and 'help' strings
+    // that filterByModules used to ask on this side, so no permission moved.
   ];
 
   const visibleItems = filterByModules(items, currentAdmin);

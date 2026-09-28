@@ -424,6 +424,29 @@ export default function DashboardModule() {
             <div className="space30"></div>
           </>
         )}
+        {/*
+          Sales analytics sits above the statistics row rather than below it.
+
+          The page reads top-down as: the money this month, then how the pipeline
+          is producing it, then the per-module breakdowns, then the recent
+          documents. The analytics block is the only section that answers "how
+          are we doing", so it belongs directly under the figures it explains -
+          below the breakdowns it arrived after a full row of tiles the reader
+          had to scroll past first.
+
+          The two sections are not independent: each emits its own trailing
+          spacer, and the spacer has to follow whichever section is really next.
+          The analytics block therefore releases its gap to the statistics row or
+          the recent tables, and the statistics row releases its own only to the
+          recent tables - so a page showing one section and not the next does not
+          pay for a gap that leads nowhere.
+        */}
+        {showSalesAnalytics && (
+          <>
+            <SalesAnalytics />
+            {(showStatisticsRow || showRecentTables) && <div className="space30"></div>}
+          </>
+        )}
         {showStatisticsRow && (
           <>
             <Row gutter={[32, 32]}>
@@ -456,12 +479,6 @@ export default function DashboardModule() {
                 </Col>
               )}
             </Row>
-            <div className="space30"></div>
-          </>
-        )}
-        {showSalesAnalytics && (
-          <>
-            <SalesAnalytics />
             {showRecentTables && <div className="space30"></div>}
           </>
         )}

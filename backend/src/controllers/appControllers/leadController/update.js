@@ -5,6 +5,7 @@ const Company = mongoose.model('Company');
 const { migrate } = require('./migrate');
 const { ownerFilter, leadFilter } = require('../../../middlewares/ownership');
 const { validateAssignedTo, canChooseAssignee } = require('./assignment');
+const { syncStageAndStatus } = require('./stageSync');
 
 const update = async (Model, req, res) => {
   // Find document by id and update with the required fields
@@ -66,6 +67,15 @@ const update = async (Model, req, res) => {
 
     req.body.assignedTo = assignment.value;
   }
+
+  // The pipeline stage and the CRM status are two fields for one thing, and this
+  // is where they are kept agreeing. The board sends only `salesStage` and the
+  // leads page sends only `status`, so a drag would otherwise move the card and
+  // leave the Status column on the leads list showing the old value for good -
+  // the write is what was missing, not a refresh. Runs after the body has been
+  // stripped above so neither field can be reintroduced by a caller this path
+  // already refused. See stageSync.js.
+  syncStageAndStatus(Model, req.body);
 
   const result = await Model.findOneAndUpdate(
     {

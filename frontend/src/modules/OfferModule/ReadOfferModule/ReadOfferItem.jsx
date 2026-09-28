@@ -90,6 +90,7 @@ export default function ReadOfferItem({ config, selectedItem }) {
     subTotal: 0,
     taxTotal: 0,
     taxRate: 0,
+    discount: 0,
     total: 0,
     credit: 0,
     number: 0,
@@ -295,6 +296,32 @@ export default function ReadOfferItem({ config, selectedItem }) {
               {moneyFormatter({ amount: currentErp.subTotal, currency_code: currentErp.currency })}
             </p>
           </Col>
+          {/*
+            Shown only when there is one. The subtotal, the tax and the total
+            below already add up for an offer with no discount - an extra line
+            reading 0.00 would be a row of arithmetic that says nothing.
+
+            The discount reduces the taxable base, so it sits above the tax line
+            rather than beside the total: that is the order the figures are
+            worked out in, and seeing it here is what makes the tax on a
+            discounted offer read as correct rather than as a shortfall.
+          */}
+          {currentErp.discount > 0 && (
+            <>
+              <Col className="gutter-row" span={12}>
+                <p>{translate('Discount')} :</p>
+              </Col>
+              <Col className="gutter-row" span={12}>
+                <p>
+                  -{' '}
+                  {moneyFormatter({
+                    amount: currentErp.discount,
+                    currency_code: currentErp.currency,
+                  })}
+                </p>
+              </Col>
+            </>
+          )}
           <Col className="gutter-row" span={12}>
             <p>Tax Total ({currentErp.taxRate} %) :</p>
           </Col>

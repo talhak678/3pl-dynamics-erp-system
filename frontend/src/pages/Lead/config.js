@@ -14,6 +14,23 @@ export const fields = {
     type: 'string',
     disableForForm: true,
   },
+  /**
+   * The lead's lifecycle status, as the leads list renders it.
+   *
+   * The four entries at the end are the pipeline stages this list had no name
+   * for: moving a lead to Contacted, Follow-Up, Meeting/Demo or Proposal Sent on
+   * the board writes that stage's name into `status` (see
+   * backend/.../leadController/stageSync.js), and without a matching option here
+   * the column would render the value with no tag colour - readable, but
+   * visibly different from every other row.
+   *
+   * Their colours are copied from utils/salesStages.js rather than chosen here,
+   * so a stage is the same colour in the leads list as it is on the board. The
+   * four stages that already had a counterpart above - New, In Negotiation, Won,
+   * Lost - are not repeated: their spellings differ from the stored legacy
+   * values only in case, and a second near-identical option would put 'new' and
+   * 'New' side by side in this select, which reads as a mistake.
+   */
   status: {
     type: 'selectWithTranslation',
     renderAsTag: true,
@@ -27,6 +44,12 @@ export const fields = {
       { value: 'assigned', label: 'assigned', color: selectColor.mediumturquoise },
       { value: 'on hold', label: 'on hold', color: selectColor.burlywood },
       { value: 'waiting', label: 'waiting', color: 'orange' },
+      // Pipeline stages with no legacy counterpart. Colours mirror
+      // utils/salesStages.js.
+      { value: 'Contacted', label: 'Contacted', color: 'cyan' },
+      { value: 'Follow-Up', label: 'Follow-Up', color: 'gold' },
+      { value: 'Meeting/Demo', label: 'Meeting/Demo', color: 'purple' },
+      { value: 'Proposal Sent', label: 'Proposal Sent', color: 'geekblue' },
     ],
   },
 

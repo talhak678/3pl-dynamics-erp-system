@@ -32,21 +32,18 @@ export default function Offer() {
       render: (date) => dayjs(date).format(dateFormat),
     },
     {
-      title: translate('Sub Total'),
-      dataIndex: 'subTotal',
-      onCell: () => {
-        return {
-          style: {
-            textAlign: 'right',
-            whiteSpace: 'nowrap',
-            direction: 'ltr',
-          },
-        };
-      },
-      render: (total, record) => moneyFormatter({ amount: total, currency_code: record.currency }),
-    },
-    {
-      title: translate('Total'),
+      /**
+       * Both prices, in the one column the figure was already in.
+       *
+       * `subTotal` is what the items add up to before anything comes off, and
+       * `total` is what the lead actually pays; the two are only shown apart
+       * when a discount has moved one from the other, so an offer with no
+       * discount shows a single figure rather than a struck-through number
+       * identical to the one beside it. The struck-through figure is the
+       * original, kept legible because "was 1,200, now 1,155" is the thing the
+       * discount column is for.
+       */
+      title: translate('Price'),
       dataIndex: 'total',
       onCell: () => {
         return {
@@ -57,7 +54,26 @@ export default function Offer() {
           },
         };
       },
-      render: (total, record) => moneyFormatter({ amount: total, currency_code: record.currency }),
+      render: (total, record) => {
+        const hasDiscount = record.discount > 0 && record.subTotal !== total;
+
+        return (
+          <>
+            {hasDiscount && (
+              <span
+                style={{
+                  textDecoration: 'line-through',
+                  opacity: 0.55,
+                  marginRight: 8,
+                }}
+              >
+                {moneyFormatter({ amount: record.subTotal, currency_code: record.currency })}
+              </span>
+            )}
+            {moneyFormatter({ amount: total, currency_code: record.currency })}
+          </>
+        );
+      },
     },
 
     {

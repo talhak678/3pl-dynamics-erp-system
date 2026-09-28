@@ -32,11 +32,31 @@ const update = async (req, res) => {
     //item total
     item['total'] = total;
   });
-  taxTotal = calculate.multiply(subTotal, taxRate / 100);
-  total = calculate.add(subTotal, taxTotal);
+  // The discount comes off the subtotal, and comes off before the tax is worked
+  // out, so it reduces the amount being taxed rather than being taken off an
+  // already-taxed figure: a discounted offer is not taxed on money the customer
+  // is not paying.
+  //
+  // Held to a number before it reaches the arithmetic, because the value comes
+  // from a form field - an emptied one posts null, and null has to mean no
+  // discount. Clamped to the subtotal because a discount is a reduction and
+  // nothing else: a negative one would raise the total, and one larger than the
+  // subtotal would leave a negative amount due.
+  //
+  // The same rule as the create path (see create.js), and deliberately written
+  // the same way: an offer must not change its arithmetic by being edited.
+  const discountAmount = Math.min(Math.max(Number(discount) || 0, 0), subTotal);
+
+  const payableSubTotal = calculate.sub(subTotal, discountAmount);
+
+  taxTotal = calculate.multiply(payableSubTotal, taxRate / 100);
+  total = calculate.add(payableSubTotal, taxTotal);
 
   let body = req.body;
 
+  // Written back, so the stored discount is the one the stored totals were
+  // worked out from - and the clamped one, not whatever was posted.
+  body['discount'] = discountAmount;
   body['subTotal'] = subTotal;
   body['taxTotal'] = taxTotal;
   body['total'] = total;
