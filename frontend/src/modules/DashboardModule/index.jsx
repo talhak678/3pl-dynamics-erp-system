@@ -21,6 +21,7 @@ import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { hasModule, isMissingModules } from '@/utils/modulePermissions';
 import { canUseSalesPipeline } from '@/utils/salesPipeline';
+import { isTenantOwner } from '@/utils/tenantOwner';
 import { UPGRADE_MESSAGE, UPGRADE_NOTIFICATION_KEY } from '@/request/errorHandler';
 import { useSelector } from 'react-redux';
 
@@ -59,11 +60,28 @@ export default function DashboardModule() {
    *
    * It shares a notification key with that safety net, so if a refusal does still
    * arrive mid-session the two update one another instead of stacking.
+   *
+   * Addressed to the Customer Admin only. An employee is missing modules because
+   * their employer decided they should be, and they have no way to act on
+   * "contact our support team to upgrade" — telling them to buy something they
+   * are not entitled to buy is a notice about somebody else's decision. The
+   * missing modules are not news to them either: this dashboard already draws
+   * only the cards they hold (see `can` above) and the sidebar only the entries
+   * they hold, so the absence is the normal shape of their app rather than a
+   * problem reported to them. The owner, by contrast, is the one account that
+   * can act on it, and the only one for whom "some modules" is unexpected.
+   *
+   * The ref is set only on the path that notifies, so the early returns above it
+   * stay free to be reconsidered when `currentAdmin` changes. Nothing that
+   * reaches them is a decision worth freezing: a session that has not yet
+   * resolved its account holds no module list at all, which reads as
+   * unrestricted, so it exits here without claiming the one showing.
    */
   const upgradeNoticeShown = useRef(false);
 
   useEffect(() => {
     if (upgradeNoticeShown.current || !isMissingModules(currentAdmin)) return;
+    if (!isTenantOwner(currentAdmin)) return;
 
     upgradeNoticeShown.current = true;
 

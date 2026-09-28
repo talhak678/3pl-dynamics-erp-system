@@ -1,4 +1,8 @@
 import { notification } from 'antd';
+
+import storePersist from '@/redux/storePersist';
+import { isTenantOwner } from '@/utils/tenantOwner';
+
 import codeMessage from './codeMessage';
 
 // Carries the sign-out reason across the page reload that ends the session.
@@ -99,11 +103,25 @@ const isSuspendedResponse = (response) =>
 // whether one call failed or six, which is why it says "some modules" rather
 // than naming any.
 //
+// Suppressing the refusals and announcing them are two separate decisions, and
+// only the second one is restricted. Every module refusal is still swallowed
+// here, for every account; what is addressed to the Customer Admin alone is the
+// upgrade notice. An employee missing a module is missing it because their
+// employer chose that, and they have no standing to buy anything — a notice
+// inviting them to "contact our support team to upgrade" is asking them to
+// resolve someone else's decision, and it is not news: the sidebar and the
+// dashboard already draw only what they hold. For that account the right
+// outcome is silence, and the right outcome is emphatically NOT the stacked
+// "Request error 403"s this branch exists to prevent, which is why the early
+// return below is outside the role test.
+//
 // Both the key and the wording are exported because the dashboard raises the
 // same notice a second way: proactively, from the permissions themselves rather
 // than from a failed call. Sharing one key means the two can never stack two
 // near-identical messages, and sharing one string means they can never disagree
-// about what it says.
+// about what it says. That caller applies the same audience test — see
+// modules/DashboardModule, which reads the account from redux. This file cannot:
+// see currentAccount() below for why it reads the persisted session instead.
 export const UPGRADE_NOTIFICATION_KEY = 'module-access-denied';
 
 export const UPGRADE_MESSAGE =
@@ -117,6 +135,39 @@ const isModuleDeniedResponse = (response) =>
   response?.status === 403 &&
   (typeof response?.data?.module === 'string' ||
     MODULE_DENIED_PATTERN.test(response?.data?.message || ''));
+
+/**
+ * The account this session belongs to, or null when there is none to read.
+ *
+ * Read from the persisted session rather than from redux, which is the opposite
+ * of what the dashboard would do — and the reason is the import graph, not
+ * taste. This module is imported by request/request.js, so pulling in
+ * redux/store would close a cycle: store → reducers → auth actions → request →
+ * here, and this file would be evaluated partway around it.
+ *
+ * localStorage is not a weaker source in this case. redux/auth/actions.js writes
+ * the object it dispatches to both places and its own comment says neither write
+ * is ordered before the other because the two must agree; the login and refresh
+ * paths do the same. It is also already this file's idiom — endDeadSession and
+ * isSigningOut both read localStorage directly. Going through storePersist
+ * rather than a bare getItem is the one upgrade: it discards an entry that is
+ * not valid JSON instead of parsing it blind.
+ *
+ * A null answer is treated by the caller as "not the Customer Admin", which is
+ * the conservative direction: withholding the notice from an owner costs them a
+ * hint they can live without, while showing it to an employee is the bug being
+ * fixed here.
+ */
+const currentAccount = () => {
+  try {
+    const auth = storePersist.get('auth');
+    return auth?.current || null;
+  } catch (error) {
+    // Storage unreadable or disabled. Silence is the safe reading, and a
+    // refusal is not worth a console error on top of whatever caused it.
+    return null;
+  }
+};
 
 // --- Requests that raced the token being cleared -----------------------------
 //
@@ -289,7 +340,10 @@ const errorHandler = (error) => {
     // Checked after the suspension test above and returning before the generic
     // toast below. A suspended account carries jwtExpired and no `module` field,
     // so the two can never match the same response — the order just makes that
-    // explicit.
+    // explicit. The other two 403s the API can produce, from requireSuperAdmin
+    // and requireTenantOwner, answer with a bare "Forbidden" and no `module`
+    // field, so they cannot match here either and fall through to the generic
+    // toast as they always have.
     //
     // No notification.config() call here, deliberately. `maxCount` is global to
     // antd, so setting it to 1 would also throw away unrelated errors the user
@@ -297,12 +351,19 @@ const errorHandler = (error) => {
     // so without any side effect on other notifications. `duration` is set
     // because whatever the previous branch configured would otherwise apply —
     // a burst of refusals can leave a 20-second toast behind.
+    //
+    // The notice is for the Customer Admin only; the early return is for
+    // everyone. See the section comment above for why those are two different
+    // decisions — an employee keeps the silence this branch was built to give
+    // them, and simply never gets the upgrade wording on top of it.
     if (isModuleDeniedResponse(response)) {
-      notification.error({
-        key: UPGRADE_NOTIFICATION_KEY,
-        message: UPGRADE_MESSAGE,
-        duration: 6,
-      });
+      if (isTenantOwner(currentAccount())) {
+        notification.error({
+          key: UPGRADE_NOTIFICATION_KEY,
+          message: UPGRADE_MESSAGE,
+          duration: 6,
+        });
+      }
 
       return response.data;
     }
