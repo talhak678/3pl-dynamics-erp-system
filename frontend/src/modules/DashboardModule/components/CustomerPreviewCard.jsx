@@ -2,10 +2,22 @@ import { Statistic, Progress, Divider, Row, Spin } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 
+/**
+ * The percentage of the client base that is new, over whatever window the
+ * dashboard is currently reading - and the period it actually covers, passed in
+ * rather than assumed.
+ *
+ * The label under the dial used to read 'New Customer this Month' as a fixed
+ * string, which was accurate while the dashboard had one fixed window. Now that
+ * the reader chooses the range, a hard-coded 'this Month' would caption a
+ * twelve-month figure, so the period is a prop and defaults to the dashboard's
+ * own default rather than to nothing.
+ */
 export default function CustomerPreviewCard({
   isLoading = false,
   activeCustomer = 0,
   newCustomer = 0,
+  period = 'Last 30 days',
 }) {
   const translate = useLanguage();
   return (
@@ -39,7 +51,7 @@ export default function CustomerPreviewCard({
               }}
             >
               <Progress type="dashboard" percent={newCustomer} size={148} />
-              <p>{translate('New Customer this Month')}</p>
+              <p>{`${translate('New Customer')} · ${period}`}</p>
               <Divider />
               <Statistic
                 title={translate('Active Customer')}

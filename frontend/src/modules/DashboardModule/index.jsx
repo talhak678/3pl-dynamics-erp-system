@@ -7,10 +7,12 @@ import useLanguage from '@/locale/useLanguage';
 import { useMoney } from '@/settings';
 
 import { request } from '@/request';
-import useFetch from '@/hooks/useFetch';
 import useOnFetch from '@/hooks/useOnFetch';
 
+import useDateRange from './useDateRange';
+
 import RecentTable from './components/RecentTable';
+import DateRangeFilter from './components/DateRangeFilter';
 
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
@@ -92,10 +94,35 @@ export default function DashboardModule() {
     });
   }, [currentAdmin]);
 
+  /**
+   * The window every card on this page is read over.
+   *
+   * Monthly on first load, and the two parameters it resolves to are appended to
+   * each summary call below. The cards that take them are the ones counting over
+   * a period - money in, money owed, quotes raised, offers out, clients gained -
+   * and the server applies the window to each document's own business date, so
+   * the figures answer over the range the header names rather than over whatever
+   * the server used to pick for itself.
+   *
+   * Nothing here touches who may see what. The dates arrive at the server as a
+   * separate `$and` clause beside the tenant and ownership filters, so they can
+   * only ever narrow the records an account was already allowed to read - see
+   * utils/dateRange.js in the backend. A Sales Executive choosing "Yearly" gets
+   * one year of their own records, never a year of the workspace's.
+   */
+  const {
+    query: dateQuery,
+    description: dateDescription,
+    preset,
+    custom,
+    apply,
+    reset,
+  } = useDateRange();
+
   const getStatsData = async ({ entity, currency }) => {
     return await request.summary({
       entity,
-      options: { currency },
+      options: { currency, ...dateQuery },
     });
   };
 
@@ -115,11 +142,19 @@ export default function DashboardModule() {
     onFetch: fetchPayemntsStats,
   } = useOnFetch();
 
-  // The hook itself has to run every render — hooks cannot be called
-  // conditionally — so the guard goes inside the callback it invokes.
-  const { result: clientResult, isLoading: clientLoading } = useFetch(() =>
-    can('customer') ? request.summary({ entity: 'client' }) : Promise.resolve({ result: null })
-  );
+  // The customer card used to run through useFetch, which fires once on mount
+  // and offers no way to ask for it again - its effect runs on isLoading and
+  // takes no dependency list. The card counts clients inside the window, so it
+  // has to be re-asked whenever the window moves, and useOnFetch is the variant
+  // that can be driven from the effect below.
+  //
+  // The hook itself has to run every render - hooks cannot be called
+  // conditionally - so the guard goes inside the effect it is called from.
+  const {
+    result: clientResult,
+    isLoading: clientLoading,
+    onFetch: fetchClientsStats,
+  } = useOnFetch();
 
   useEffect(() => {
     const currency = money_format_settings.default_currency_code || null;
@@ -130,7 +165,25 @@ export default function DashboardModule() {
       if (can('offer')) fetchOffersStats(getStatsData({ entity: 'offer', currency }));
       if (can('payment')) fetchPayemntsStats(getStatsData({ entity: 'payment', currency }));
     }
-  }, [money_format_settings.default_currency_code, currentAdmin]);
+
+    // Asked outside the currency guard because its question holds no currency:
+    // this card counts clients, not money, so a workspace whose default currency
+    // is still unset can answer it perfectly well.
+    if (can('customer')) fetchClientsStats(request.summary({ entity: 'client', options: dateQuery }));
+
+    /*
+     * The two date bounds are named individually rather than depending on
+     * `dateQuery`, so the effect re-runs when the window itself moves and not
+     * when the object wrapping it is rebuilt. They are strings, and they change
+     * only when the user applies a different range.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    money_format_settings.default_currency_code,
+    currentAdmin,
+    dateQuery.startDate,
+    dateQuery.endDate,
+  ]);
 
   const dataTableColumns = [
     {
@@ -250,12 +303,23 @@ export default function DashboardModule() {
    *
    * Each card's own props are resolved here rather than at the call site, so the
    * titles and the endpoints they read from cannot drift apart.
+   *
+   * The three period-labelled cards now take their prefix from the chosen
+   * window rather than from the words 'This month'. Those words were true while
+   * the range was fixed, and the moment the range became the reader's to choose
+   * they became a claim the figures underneath could contradict - a card
+   * captioned 'This month' over twelve months of totals. The prefix is the
+   * window's own name, so it can only ever describe what was asked for.
+   *
+   * The Unpaid Invoice card keeps 'Not Paid' as its prefix. That one names a
+   * state rather than a span, and 'unpaid invoices in the chosen period' is the
+   * same claim at any window, so there is nothing there to go stale.
    */
   const financialCards = [
     {
       moduleKey: 'payment',
       title: translate('Paid Invoice'),
-      prefix: translate('This month'),
+      prefix: dateDescription,
       isLoading: paymentLoading,
       data: paymentResult?.total,
     },
@@ -269,14 +333,14 @@ export default function DashboardModule() {
     {
       moduleKey: 'quote',
       title: translate('Quote'),
-      prefix: translate('This month'),
+      prefix: dateDescription,
       isLoading: quoteLoading,
       data: quoteResult?.total,
     },
     {
       moduleKey: 'offer',
       title: translate('Offer'),
-      prefix: translate('This month'),
+      prefix: dateDescription,
       isLoading: offerLoading,
       data: offerResult?.total,
     },
@@ -401,7 +465,22 @@ export default function DashboardModule() {
   if (money_format_settings) {
     return (
       <>
-        <Row justify="end" style={{ marginBottom: 20 }}>
+        {/*
+          The header row holds the page's two controls: the window everything
+          below is read over, on the left, and the report on the right. The range
+          sits first because it governs the numbers the report summarises - it is
+          the setting, and the report is the output of it.
+        */}
+        <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+          <Col>
+            <DateRangeFilter
+              preset={preset}
+              custom={custom}
+              description={dateDescription}
+              onApply={apply}
+              onReset={reset}
+            />
+          </Col>
           <Col>
             <Button
               type="primary"
@@ -461,7 +540,15 @@ export default function DashboardModule() {
         */}
         {showSalesAnalytics && (
           <>
-            <SalesAnalytics />
+            {/*
+              The pipeline cards read the same window as everything above them.
+              They fetch through the leads listAll rather than a summary, and the
+              window reaches that call as these same two parameters - so the
+              control in the header governs this section too, and the caption
+              inside it says which question the window is answering there, which
+              is not quite the same one it answers for the money cards.
+            */}
+            <SalesAnalytics dateQuery={dateQuery} period={dateDescription} />
             {(showStatisticsRow || showRecentTables) && <div className="space30"></div>}
           </>
         )}
@@ -493,6 +580,10 @@ export default function DashboardModule() {
                     isLoading={clientLoading}
                     activeCustomer={clientResult?.active}
                     newCustomer={clientResult?.new}
+                    // The dial's figure is the share of the client base gained
+                    // inside the window, so it is captioned with the window
+                    // rather than with a fixed 'this Month'.
+                    period={dateDescription}
                   />
                 </Col>
               )}

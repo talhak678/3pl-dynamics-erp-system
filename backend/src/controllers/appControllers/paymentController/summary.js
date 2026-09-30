@@ -4,6 +4,7 @@ const moment = require('moment');
 const Model = mongoose.model('Payment');
 const { loadSettings } = require('../../../middlewares/settings');
 const { assignmentFilter } = require('../../../middlewares/ownership');
+const { withDateWindow } = require('../../../utils/dateRange');
 
 const summary = async (req, res) => {
   let defaultType = 'month';
@@ -42,15 +43,13 @@ const summary = async (req, res) => {
 
   const result = await Model.aggregate([
     {
-      $match: {
-        removed: false,
-        ...scope,
-
-        // date: {
-        //   $gte: startDate.toDate(),
-        //   $lte: endDate.toDate(),
-        // },
-      },
+      // The tenant scope, the account's own-record narrowing inside it, and the
+      // dashboard's date window if one was asked for - as separate $and entries
+      // so the window can only narrow what the scope already allowed. See
+      // utils/dateRange.js. The date clause that used to sit here commented out
+      // was driven by `type`, a preset that never reached the query; the window
+      // is now sent by the dashboard and applied for real.
+      $match: withDateWindow(Model, req, scope),
     },
     {
       $group: {

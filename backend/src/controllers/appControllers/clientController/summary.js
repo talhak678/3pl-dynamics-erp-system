@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const moment = require('moment');
 
 const { assignmentFilter } = require('../../../middlewares/ownership');
+const { dateMatchFor } = require('../../../utils/dateRange');
 
 const InvoiceModel = mongoose.model('Invoice');
 
@@ -61,11 +62,32 @@ const summary = async (Model, req, res) => {
         ],
         newClients: [
           {
+            // The one facet on this card that is a period, and so the only one
+            // the dashboard's window applies to. "New" means new inside the
+            // window, measured against the all-time client total the other two
+            // facets count - a share of the clients gained in the last 30 days
+            // would say nothing about the customer base. That is why
+            // totalClients and activeClients below are deliberately left
+            // unfiltered: they are the denominator both percentages are taken
+            // over, and windowing them would turn "active" into a ratio over
+            // clients that happen to be new.
+            //
+            // An explicit window beats the `type` preset rather than
+            // intersecting with it. They measure the same thing over different
+            // spans, so $and-ing them would silently answer a narrower question
+            // than the one asked - 'last 30 days' intersected with the current
+            // calendar month is just the calendar month, which is not what was
+            // chosen. The preset remains the answer for a caller that sends no
+            // window, which is every caller from before this feature.
             $match: {
-              removed: false,
-              created: { $gte: startDate.toDate(), $lte: endDate.toDate() },
-              enabled: true,
-              ...clientScope,
+              $and: [
+                { removed: false },
+                { enabled: true },
+                clientScope,
+                dateMatchFor(Model, req.query) || {
+                  created: { $gte: startDate.toDate(), $lte: endDate.toDate() },
+                },
+              ],
             },
           },
           {

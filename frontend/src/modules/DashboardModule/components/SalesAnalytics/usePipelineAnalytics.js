@@ -15,20 +15,45 @@ import { SALES_STAGES, stageOf } from '@/utils/salesStages';
  * construction. A bespoke endpoint would have had to re-derive that scoping, and
  * a second place where scoping is decided is a second place it can be got wrong.
  *
- * The cost is that this fetches every lead to count them. That is fine at the
- * scale this is for and wrong at a much larger one, where the answer is a
- * server-side aggregation - not a different arrangement of this code.
+ * The dashboard's date range is passed along as query parameters on that same
+ * call and is applied by the server, through the same leadFilter, as a separate
+ * `$and` entry - so it narrows the rows the caller was already entitled to and
+ * cannot reach past them. It is deliberately NOT filtered here in the browser:
+ * the server would still have sent the whole workspace's leads over the wire for
+ * a client-side pass to throw most of them away, and a filter applied after the
+ * data has already crossed the boundary is a filter applied in the wrong place.
+ * See utils/dateRange.js in the backend.
+ *
+ * What the window means is worth being precise about, because it is not what the
+ * card titles alone suggest. It is applied to the lead's `created` date, and
+ * `salesStage` records a lead's state now rather than when it changed, so these
+ * are the leads OPENED in the range and where they stand today. A lead opened in
+ * June and won in September is in June's figures, not September's. There is no
+ * per-stage timestamp on the model to do better with, and inventing one is a
+ * change to the lead model rather than to this card.
+ *
+ * The cost is that this fetches every lead in the range to count them. That is
+ * fine at the scale this is for and wrong at a much larger one, where the answer
+ * is a server-side aggregation - not a different arrangement of this code.
  */
-export default function usePipelineAnalytics({ currentAdmin, canSeeEveryone }) {
+export default function usePipelineAnalytics({ currentAdmin, canSeeEveryone, dateQuery = {} }) {
   const [leads, setLeads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasFailed, setHasFailed] = useState(false);
 
+  const { startDate, endDate } = dateQuery;
+
   // The dashboard fires this alongside its other summary calls, so it is
-  // cancelled on unmount like any other. The empty dependency list is safe
-  // because the component itself is mounted only while the account holds the
-  // leads module - the dashboard renders it conditionally - so a permission
-  // change unmounts this rather than leaving stale figures behind.
+  // cancelled on unmount like any other. The effect re-runs when the reader
+  // applies a different date range, which is the whole point of the control -
+  // the two bounds are named individually rather than depending on the object
+  // wrapping them, so it re-runs when the window moves and not when the wrapper
+  // is rebuilt.
+  //
+  // Permission is not in the list for the same reason it never was: the
+  // component is mounted only while the account holds the leads module - the
+  // dashboard renders it conditionally - so losing the module unmounts this
+  // rather than leaving stale figures behind.
   useEffect(() => {
     let cancelled = false;
 
@@ -36,7 +61,7 @@ export default function usePipelineAnalytics({ currentAdmin, canSeeEveryone }) {
       setIsLoading(true);
       setHasFailed(false);
 
-      const data = await request.listAll({ entity: 'lead' });
+      const data = await request.listAll({ entity: 'lead', options: dateQuery });
 
       if (cancelled) return;
 
@@ -53,7 +78,8 @@ export default function usePipelineAnalytics({ currentAdmin, canSeeEveryone }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
 
   // Only an owner may look colleagues up - /api/team is behind requireTenantOwner
   // and scoped to the accounts they created. An executive's own name needs no

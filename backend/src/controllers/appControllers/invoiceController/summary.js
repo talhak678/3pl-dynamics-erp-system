@@ -5,6 +5,7 @@ const Model = mongoose.model('Invoice');
 
 const { loadSettings } = require('../../../middlewares/settings');
 const { assignmentFilter } = require('../../../middlewares/ownership');
+const { withDateWindow } = require('../../../utils/dateRange');
 
 const summary = async (req, res) => {
   let defaultType = 'month';
@@ -44,14 +45,13 @@ const summary = async (req, res) => {
 
   const response = await Model.aggregate([
     {
-      $match: {
-        removed: false,
-        ...scope,
-        // date: {
-        //   $gte: startDate.toDate(),
-        //   $lte: endDate.toDate(),
-        // },
-      },
+      // The tenant scope, the account's own-record narrowing inside it, and the
+      // dashboard's date window if one was asked for - as separate $and entries
+      // so the window can only narrow what the scope already allowed. See
+      // utils/dateRange.js. The date clauses that used to sit here commented out
+      // were driven by `type`, a preset that never reached the query; the window
+      // is now sent by the dashboard and applied for real.
+      $match: withDateWindow(Model, req, scope),
     },
     {
       $facet: {
@@ -177,18 +177,14 @@ const summary = async (req, res) => {
 
   const unpaid = await Model.aggregate([
     {
-      $match: {
-        removed: false,
-        ...scope,
-
-        // date: {
-        //   $gte: startDate.toDate(),
-        //   $lte: endDate.toDate(),
-        // },
+      // The same window as the totals above, so the amount still owed and the
+      // total invoiced describe the same set of documents rather than two
+      // different periods.
+      $match: withDateWindow(Model, req, scope, {
         paymentStatus: {
           $in: ['unpaid', 'partially'],
         },
-      },
+      }),
     },
     {
       $group: {

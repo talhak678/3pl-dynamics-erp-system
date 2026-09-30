@@ -1,4 +1,25 @@
 import { selectColor } from '@/utils/color';
+import { SALES_STAGES } from '@/utils/salesStages';
+
+/**
+ * The pipeline stages, as options for this list's Status column.
+ *
+ * Built from the board's own list rather than written out a second time. That
+ * is the whole fix for the bug this column had: the two surfaces each kept
+ * their own idea of what a stage is called, the spellings drifted apart by case
+ * ('Won' on the board, 'won' here) and by more than case ('Lost' versus
+ * 'loose'), and `selectWithTranslation` matches a stored value to its option
+ * with an exact ===. So half of what the board wrote rendered here as a bare
+ * uncoloured tag, and half of what this select wrote never moved a card.
+ *
+ * The label is the value rather than SALES_STAGES' own label, because the board
+ * styles 'Meeting / Demo' with spaces around the slash and this column has
+ * always shown 'Meeting/Demo'. The part the exact match depends on is the
+ * value, and that is identical either way, so there is nothing to gain by
+ * changing what this column reads.
+ */
+const stageOptions = SALES_STAGES.map(({ value, color }) => ({ value, label: value, color }));
+
 export const fields = {
   type: {
     type: 'selectWithFeedback',
@@ -17,39 +38,37 @@ export const fields = {
   /**
    * The lead's lifecycle status, as the leads list renders it.
    *
-   * The four entries at the end are the pipeline stages this list had no name
-   * for: moving a lead to Contacted, Follow-Up, Meeting/Demo or Proposal Sent on
-   * the board writes that stage's name into `status` (see
-   * backend/.../leadController/stageSync.js), and without a matching option here
-   * the column would render the value with no tag colour - readable, but
-   * visibly different from every other row.
+   * Two kinds of value live in this one field, and the split is deliberate.
    *
-   * Their colours are copied from utils/salesStages.js rather than chosen here,
-   * so a stage is the same colour in the leads list as it is on the board. The
-   * four stages that already had a counterpart above - New, In Negotiation, Won,
-   * Lost - are not repeated: their spellings differ from the stored legacy
-   * values only in case, and a second near-identical option would put 'new' and
-   * 'New' side by side in this select, which reads as a mistake.
+   * The five at the top are lifecycle states that are not pipeline stages and
+   * have no stage they could become - a lead that is 'canceled' or 'on hold' is
+   * not somewhere on the board, and the sync leaves those values untouched.
+   *
+   * Everything below them is a pipeline stage, taken from the board's list. A
+   * stage written by the board has to be renderable here, and a stage chosen
+   * here has to move the card, so the two surfaces have to agree on the
+   * spelling exactly - which is why this is derived rather than re-typed.
+   *
+   * Picking one of these here therefore moves the lead on the board. That is
+   * the intended behaviour and the point of the fix: see
+   * backend/.../leadController/stageSync.js, which writes the chosen stage into
+   * `salesStage` and `status` together.
+   *
+   * Leads saved before that fix still hold the old lowercase spellings ('new',
+   * 'won', 'loose', 'in negociation'). They render with the right text but no
+   * tag colour, because no option matches them, and they normalise to the
+   * canonical spelling the next time anyone edits them.
    */
   status: {
     type: 'selectWithTranslation',
     renderAsTag: true,
     options: [
       { value: 'draft', label: 'draft' },
-      { value: 'new', label: 'new', color: 'blue' },
-      { value: 'in negociation', label: 'in negociation', color: 'purple' },
-      { value: 'won', label: 'won', color: 'green' },
-      { value: 'loose', label: 'loose', color: 'red' },
       { value: 'canceled', label: 'canceled', color: selectColor.crimson },
       { value: 'assigned', label: 'assigned', color: selectColor.mediumturquoise },
       { value: 'on hold', label: 'on hold', color: selectColor.burlywood },
       { value: 'waiting', label: 'waiting', color: 'orange' },
-      // Pipeline stages with no legacy counterpart. Colours mirror
-      // utils/salesStages.js.
-      { value: 'Contacted', label: 'Contacted', color: 'cyan' },
-      { value: 'Follow-Up', label: 'Follow-Up', color: 'gold' },
-      { value: 'Meeting/Demo', label: 'Meeting/Demo', color: 'purple' },
-      { value: 'Proposal Sent', label: 'Proposal Sent', color: 'geekblue' },
+      ...stageOptions,
     ],
   },
 
