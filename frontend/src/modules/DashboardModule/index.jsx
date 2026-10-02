@@ -12,7 +12,6 @@ import useOnFetch from '@/hooks/useOnFetch';
 import useDateRange from './useDateRange';
 
 import RecentTable from './components/RecentTable';
-import DateRangeFilter from './components/DateRangeFilter';
 
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
@@ -110,14 +109,7 @@ export default function DashboardModule() {
    * utils/dateRange.js in the backend. A Sales Executive choosing "Yearly" gets
    * one year of their own records, never a year of the workspace's.
    */
-  const {
-    query: dateQuery,
-    description: dateDescription,
-    preset,
-    custom,
-    apply,
-    reset,
-  } = useDateRange();
+  const { query: dateQuery, description: dateDescription } = useDateRange();
 
   const getStatsData = async ({ entity, currency }) => {
     return await request.summary({
@@ -466,21 +458,12 @@ export default function DashboardModule() {
     return (
       <>
         {/*
-          The header row holds the page's two controls: the window everything
-          below is read over, on the left, and the report on the right. The range
-          sits first because it governs the numbers the report summarises - it is
-          the setting, and the report is the output of it.
+          The range control moved to the app header, where it governs every
+          module rather than this page alone. This row keeps the report, which is
+          this page's own output and is still summarised over whatever window the
+          header is showing.
         */}
-        <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-          <Col>
-            <DateRangeFilter
-              preset={preset}
-              custom={custom}
-              description={dateDescription}
-              onApply={apply}
-              onReset={reset}
-            />
-          </Col>
+        <Row justify="end" style={{ marginBottom: 20 }}>
           <Col>
             <Button
               type="primary"

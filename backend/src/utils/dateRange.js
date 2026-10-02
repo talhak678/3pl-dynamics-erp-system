@@ -133,4 +133,59 @@ const withDateWindow = (Model, req, ...conditions) => {
   return { $and: clauses };
 };
 
-module.exports = { dateMatchFor, withDateWindow, dateFieldFor };
+/*
+ * The models a date window is meaningful for.
+ *
+ * Named rather than derived, because the derivation available is a lie here:
+ * dateFieldFor() falls back to `created` for any model without a business date,
+ * which would make a "Today" filter return the products, taxes, payment modes
+ * and categories *created* today and nothing else. Every one of those screens
+ * would look empty, and the report would be that the date filter broke the
+ * catalogue.
+ *
+ * So the window is opt-in per model, and this set is the whole of the policy.
+ * Shipment is in it because it declares a business date, though no screen lists
+ * one yet.
+ */
+const DATED_MODELS = new Set([
+  'Expense',
+  'Invoice',
+  'Lead',
+  'Offer',
+  'Payment',
+  'Quote',
+  'Shipment',
+]);
+
+/**
+ * The date clause for this model, or null when the model is not one a window
+ * applies to.
+ *
+ * Returning null rather than an empty object matters: every caller pushes the
+ * result onto an `$and` only when it is truthy, so `{}` would add a clause that
+ * matches everything and quietly turn a filtered list into an unfiltered one on
+ * any model it reached.
+ *
+ * Takes the same req the ownership filters take, so the window is built from the
+ * same query string and sits beside them as its own `$and` entry - which is what
+ * makes it narrowing-only. See withDateWindow.
+ *
+ * Note `req.query` rather than `req`: dateMatchFor reads the query, not the
+ * request, and passing the request here would read `req.startDate` - undefined -
+ * and return null on every call, silently disabling the filter everywhere.
+ */
+const datedWindowFor = (Model, req) => {
+  if (!Model || !DATED_MODELS.has(Model.modelName)) {
+    return null;
+  }
+
+  return dateMatchFor(Model, req && req.query);
+};
+
+module.exports = {
+  dateMatchFor,
+  withDateWindow,
+  dateFieldFor,
+  datedWindowFor,
+  DATED_MODELS,
+};

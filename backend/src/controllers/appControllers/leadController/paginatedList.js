@@ -1,5 +1,6 @@
 const { migrate } = require('./migrate');
 const { leadFilter, userFilter } = require('../../../middlewares/ownership');
+const { datedWindowFor } = require('../../../utils/dateRange');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -40,6 +41,22 @@ const paginatedList = async (Model, req, res) => {
   const perUser = userFilter(Model, req);
 
   if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  /*
+   * The header's date window.
+   *
+   * Pushed as its own `$and` entry beside leadFilter's scope rather than merged
+   * into it, so it can only ever remove rows - which leads a child account sees
+   * is decided by leadFilter above and is unaffected by which window is
+   * selected.
+   *
+   * Lead declares no business date, so datedWindowFor resolves this against
+   * `created`: the window is over when a lead was entered, not over any date the
+   * lead itself carries.
+   */
+  const dateWindow = datedWindowFor(Model, req);
+
+  if (dateWindow) conditions.push(dateWindow);
 
   const query = { $and: conditions };
 

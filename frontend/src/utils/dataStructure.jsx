@@ -14,6 +14,13 @@ export const dataForRead = ({ fields, translate }) => {
       title: field.label ? field.label : key,
       dataIndex: field.dataIndex ? field.dataIndex.join('.') : key,
       isDate: field.type === 'date',
+      // `disableForTable` keeps this out of the table because it holds a bare
+      // ObjectId; the read view is exactly where it belongs, so unlike
+      // dataForTable this one does not filter those fields out - it just needs
+      // to know how to render it. The read endpoints populate the path, so what
+      // arrives here is an object, and rendering that directly is what put
+      // "[object Object]" on the screen.
+      isAssignee: field.type === 'assignee',
     });
   });
 

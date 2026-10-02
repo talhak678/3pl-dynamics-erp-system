@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Model = mongoose.model('Invoice');
 
 const { scopedFilter, userFilter } = require('../../../middlewares/ownership');
+const { datedWindowFor } = require('../../../utils/dateRange');
 
 const paginatedList = async (req, res) => {
   const page = req.query.page || 1;
@@ -39,6 +40,23 @@ const paginatedList = async (req, res) => {
   const perUser = userFilter(Model, req);
 
   if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  /*
+   * The header's date window.
+   *
+   * Pushed as its own `$and` entry beside scopedFilter's clause rather than
+   * merged into it, so it can only ever remove rows - which invoices a child
+   * account sees is decided by scopedFilter above and is unaffected by which
+   * window is selected.
+   *
+   * The `date` clause is included here because the filter name above is always
+   * present as `{ [filter]: equal }`, so a caller's own date filter and this one
+   * would otherwise be siblings on one object; as separate entries they
+   * intersect, which is the only safe way for them to combine.
+   */
+  const dateWindow = datedWindowFor(Model, req);
+
+  if (dateWindow) conditions.push(dateWindow);
 
   const query = { $and: conditions };
 

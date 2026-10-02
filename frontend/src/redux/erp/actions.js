@@ -1,5 +1,6 @@
 import * as actionTypes from './types';
 import { request } from '@/request';
+import { selectDateRangeQuery } from '@/redux/dateRange/selectors';
 
 export const erp = {
   resetState: () => (dispatch) => {
@@ -35,14 +36,34 @@ export const erp = {
     },
   list:
     ({ entity, options = { page: 1, items: 10 } }) =>
-    async (dispatch) => {
+    async (dispatch, getState) => {
       dispatch({
         type: actionTypes.REQUEST_LOADING,
         keyState: 'list',
         payload: null,
       });
 
-      let data = await request.list({ entity, options });
+      /*
+       * The header's window, read here rather than passed in by each caller.
+       *
+       * This thunk is the one path every ERP table fetch takes - the initial
+       * load, the pagination and search changes, and the re-fetch after a
+       * create, update or delete - so reading it here means a row that was just
+       * saved is still in the window its table is showing, instead of vanishing
+       * because the re-fetch quietly asked a different question.
+       *
+       * Form pickers do not come through here; SelectAsync and
+       * AutoCompleteAsync call the request layer directly. That is the property
+       * that keeps this from hiding the clients and leads a form needs to
+       * reference.
+       *
+       * Empty when no window is set, which leaves `options` untouched. Which
+       * entities honour it is the server's decision, not this one's - see
+       * datedWindowFor in backend/src/utils/dateRange.js.
+       */
+      const dateQuery = selectDateRangeQuery(getState());
+
+      let data = await request.list({ entity, options: { ...options, ...dateQuery } });
 
       if (data.success === true) {
         const result = {

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Model = mongoose.model('Quote');
 
 const { scopedFilter, userFilter } = require('../../../middlewares/ownership');
+const { datedWindowFor } = require('../../../utils/dateRange');
 
 const paginatedList = async (req, res) => {
   const page = req.query.page || 1;
@@ -40,6 +41,21 @@ const paginatedList = async (req, res) => {
   const perUser = userFilter(Model, req);
 
   if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  /*
+   * The header's date window.
+   *
+   * Pushed as its own `$and` entry beside scopedFilter's clause rather than
+   * merged into it, so it can only ever remove rows - which quotes a child
+   * account sees is decided by scopedFilter above and is unaffected by which
+   * window is selected.
+   *
+   * A quote declares a business `date`, so this is the date the quote carries
+   * rather than when it was entered.
+   */
+  const dateWindow = datedWindowFor(Model, req);
+
+  if (dateWindow) conditions.push(dateWindow);
 
   const query = { $and: conditions };
 

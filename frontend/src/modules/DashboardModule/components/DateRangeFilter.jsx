@@ -12,7 +12,7 @@ import {
   PRESET_DESCRIPTIONS,
   PRESET_LABELS,
   isCustomRangeValid,
-} from '../dateRange';
+} from '@/utils/dateRange';
 
 /** The muted style the secondary line on each option shares. */
 const hintStyle = { color: '#8c8c8c', marginLeft: 8, fontSize: 12 };

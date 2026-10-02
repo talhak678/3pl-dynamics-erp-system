@@ -16,11 +16,20 @@ import useLanguage from '@/locale/useLanguage';
 import ThemeToggleButton from './ThemeToggleButton';
 import UpgradeButton from './UpgradeButton';
 
+import DateRangeFilter from '@/modules/DashboardModule/components/DateRangeFilter';
+import useDateRange from '@/modules/DashboardModule/useDateRange';
+
 export default function HeaderContent() {
   const currentAdmin = useSelector(selectCurrentAdmin);
   const { Header } = Layout;
 
   const translate = useLanguage();
+
+  /*
+   * The window every module's table is read over, here rather than on the
+   * dashboard because it now governs more than the dashboard.
+   */
+  const { preset, custom, description, apply, reset } = useDateRange();
 
   const ProfileDropdown = () => {
     const navigate = useNavigate();
@@ -169,6 +178,20 @@ export default function HeaderContent() {
 
       <ThemeToggleButton />
       {/* <UpgradeButton /> */}
+
+      {/*
+        Rendered last in the JSX, which the Header's `flexDirection: row-reverse`
+        turns into leftmost on screen - so it sits away from the avatar and the
+        theme toggle, which are account controls, and reads as a page control
+        rather than a third one of those.
+      */}
+      <DateRangeFilter
+        preset={preset}
+        custom={custom}
+        description={description}
+        onApply={apply}
+        onReset={reset}
+      />
     </Header>
   );
 }

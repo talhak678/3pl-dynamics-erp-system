@@ -24,11 +24,33 @@ exports.migrate = (result) => {
   // objects in places. An undefined stage would drop the lead out of every
   // column instead of landing it in the first one.
   newData.salesStage = result.salesStage || 'New';
-  // Left as a bare id. Resolving it to a name is a decision for the board UI:
-  // a Sales Executive cannot read /api/team (that endpoint is owner-only), so
-  // naming an assignee needs either a populated field here or an endpoint they
-  // are allowed to call.
-  newData.assignedTo = result.assignedTo;
+  /*
+   * The assignee, in whichever shape the caller's query produced.
+   *
+   * This mapper is fed by two different reads. `read` populates the path, so it
+   * arrives as an Admin document and the name comes with it - which is the only
+   * way a Sales Executive can be shown who a lead belongs to, since /api/team is
+   * owner-only. `listAll` and `paginatedList` do not populate, so the same field
+   * arrives as a bare ObjectId, which is the shape the pipeline board and its
+   * resolveAssignee() expect.
+   *
+   * Normalised here rather than passed through, so the difference between the
+   * two endpoints is visible in one place instead of being a property of
+   * whichever populate call happens to be nearby. A populated document would
+   * also carry the whole Admin projection, which is more than belongs in a
+   * response that only ever displays a name.
+   *
+   * If listAll ever gains a populate, the board's String(assignedTo) becomes
+   * "[object Object]" - change that call site in the same commit.
+   */
+  if (result.assignedTo && typeof result.assignedTo === 'object') {
+    newData.assignedTo = {
+      _id: result.assignedTo._id,
+      name: result.assignedTo.name ?? null,
+    };
+  } else {
+    newData.assignedTo = result.assignedTo;
+  }
   newData.followUpDate = result.followUpDate;
 
   return newData;

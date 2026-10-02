@@ -1,4 +1,5 @@
 const { scopedFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+const { datedWindowFor } = require('../../../utils/dateRange');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -54,6 +55,21 @@ const paginatedList = async (Model, req, res) => {
   const perUser = userFilter(Model, req);
 
   if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  /*
+   * The header's date window, for the models it applies to and no others.
+   *
+   * Pushed as its own `$and` entry beside the scope rather than merged into it,
+   * so it can only ever remove rows - an account's isolation is decided by
+   * scopedFilter above and is unaffected by which window is selected.
+   *
+   * The gate lives in datedWindowFor, not here: this file is shared by every
+   * entity with no list of its own - Payment and Expense among them, and also
+   * Product, Taxes and PaymentMode, which a window means nothing for.
+   */
+  const dateWindow = datedWindowFor(Model, req);
+
+  if (dateWindow) conditions.push(dateWindow);
 
   const query = { $and: conditions };
 
