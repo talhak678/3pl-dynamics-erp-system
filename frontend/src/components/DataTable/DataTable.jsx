@@ -14,6 +14,8 @@ import { PageHeader } from '@ant-design/pro-layout';
 import { useSelector, useDispatch } from 'react-redux';
 import { crud } from '@/redux/crud/actions';
 import { selectListItems } from '@/redux/crud/selectors';
+import { selectDateRangeQuery } from '@/redux/dateRange/selectors';
+import { tableWindowKey } from '@/utils/dateRange';
 import useLanguage from '@/locale/useLanguage';
 import { dataForTable } from '@/utils/dataStructure';
 import { useMoney, useDate } from '@/settings';
@@ -159,6 +161,12 @@ export default function DataTable({ config, extra = [] }) {
   // default path is unchanged.
   const listOptions = useListOptions();
 
+  // The header's date range, as one comparable value. Empty - and therefore
+  // constant - for entities the window does not apply to, so those tables do not
+  // re-fetch, and do not drop back to page one, when the control moves. The
+  // thunk adds the window itself; this only decides when to ask again.
+  const windowKey = tableWindowKey(entity, useSelector(selectDateRangeQuery));
+
   const handelDataTableLoad = useCallback(
     (pagination) => {
       const options = listOptions({
@@ -178,12 +186,18 @@ export default function DataTable({ config, extra = [] }) {
 
   const dispatcher = useCallback(() => {
     dispatch(crud.list({ entity, options: listOptions() }));
-  }, [dispatch, entity, listOptions]);
+  }, [dispatch, entity, listOptions, windowKey]);
 
-  // Runs on mount, and again whenever the filter selection changes - a new
-  // selection has to be a new request, and this is the one place that knows how
-  // to make one correctly. Pagination resets as a side effect, which is what a
-  // filter change should do anyway.
+  // Runs on mount, again whenever the filter selection changes, and again
+  // whenever the header's date range moves - each has to be a new request, and
+  // this is the one place that knows how to make one correctly. Pagination
+  // resets as a side effect, which is what a filter change should do anyway.
+  //
+  // `windowKey` is the date range, reduced to one comparable value and empty for
+  // entities the window does not apply to - see tableWindowKey. Without it the
+  // list thunk still reads the current window when it fires, which is why a
+  // table that re-mounts (navigate away and back) shows the new dates while one
+  // already on screen keeps the old ones.
   //
   // No AbortController here: the previous version created one and never passed
   // its signal to anything, so it cancelled nothing. A response that arrives

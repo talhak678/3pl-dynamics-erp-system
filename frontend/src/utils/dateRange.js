@@ -110,6 +110,66 @@ export const rangeForPreset = (preset, custom, now = dayjs()) => {
 };
 
 /**
+ * The entities a date window means anything for.
+ *
+ * Must match DATED_MODELS in backend/src/utils/dateRange.js, lowercased - the
+ * same mirroring convention SALES_EXECUTIVE_ROLE and WORKSPACE_OWNER_ROLE
+ * already use for backend/src/utils/roles.js. The server remains the authority
+ * on whether the window is applied; this list only decides which tables bother
+ * re-fetching when it moves, and the two must not drift: a module named on the
+ * server but missing here would silently stop refreshing.
+ *
+ * The list is short and the tables that are NOT on it are many - Product, Taxes,
+ * PaymentMode, Client, Company, People, Order, ExpenseCategory. That asymmetry is
+ * the reason this gate exists rather than re-fetching everywhere. The header's
+ * control is rendered on every page, so an ungated re-fetch would reload those
+ * tables, and drop them back to page one, on a filter the server ignores for
+ * them entirely.
+ *
+ * Shipment is here because the server lists it, though no screen shows one yet.
+ */
+export const DATED_ENTITIES = Object.freeze([
+  'expense',
+  'invoice',
+  'lead',
+  'offer',
+  'payment',
+  'quote',
+  'shipment',
+]);
+
+/** Whether a window applies to this entity's list at all. */
+export const isDatedEntity = (entity) =>
+  DATED_ENTITIES.includes(String(entity ?? '').toLowerCase());
+
+/**
+ * The window as a single value a fetch effect can compare, or '' for none.
+ *
+ * This is what a table puts in its dependency array. It exists as a named
+ * function rather than as two inline `dateQuery.startDate` entries so the gate
+ * is testable on its own and cannot be forgotten in one of the two tables that
+ * need it.
+ *
+ * A string rather than the query object because React compares dependencies with
+ * Object.is: `selectDateRangeQuery` is memoised and does keep a stable identity,
+ * but a string compares by value and so also survives the query being rebuilt
+ * with the same two bounds. Re-applying the range already in force therefore
+ * produces an identical key and no re-fetch.
+ *
+ * Empty for an undated entity whatever the window - a constant, so those tables
+ * never re-run on a range change - and empty when there is no window, which is
+ * the state the helpers return for an incomplete custom range.
+ */
+export const tableWindowKey = (entity, query) => {
+  if (!isDatedEntity(entity)) return '';
+
+  const start = query && query.startDate;
+  const end = query && query.endDate;
+
+  return start && end ? `${start}|${end}` : '';
+};
+
+/**
  * A window as the two query parameters the summaries take, or {} for no window.
  *
  * ISO instants rather than 'YYYY-MM-DD'. The day boundary is already decided by
