@@ -24,33 +24,19 @@ exports.migrate = (result) => {
   // objects in places. An undefined stage would drop the lead out of every
   // column instead of landing it in the first one.
   newData.salesStage = result.salesStage || 'New';
-  /*
-   * The assignee, in whichever shape the caller's query produced.
-   *
-   * This mapper is fed by two different reads. `read` populates the path, so it
-   * arrives as an Admin document and the name comes with it - which is the only
-   * way a Sales Executive can be shown who a lead belongs to, since /api/team is
-   * owner-only. `listAll` and `paginatedList` do not populate, so the same field
-   * arrives as a bare ObjectId, which is the shape the pipeline board and its
-   * resolveAssignee() expect.
-   *
-   * Normalised here rather than passed through, so the difference between the
-   * two endpoints is visible in one place instead of being a property of
-   * whichever populate call happens to be nearby. A populated document would
-   * also carry the whole Admin projection, which is more than belongs in a
-   * response that only ever displays a name.
-   *
-   * If listAll ever gains a populate, the board's String(assignedTo) becomes
-   * "[object Object]" - change that call site in the same commit.
-   */
-  if (result.assignedTo && typeof result.assignedTo === 'object') {
-    newData.assignedTo = {
-      _id: result.assignedTo._id,
-      name: result.assignedTo.name ?? null,
-    };
-  } else {
-    newData.assignedTo = result.assignedTo;
-  }
+  // The assignee, passed through exactly as the query produced it: a bare
+  // ObjectId. The client resolves it to a name from the team directory, which
+  // is the only place that can - /api/team is owner-only, so the answer depends
+  // on who is asking.
+  //
+  // Do not add a branch here that rewrites this field when it "looks like" a
+  // document. A bare ObjectId satisfies `typeof x === 'object'`, so such a test
+  // takes the populated branch for every ordinary row and hands the client
+  // `{_id, name: null}` - which stringifies to "[object Object]", stops the
+  // pipeline's resolveAssignee() matching anybody, and binds an object where
+  // the edit form's Select expects an id. If a caller ever populates this path,
+  // fix it at that call site.
+  newData.assignedTo = result.assignedTo;
   newData.followUpDate = result.followUpDate;
 
   return newData;

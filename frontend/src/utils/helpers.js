@@ -52,30 +52,6 @@ export function valueByString(obj, string, devider) {
 }
 
 /*
- The display text for an assignee field.
-
- The read endpoints populate this path, so it arrives as `{_id, name}`; every
- other endpoint leaves it a bare id. Both are rendered - the name when the
- server sent one, the id otherwise - so a field that was not populated shows
- something meaningful instead of `[object Object]`.
-
- A populated path whose account has since been deleted resolves to null, which
- is rendered as an empty string: the record still exists and still has an
- assignee id, and the panel should say nothing rather than claim "null".
-
- Takes the RAW field value. It must be given the value read straight out of the
- record, not the string `valueByString` returns - that helper joins its parts
- with String(), which turns a populated assignee into the literal text
- "[object Object]" before this function ever sees it. `ReadItem` reads this one
- field with `get` for exactly that reason.
-*/
-export const assigneeLabel = (value) => {
-  if (!value) return '';
-  if (typeof value !== 'object') return value;
-  return value.name || value._id || '';
-};
-
-/*
  Submit multi-part form using ajax.
 */
 export function toFormData(form) {

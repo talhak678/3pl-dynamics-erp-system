@@ -1,27 +1,5 @@
 const { scopedFilter } = require('../../../middlewares/ownership');
 
-/**
- * Whether this model records who a record is assigned to, and may be populated.
- *
- * Mongoose's strictPopulate throws when asked to populate a path that is not in
- * the schema, and this controller is shared by every entity with no read of its
- * own - Product, Taxes, PaymentMode and Setting among them, none of which have
- * an assignee. Asking only where the path exists keeps one controller working
- * for all of them, and is why this cannot simply be
- * `.populate('assignedTo', 'name')`.
- *
- * `ref` is the test rather than the path name, because a path called
- * `assignedTo` that is not a reference would resolve to nothing useful anyway.
- *
- * `assignedTo` alone, and deliberately not `createdBy`/`createdByUser`. Those
- * exist on almost every model, so including them would populate nearly every
- * read response - and `dataForRead` pushes every field it is given to the read
- * view, so a field no screen renders today would start arriving as an object on
- * screens this change was never asked to touch. Only the field the brief is
- * about is resolved.
- */
-const hasAssigneeRef = (Model) => Boolean(Model.schema.path('assignedTo')?.options?.ref);
-
 const read = async (Model, req, res) => {
   // Find document by id
   //
@@ -43,10 +21,6 @@ const read = async (Model, req, res) => {
     removed: false,
     ...scopedFilter(Model, req),
   });
-
-  if (hasAssigneeRef(Model)) {
-    query.populate('assignedTo', 'name');
-  }
 
   const result = await query.exec();
 
