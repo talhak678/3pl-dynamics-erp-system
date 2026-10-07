@@ -112,8 +112,8 @@ const createMember = async (req, res) => {
     role: roleAssignment.value,
     parentAdminId: req.admin._id,
     // Inherited, not chosen - and `|| null` rather than a bare read, so an owner
-    // who predates the workspace backfill can still add staff instead of being
-    // stopped by a field they had no way to set.
+    // without a workspace can still add staff instead of being stopped by a field
+    // they had no way to set.
     workspace: req.admin.workspace || null,
     modulePermissions: permissions.value,
   }).save();

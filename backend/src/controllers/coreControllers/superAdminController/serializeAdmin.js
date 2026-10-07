@@ -24,8 +24,9 @@
  * mistake that broke the assign-to dropdowns, so do not reintroduce it here.
  *
  * With no name to offer, the id is still returned so the client can fall back
- * to it rather than showing nothing. Null means the account predates the
- * workspace requirement and has not been through the backfill.
+ * to it rather than showing nothing. Null means the account carries no workspace
+ * at all - the schema does not require one, so that is a real state rather than
+ * a defensive branch.
  */
 const serializeWorkspaceRef = (workspace) => {
   if (!workspace) return null;

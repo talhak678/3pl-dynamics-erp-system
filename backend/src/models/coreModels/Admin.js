@@ -59,8 +59,8 @@ const adminSchema = new Schema({
   //      next save, including a status toggle from the Super Admin portal.
   //   2. Employees are created by their own owner through /api/team, where the
   //      workspace is inherited from `req.admin` rather than chosen. A schema
-  //      requirement would turn that inheritance into a hard failure any time an
-  //      owner predates the backfill.
+  //      requirement would turn that inheritance into a hard failure for any
+  //      owner that has no workspace.
   //
   // The requirement lives at the Super Admin's create endpoint instead, which is
   // the only path where a workspace is actually a decision.

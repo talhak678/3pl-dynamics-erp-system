@@ -13,10 +13,6 @@ const coreDownloadRouter = require('./routes/coreRoutes/coreDownloadRouter');
 const corePublicRouter = require('./routes/coreRoutes/corePublicRouter');
 const superAdminRouter = require('./routes/coreRoutes/superAdminApi');
 const teamRouter = require('./routes/coreRoutes/teamApi');
-// TEMPORARY. Unauthenticated by design so a one-off backfill can be triggered
-// by opening a URL. Remove this require and the mount below together, once the
-// backfill has been run. See the warning in the router itself.
-const workspaceBackfillRouter = require('./routes/coreRoutes/workspaceBackfillApi');
 const adminAuth = require('./controllers/coreControllers/adminAuth');
 const requireSuperAdmin = require('./middlewares/requireSuperAdmin');
 const requireTenantOwner = require('./middlewares/requireTenantOwner');
@@ -56,12 +52,6 @@ app.use('/api/superadmin', adminAuth.isValidAuthToken, requireSuperAdmin, superA
 // reason as the line above - ahead of the generic /api routers, so
 // isValidAuthToken runs once per request rather than twice.
 app.use('/api/team', adminAuth.isValidAuthToken, requireTenantOwner, teamRouter);
-// TEMPORARY PUBLIC MOUNT - no auth, by explicit request. Declared before the
-// generic `/api` routers below because `app.use('/api', ...)` matches any
-// /api/* path and would otherwise claim this one first. Every other /api mount
-// is guarded; this one is not, on purpose, and it should not survive the
-// deployment after the backfill has been run. See the router.
-app.use('/api/workspace', workspaceBackfillRouter);
 app.use('/api', adminAuth.isValidAuthToken, coreApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, erpApiRouter);
 app.use('/download', coreDownloadRouter);

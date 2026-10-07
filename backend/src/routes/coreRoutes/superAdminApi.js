@@ -27,10 +27,4 @@ router
   .route('/workspaces/:id/status')
   .patch(catchErrors(superAdminController.updateWorkspaceStatus));
 
-// The one-off workspace backfill is deliberately NOT here. It is temporarily
-// mounted without auth at /api/workspace/backfill so it can be triggered by
-// opening a URL - see routes/coreRoutes/workspaceBackfillApi.js, which also
-// says how to remove it. Do not re-add it to this router while that mount
-// exists, or there will be two ways to run the same write.
-
 module.exports = router;

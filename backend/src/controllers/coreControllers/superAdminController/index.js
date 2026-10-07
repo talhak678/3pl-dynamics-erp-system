@@ -6,7 +6,6 @@ const updateUserPermissions = require('./updateUserPermissions');
 const listWorkspaces = require('./listWorkspaces');
 const createWorkspace = require('./createWorkspace');
 const updateWorkspaceStatus = require('./updateWorkspaceStatus');
-const backfillLegacyWorkspaces = require('./backfillLegacyWorkspaces');
 
 const superAdminController = {
   listUsers,
@@ -17,7 +16,6 @@ const superAdminController = {
   listWorkspaces,
   createWorkspace,
   updateWorkspaceStatus,
-  backfillLegacyWorkspaces,
 };
 
 module.exports = superAdminController;

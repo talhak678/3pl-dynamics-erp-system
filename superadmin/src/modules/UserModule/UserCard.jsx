@@ -91,7 +91,7 @@ export default function UserCard({ user, onOpen }) {
             title={
               user.workspace
                 ? user.workspace.name || 'Workspace'
-                : 'No workspace - this account predates the requirement. Run the backfill.'
+                : 'No workspace assigned to this account.'
             }
           >
             <Tag
