@@ -15,12 +15,20 @@ const serializeAdmin = require('./serializeAdmin');
  * `isActive` are both set server-side: `enabled` because its schema default is
  * false and would otherwise lock the new account out of login, `isActive`
  * because it must not be client-settable.
+ *
+ * `workspace` IS required, and is the one thing this endpoint asks the caller to
+ * choose. An account cannot be provisioned without one: the workspace must
+ * already exist and be active, so the Super Admin has to create the workspace
+ * before the account that belongs to it. Only its id is taken from the body -
+ * the document is looked up and the id written from that lookup, so a body
+ * cannot attach an account to a workspace that is not there to be attached to.
  */
 const createUser = async (req, res) => {
   const Admin = mongoose.model('Admin');
   const AdminPassword = mongoose.model('AdminPassword');
+  const Workspace = mongoose.model('Workspace');
 
-  const { name, email, password, modulePermissions } = req.body;
+  const { name, email, password, modulePermissions, workspace } = req.body;
 
   // `name` is required by the Admin schema, so it is required here too.
   const objectSchema = Joi.object({
@@ -63,6 +71,38 @@ const createUser = async (req, res) => {
     });
   }
 
+  // The workspace is checked before the email, so that an omitted or unusable
+  // one is reported as what it is rather than being masked by a duplicate-email
+  // conflict that happens to be true as well.
+  //
+  // Checked here rather than by a `required` on the Admin schema because this is
+  // the only path where a workspace is a decision the caller makes; see the
+  // comment on `Admin.workspace`.
+  if (!workspace || !mongoose.Types.ObjectId.isValid(workspace)) {
+    return res.status(400).json({
+      success: false,
+      result: null,
+      message: 'A workspace must be selected to create an account',
+    });
+  }
+
+  // Must be an ACTIVE workspace. Filtering here rather than trusting the id the
+  // client sent is what stops a stale dropdown, or a hand-made request, from
+  // provisioning an account against a customer who has been deactivated.
+  const workspaceDoc = await Workspace.findOne({
+    _id: workspace,
+    removed: false,
+    isActive: true,
+  }).exec();
+
+  if (!workspaceDoc) {
+    return res.status(400).json({
+      success: false,
+      result: null,
+      message: 'The selected workspace is not available',
+    });
+  }
+
   const normalisedEmail = email.trim().toLowerCase();
 
   const existingAdmin = await Admin.findOne({ email: normalisedEmail, removed: false });
@@ -86,6 +126,7 @@ const createUser = async (req, res) => {
     // by construction - not by a default that a future edit could move.
     role: 'owner',
     parentAdminId: null,
+    workspace: workspaceDoc._id,
     modulePermissions: requestedModules,
   }).save();
 

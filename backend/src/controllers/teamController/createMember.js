@@ -29,6 +29,11 @@ const serializeMember = require('./serializeMember');
  *
  * `enabled` is set true because its schema default is false and a new account
  * would otherwise be refused at login.
+ *
+ * `workspace` is inherited from the calling owner and never read from the body.
+ * An employee belongs to whichever customer their employer was provisioned for,
+ * so there is nothing for them to choose and no reason to let a body claim
+ * otherwise.
  */
 const createMember = async (req, res) => {
   const Admin = mongoose.model('Admin');
@@ -106,6 +111,10 @@ const createMember = async (req, res) => {
     isSuperAdmin: false,
     role: roleAssignment.value,
     parentAdminId: req.admin._id,
+    // Inherited, not chosen - and `|| null` rather than a bare read, so an owner
+    // who predates the workspace backfill can still add staff instead of being
+    // stopped by a field they had no way to set.
+    workspace: req.admin.workspace || null,
     modulePermissions: permissions.value,
   }).save();
 

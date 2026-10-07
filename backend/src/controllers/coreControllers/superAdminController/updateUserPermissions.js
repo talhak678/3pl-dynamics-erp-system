@@ -49,7 +49,13 @@ const updateUserPermissions = async (req, res) => {
       new: true,
       runValidators: true,
     }
-  ).exec();
+  )
+    // Populated so this response is shaped like listUsers'. The portal merges
+    // whatever comes back into the row it already has, so an unpopulated
+    // workspace here would replace a named one with a bare id and blank the
+    // workspace column until the next reload.
+    .populate('workspace', 'code name')
+    .exec();
 
   if (!result) {
     return res.status(404).json({

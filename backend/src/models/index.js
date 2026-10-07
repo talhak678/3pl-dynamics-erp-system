@@ -2,6 +2,7 @@ require('./coreModels/Admin');
 require('./coreModels/AdminPassword');
 require('./coreModels/Setting');
 require('./coreModels/Upload');
+require('./coreModels/Workspace');
 
 require('./appModels/Client');
 require('./appModels/Company');

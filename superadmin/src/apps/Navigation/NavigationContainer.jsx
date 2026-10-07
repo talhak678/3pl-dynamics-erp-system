@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
 
-import { TeamOutlined, UserAddOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, TeamOutlined, UserAddOutlined } from '@ant-design/icons';
 
 import useLanguage from '@/locale/useLanguage';
 import { useTheme } from '@/context/ThemeContext';
@@ -21,13 +21,20 @@ export default function NavigationContainer() {
     location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
   );
 
-  // Exactly two modules, per the portal's scope. The ERP's 18-item navigation is
-  // intentionally absent — a super admin administers accounts, not business data.
+  // Exactly three modules. The ERP's 18-item navigation is intentionally absent
+  // — a super admin administers accounts, not business data. Workspaces come
+  // first because they are the prerequisite for the other two: an account
+  // cannot be created until the workspace it belongs to exists.
   const items = [
     {
       key: 'dashboard',
       icon: <TeamOutlined />,
       label: <Link to={'/'}>{translate('Dashboard')}</Link>,
+    },
+    {
+      key: 'workspaces',
+      icon: <ApartmentOutlined />,
+      label: <Link to={'/workspaces'}>{translate('Workspace Management')}</Link>,
     },
     {
       key: 'create-user',

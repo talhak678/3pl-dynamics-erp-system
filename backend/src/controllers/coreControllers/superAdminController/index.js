@@ -3,11 +3,21 @@ const createUser = require('./createUser');
 const toggleUserStatus = require('./toggleUserStatus');
 const updateUserPermissions = require('./updateUserPermissions');
 
+const listWorkspaces = require('./listWorkspaces');
+const createWorkspace = require('./createWorkspace');
+const updateWorkspaceStatus = require('./updateWorkspaceStatus');
+const backfillLegacyWorkspaces = require('./backfillLegacyWorkspaces');
+
 const superAdminController = {
   listUsers,
   createUser,
   toggleUserStatus,
   updateUserPermissions,
+
+  listWorkspaces,
+  createWorkspace,
+  updateWorkspaceStatus,
+  backfillLegacyWorkspaces,
 };
 
 module.exports = superAdminController;

@@ -44,6 +44,32 @@ const adminSchema = new Schema({
     default: null,
   },
 
+  // The customer account this login was provisioned for, chosen by the Super
+  // Admin when the account was created.
+  //
+  // Not the same thing as `parentAdminId` above, and the two must not be
+  // confused. `parentAdminId` scopes DATA - whose invoices and clients this
+  // account sees - and is null for an owner, who is their own tenant. This field
+  // scopes nothing at all: it records which customer the account belongs to, and
+  // an owner has one just as their employees do.
+  //
+  // Deliberately not `required: true`. Two reasons, both practical:
+  //
+  //   1. Every account that predates this field would fail validation on its
+  //      next save, including a status toggle from the Super Admin portal.
+  //   2. Employees are created by their own owner through /api/team, where the
+  //      workspace is inherited from `req.admin` rather than chosen. A schema
+  //      requirement would turn that inheritance into a hard failure any time an
+  //      owner predates the backfill.
+  //
+  // The requirement lives at the Super Admin's create endpoint instead, which is
+  // the only path where a workspace is actually a decision.
+  workspace: {
+    type: Schema.Types.ObjectId,
+    ref: 'Workspace',
+    default: null,
+  },
+
   email: {
     type: String,
     lowercase: true,

@@ -6,6 +6,7 @@ import {
   StopFilled,
   CalendarOutlined,
   AppstoreOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 
 import useDate from '@/settings/useDate';
@@ -85,6 +86,22 @@ export default function UserCard({ user, onOpen }) {
           >
             {isActive ? 'Active' : 'Suspended'}
           </Tag>
+
+          <Tooltip
+            title={
+              user.workspace
+                ? user.workspace.name || 'Workspace'
+                : 'No workspace - this account predates the requirement. Run the backfill.'
+            }
+          >
+            <Tag
+              icon={<ApartmentOutlined />}
+              color={user.workspace ? undefined : 'warning'}
+              style={{ marginInlineEnd: 0 }}
+            >
+              {user.workspace ? user.workspace.code || 'Workspace' : 'No workspace'}
+            </Tag>
+          </Tooltip>
 
           <Tooltip
             title={

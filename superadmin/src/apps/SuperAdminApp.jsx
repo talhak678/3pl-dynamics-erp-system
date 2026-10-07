@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 
 import SuperAdminLayout from '@/layout/SuperAdminLayout';
 import Dashboard from '@/pages/Dashboard';
+import WorkspaceManagement from '@/pages/Workspace';
 import CreateUser from '@/pages/CreateUser';
 import Logout from '@/pages/Logout';
 import NotFound from '@/pages/NotFound';
@@ -14,6 +15,7 @@ export default function SuperAdminApp() {
     <Routes>
       <Route element={<SuperAdminLayout />}>
         <Route index element={<Dashboard />} />
+        <Route path="workspaces" element={<WorkspaceManagement />} />
         <Route path="create-user" element={<CreateUser />} />
         <Route path="logout" element={<Logout />} />
         <Route path="*" element={<NotFound />} />
