@@ -13,14 +13,30 @@ function findKeyByPrefix(object, prefix) {
   }
 }
 
-function includeToken() {
+/**
+ * Points axios at the API and attaches the current session's token.
+ *
+ * Exported because auth.service.js needs it too: those endpoints are reached
+ * with no session at all, and they must not inherit a baseURL or an
+ * Authorization header left behind by an earlier request.
+ *
+ * Callers must pair it with a *relative* path - 'login', not '/api/login'. A
+ * leading '/' does not make a URL absolute to axios (only a scheme or '//'
+ * does), so '/api/login' would be joined onto this base and go out as
+ * '/api/api/login'.
+ */
+export function includeToken() {
   axios.defaults.baseURL = API_BASE_URL;
 
   axios.defaults.withCredentials = true;
   const auth = storePersist.get('auth');
+  const token = auth && auth.current && auth.current.token;
 
-  if (auth) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    // Otherwise a token from a previous session rides along on the next sign-in.
+    delete axios.defaults.headers.common['Authorization'];
   }
 }
 
