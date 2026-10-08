@@ -10,6 +10,7 @@ import { useMoney, useDate } from '@/settings';
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
 import SelectAsync from '@/components/SelectAsync';
 import AssigneeSelect from '@/components/AssigneeSelect';
+import ProductImageUpload from '@/components/ProductImageUpload';
 import { generate as uniqueId } from 'shortid';
 
 import { countryList } from '@/utils/countryList';
@@ -301,6 +302,13 @@ function FormElement({ field, feedback, setFeedback }) {
     // that decides for itself whether to render at all. Both need imports and
     // hooks this file has no other use for.
     assignee: <AssigneeSelect field={field} />,
+    // Product photos, also defined in their own component - and there the reason
+    // is stronger than tidiness: the control has to read and write a second form
+    // field besides its own (the gallery's "make cover" fills the cover slot), so
+    // it needs the form instance and a Form.Item of its own rather than the
+    // wrapper this file builds.
+    productCover: <ProductImageUpload field={field} />,
+    productGallery: <ProductImageUpload field={field} />,
   };
 
   const compunedComponent = {

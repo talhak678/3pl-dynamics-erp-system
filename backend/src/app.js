@@ -11,6 +11,7 @@ const coreAuthRouter = require('./routes/coreRoutes/coreAuth');
 const coreApiRouter = require('./routes/coreRoutes/coreApi');
 const coreDownloadRouter = require('./routes/coreRoutes/coreDownloadRouter');
 const corePublicRouter = require('./routes/coreRoutes/corePublicRouter');
+const productImageRouter = require('./routes/coreRoutes/productImageRouter');
 const superAdminRouter = require('./routes/coreRoutes/superAdminApi');
 const teamRouter = require('./routes/coreRoutes/teamApi');
 const adminAuth = require('./controllers/coreControllers/adminAuth');
@@ -32,7 +33,18 @@ app.use(
 );
 
 app.use(cookieParser());
-app.use(express.json());
+/**
+ * The limit is raised for one request shape: a product save carries its photos
+ * inline as data URIs, so the body holds the image bytes rather than a
+ * multipart stream. The browser compresses each photo to a few hundred KB before
+ * encoding it, which keeps five of them near 2MB, well inside this - and inside
+ * Vercel's own 4.5MB ceiling on a request body, which is the limit that actually
+ * applies in production.
+ *
+ * See utils/productImages.js for the per-image cap, which is the one that
+ * matters.
+ */
+app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(compression());
@@ -43,6 +55,13 @@ app.use(compression());
 // Here our API Routes
 
 app.use('/api', coreAuthRouter);
+// Product photos are served here, before the routers that require a token, for
+// the same reason coreAuthRouter is: an <img src> cannot send the app's
+// Authorization header, so the request that fetches a thumbnail arrives without
+// one. The URL carries a per-image secret instead - see the route file. Mounted
+// at /api rather than /public because the frontend's rewrite sends /api to this
+// service and everything else to index.html.
+app.use('/api', productImageRouter);
 // Mounted ahead of the generic /api routers: `app.use('/api', ...)` matches any
 // /api/* path, so placing this after them would run isValidAuthToken twice per
 // request. Order within this line matters too — isValidAuthToken populates

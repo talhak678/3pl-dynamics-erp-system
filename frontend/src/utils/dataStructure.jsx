@@ -1,9 +1,10 @@
 import dayjs from 'dayjs';
 import { Switch, Tag } from 'antd';
-import { CloseOutlined, CheckOutlined } from '@ant-design/icons';
+import { CloseOutlined, CheckOutlined, PictureOutlined } from '@ant-design/icons';
 import { countryList } from '@/utils/countryList';
 import { generate as uniqueId } from 'shortid';
 import color from '@/utils/color';
+import { productImageSrc } from '@/utils/productImage';
 
 export const dataForRead = ({ fields, translate }) => {
   let columns = [];
@@ -21,6 +22,12 @@ export const dataForRead = ({ fields, translate }) => {
       // arrives here is an object, and rendering that directly is what put
       // "[object Object]" on the screen.
       isAssignee: field.type === 'assignee',
+      // The two product photo fields hold image tokens, not text: rendering them
+      // the way every other field is rendered would print the token. The flag is
+      // what the read panel branches on to draw a photograph instead - and the
+      // gallery is flagged separately because it holds a list.
+      isImage: field.type === 'productCover',
+      isGallery: field.type === 'productGallery',
     });
   });
 
@@ -191,6 +198,31 @@ export function dataForTable({ fields, translate, moneyFormatter, dateFormat }) 
               {selectedCountry?.label && translate(selectedCountry.label)}
             </Tag>
           );
+        },
+      },
+      productCover: {
+        title: field.label ? translate(field.label) : translate(key),
+        dataIndex: keyIndex,
+        // Narrow, because it holds a 40px square: a column that took a share of
+        // the table's width like the text columns do would be mostly empty.
+        width: 68,
+        render: (_, record) => {
+          const src = productImageSrc(record[key]);
+
+          /* A plain <img> rather than Ant Design's Image, deliberately. The
+             preview Image attaches would sit on top of the row's own click
+             handler and open a lightbox as well as the product panel, and a
+             catalogue table's thumbnail is there to be recognised, not
+             examined - the panel it opens shows the photograph at full size. */
+          if (!src) {
+            return (
+              <span className="product-thumb product-thumb--empty" title="No photo">
+                <PictureOutlined />
+              </span>
+            );
+          }
+
+          return <img className="product-thumb" src={src} alt="" loading="lazy" />;
         },
       },
     };

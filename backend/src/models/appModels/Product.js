@@ -55,6 +55,28 @@ const schema = new mongoose.Schema({
   tags: [String],
   headerImage: String,
   photo: String,
+  /**
+   * The product's photos.
+   *
+   * Both hold tokens into the ProductImage collection, not URLs and not the
+   * bytes: the products list returns whole documents, and this is the field the
+   * table draws its thumbnail from, so anything larger here would be paid for by
+   * every row of every list request. See models/coreModels/ProductImage.js and
+   * utils/productImages.js.
+   *
+   * The cover is required - a product with no image is not a product anyone can
+   * identify in a catalogue - and the gallery holds the rest, up to four.
+   *
+   * `images` and `files` below are older, unused fields with a different shape
+   * (an array of `{id, name, path}`); nothing has ever written to them. They are
+   * left as they are rather than repurposed, so that no existing document's
+   * meaning changes underneath it.
+   */
+  coverImage: {
+    type: String,
+    required: true,
+  },
+  galleryImages: [String],
   images: [
     {
       id: String,

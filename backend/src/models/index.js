@@ -2,6 +2,10 @@ require('./coreModels/Admin');
 require('./coreModels/AdminPassword');
 require('./coreModels/Setting');
 require('./coreModels/Upload');
+// The bytes behind a product's photos. Registered here like any other model,
+// but deliberately not an appModel: models/utils would then generate a full CRUD
+// route for it, and this is internal storage with nothing to edit directly.
+require('./coreModels/ProductImage');
 require('./coreModels/Workspace');
 
 require('./appModels/Client');

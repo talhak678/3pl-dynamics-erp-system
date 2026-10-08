@@ -1,8 +1,9 @@
-import { Row, Col } from 'antd';
+import { Row, Col, Image } from 'antd';
 import { useSelector } from 'react-redux';
 
 import dayjs from 'dayjs';
 import { dataForRead } from '@/utils/dataStructure';
+import { productImageSrc } from '@/utils/productImage';
 
 import { useCrudContext } from '@/context/crud';
 import { selectCurrentItem } from '@/redux/crud/selectors';
@@ -65,6 +66,60 @@ export default function ReadItem({ config }) {
     const propsTitle = props.title;
     const isDate = props.isDate || false;
     const isAssignee = props.isAssignee || false;
+    const isImage = props.isImage || false;
+    const isGallery = props.isGallery || false;
+
+    /* Photographs are drawn, not printed, so they leave the label-and-value row
+     * every other field is rendered as.
+     *
+     * Branched on before the value is resolved, because the value here is an
+     * image token - reading it through `valueByString` would put the token's
+     * text on the screen, and a gallery would be a list where a string is
+     * expected. The two flags are separate because the shapes differ: one token,
+     * or several.
+     *
+     * Full width, rather than the 8/2/14 split the text rows use: the panel is
+     * 450px wide and an image in the value column would be a 260px stamp, which
+     * is not what "display the cover photo prominently" asks for.
+     */
+    if (isImage || isGallery) {
+      const raw = get(currentResult, propsKey);
+      const photos = isGallery
+        ? (Array.isArray(raw) ? raw : []).filter(Boolean)
+        : raw
+          ? [raw]
+          : [];
+
+      return (
+        <div className="product-image-read" key={propsKey}>
+          <p className="product-image-read-label">{propsTitle}</p>
+
+          {photos.length === 0 && <span className="product-image-read-empty">No photos</span>}
+
+          {/* A preview group rather than a bare image: the panel is narrow, and
+              opening one photograph at full size is what makes a 96px tile
+              useful. */}
+          {photos.length > 0 && isGallery && (
+            <Image.PreviewGroup>
+              <div className="product-image-read-gallery">
+                {photos.map((photo) => (
+                  <Image
+                    key={String(photo)}
+                    className="product-image-read-thumb"
+                    src={productImageSrc(photo)}
+                    alt=""
+                  />
+                ))}
+              </div>
+            </Image.PreviewGroup>
+          )}
+
+          {photos.length > 0 && isImage && (
+            <Image className="product-image-read-cover" src={productImageSrc(photos[0])} alt="" />
+          )}
+        </div>
+      );
+    }
 
     let value;
 
