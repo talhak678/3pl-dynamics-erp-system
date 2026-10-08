@@ -56,3 +56,121 @@
 .login-form .ant-form-item-label > label {
   font-weight: 500;
 }
+
+/* ---------------------------------------------------------------------------
+   Auth screen — rotating background and glass card.
+
+   Mirrors the WMS sign-in page:
+   3PL-Dynamics-FontEnd / src/app/(full-width-pages)/(auth)/layout.tsx   -> background
+   3PL-Dynamics-FontEnd / src/components/auth/SignInForm.tsx             -> glass card
+
+   The WMS writes these in Tailwind; the classes it uses map to values this app
+   already has as CSS variables, because both products share the same palette:
+   border-gray-300, bg-white/50, backdrop-blur-xs, rounded-md, max-w-md.
+--------------------------------------------------------------------------- */
+
+.auth-screen {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.auth-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/*
+ * Both layers stay mounted and cross-fade on opacity, exactly as the WMS does.
+ * Swapping a single element's background-image instead would drop to no image
+ * for a frame and flash the page background through the middle of the fade.
+ */
+.auth-bg-layer {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1000ms ease-in-out;
+  will-change: opacity;
+}
+
+.auth-bg-layer.is-active {
+  opacity: 1;
+}
+
+.auth-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.auth-theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+}
+
+/*
+ * The glass. Half-transparent white over a blurred backdrop, so the photograph
+ * reads through it without the form losing contrast.
+ *
+ * The dark equivalent uses the app's dark surface rather than white/50: the
+ * sign-in page has a theme toggle, and a bright card on a dark screen is the
+ * one case where copying the WMS literally would look broken rather than
+ * mirrored. Same construction, different ink.
+ */
+.auth-glass-card {
+  width: 100%;
+  max-width: 28rem;
+  padding: 1rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+@media (min-width: 768px) {
+  .auth-glass-card {
+    padding: 2rem;
+  }
+}
+
+:root.dark .auth-glass-card {
+  border-color: var(--color-gray-700);
+  background: rgba(26, 34, 49, 0.55);
+}
+
+.auth-card-logo {
+  display: block;
+  width: 60%;
+  max-width: 180px;
+  height: auto;
+  margin: 0 auto 20px;
+  object-fit: contain;
+}
+
+/* Ant's Title is a block heading and left-aligned by default; the WMS centres
+   the one inside the card. */
+.auth-card-title.ant-typography {
+  margin-bottom: 24px;
+  color: var(--app-text);
+  text-align: center;
+}
+
+/* The rotation still happens, it just stops sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-bg-layer {
+    transition: none;
+  }
+}
+
