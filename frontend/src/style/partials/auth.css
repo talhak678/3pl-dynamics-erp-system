@@ -70,9 +70,22 @@
 --------------------------------------------------------------------------- */
 
 .auth-screen {
+  /*
+   * Exactly the viewport, and nothing may grow past it.
+   *
+   * `min-height: 100vh` here was the bug behind the scrollbar: the stage below
+   * is a padded flex box, and this app has no `box-sizing: border-box` reset
+   * anywhere, so its 100vh plus 24px of padding made the document 48px taller
+   * than the screen. `border-box` is what makes the height below inclusive of
+   * that padding.
+   */
+  box-sizing: border-box;
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  /* dvh excludes the mobile browser chrome that `vh` counts, which was the same
+     scrollbar on phones. Browsers without dvh fall back to the line above. */
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -103,30 +116,33 @@
 }
 
 .auth-stage {
+  /* See .auth-screen: without border-box, `height: 100%` would be 100% of the
+     parent plus this element's own 48px of padding, and the stage would always
+     be 48px too tall - a permanent scrollbar inside a clipped parent. */
+  box-sizing: border-box;
   position: relative;
   z-index: 1;
   display: flex;
+  /* `safe` keeps the whole card reachable if it is ever taller than the screen.
+     Plain `center` would push its top past the scroll origin, where scrolling
+     cannot get to it. The bare line is the fallback for browsers without
+     `safe`; the second line wins where it is supported. */
   align-items: center;
+  align-items: safe center;
   justify-content: center;
-  min-height: 100vh;
+  height: 100%;
   padding: 24px;
-}
-
-.auth-theme-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 2;
+  /* Only scrolls when the card genuinely does not fit. The document never does,
+     which is what `overflow: hidden` on .auth-screen guarantees. */
+  overflow-y: auto;
 }
 
 /*
  * The glass. Half-transparent white over a blurred backdrop, so the photograph
  * reads through it without the form losing contrast.
  *
- * The dark equivalent uses the app's dark surface rather than white/50: the
- * sign-in page has a theme toggle, and a bright card on a dark screen is the
- * one case where copying the WMS literally would look broken rather than
- * mirrored. Same construction, different ink.
+ * No dark variant, and none needed: AuthLayout pins this screen to the light
+ * theme for as long as it is mounted, so `:root.dark` never matches inside it.
  */
 .auth-glass-card {
   width: 100%;
@@ -143,11 +159,6 @@
   .auth-glass-card {
     padding: 2rem;
   }
-}
-
-:root.dark .auth-glass-card {
-  border-color: var(--color-gray-700);
-  background: rgba(26, 34, 49, 0.55);
 }
 
 .auth-card-logo {

@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 
-import ThemeToggleButton from '@/apps/Header/ThemeToggleButton';
+import { useTheme } from '@/context/ThemeContext';
+
+// import ThemeToggleButton from '@/apps/Header/ThemeToggleButton';  // the toggle lives in the header of the signed-in app only
 
 // The two images in public/. Percent-encoded because they are interpolated into
 // a CSS url() below, where a literal space would end the token.
@@ -24,11 +26,25 @@ const BACKGROUND_INTERVAL_MS = 5000;
     4. in modules/AuthModule/index.jsx, uncomment the `SideContent` import and the
        `sideContent` prop it passes.
 
-  The background and the theme toggle are deliberately not part of that block -
-  they are the new design and are not meant to be restored away.
+  Restoring it also brings back the theme toggle that sat in its right-hand
+  column. The background and the light pin below are not part of that block:
+  they are current behaviour, not something to restore away.
 */
 export default function AuthLayout({ children }) {
   const [activeBackground, setActiveBackground] = useState(0);
+  const { setForcedLight } = useTheme();
+
+  // This screen is light, always. It shows no toggle, and the glass card is
+  // built against a light backdrop, so a user who had chosen dark would
+  // otherwise be stuck on a theme they cannot change from here.
+  //
+  // Only the screen is pinned, not the user's setting: the preference stays in
+  // localStorage and comes back the moment this unmounts. A layout effect so
+  // the class is settled before the first paint rather than a frame after it.
+  useLayoutEffect(() => {
+    setForcedLight(true);
+    return () => setForcedLight(false);
+  }, [setForcedLight]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,10 +68,6 @@ export default function AuthLayout({ children }) {
             style={{ backgroundImage: `url("${image}")` }}
           />
         ))}
-      </div>
-
-      <div className="auth-theme-toggle">
-        <ThemeToggleButton />
       </div>
 
       <div className="auth-stage">{children}</div>
