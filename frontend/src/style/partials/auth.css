@@ -143,7 +143,28 @@
  *
  * No dark variant, and none needed: AuthLayout pins this screen to the light
  * theme for as long as it is mounted, so `:root.dark` never matches inside it.
+ *
+ * `border-box` is the whole of the size difference from the WMS card. The WMS
+ * writes `max-w-md`, and Tailwind's preflight puts every element on border-box,
+ * so its 28rem is the card's OUTER width. This app has no such reset, so the
+ * same `max-width` here sized the content box instead: 448px of content, plus
+ * 32px of padding and a 1px border each side, rendered 514px wide - and the
+ * form column inside it 66px wider than the WMS's, which is what made the
+ * controls look oversized. The declarations below were already the WMS's
+ * numbers; only the box model differed.
+ *
+ * Applied to the descendants as well, so the controls inside are measured the
+ * same way rather than inheriting the page's default. antd already sets this on
+ * its own components, so for those it changes nothing - it is stated here so
+ * the card's geometry does not silently depend on that.
  */
+.auth-glass-card,
+.auth-glass-card *,
+.auth-glass-card *::before,
+.auth-glass-card *::after {
+  box-sizing: border-box;
+}
+
 .auth-glass-card {
   width: 100%;
   max-width: 28rem;
@@ -176,6 +197,51 @@
   margin-bottom: 24px;
   color: var(--app-text);
   text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   The form controls, at the WMS's numbers.
+
+   The WMS sign-in hands its own class list to a shared input component:
+     h-11 rounded-lg px-4 py-2.5 border-gray-500 text-lg font-medium
+   Read from that list alone it says 18px text, and it would be wrong: the
+   component's base classes include `text-sm` as well, and in the compiled
+   stylesheet `.text-sm` is emitted after `.text-lg`, so at equal specificity
+   the 14px is what renders. The values below are the ones that actually do,
+   taken from the WMS's built CSS rather than its markup:
+
+     44px tall .............. h-11 (11 x .25rem)
+     10px 16px padding ...... py-2.5 / px-4
+     14px text, weight 500 .. text-sm / font-medium
+     1px solid #667085 ...... border-gray-500, which beats the base border-gray-300
+     8px radius ............. rounded-lg (--radius-lg)
+     transparent background . bg-transparent, so the glass reads through
+
+   Ant's large input is a 40px box with 16px text and 11px inline padding - a
+   different control, and the reason the two sign-in pages still would not
+   match once the card is the same width. #667085 is this app's own
+   --color-gray-500, the same value the WMS uses.
+
+   Scoped to the card, so nothing else in the app is affected.
+--------------------------------------------------------------------------- */
+.auth-glass-card .ant-input,
+.auth-glass-card .ant-input-affix-wrapper {
+  height: 44px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-color: var(--color-gray-500);
+  background-color: transparent;
+}
+
+/* Both fields carry a prefix, so both render as an affix wrapper: antd puts the
+   padding on the wrapper and zeroes it on the input inside. Stated here because
+   the rule above gives padding to both, and without this the text would be
+   inset twice and the two fields would not line up with each other. */
+.auth-glass-card .ant-input-affix-wrapper > .ant-input {
+  height: auto;
+  padding: 0;
+  background-color: transparent;
 }
 
 /* The rotation still happens, it just stops sliding. */
