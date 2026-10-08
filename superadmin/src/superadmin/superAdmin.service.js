@@ -13,7 +13,27 @@ import { request } from '@/request';
  * email already exists" surfaces to the user without extra work here.
  */
 
-export const listUsers = () => request.get({ entity: 'superadmin/users' });
+/**
+ * Tenant accounts, optionally narrowed to one workspace.
+ *
+ * `workspace` is a query parameter rather than a path segment, because it
+ * narrows this collection rather than naming a different one - and it is left
+ * off the URL entirely when the caller has not chosen one. That matters: the
+ * controller reads an absent parameter as "every workspace", so a cleared
+ * dropdown asks exactly the question this call asked before the filter existed,
+ * rather than a special `all` value the server would have to know about.
+ *
+ * Built onto the entity string by hand, following listWorkspaces below, because
+ * request.get takes no options object. The id is percent-encoded rather than
+ * pasted in raw: it is an opaque handle on this side, and nothing here should
+ * have to know it is hex.
+ */
+export const listUsers = ({ workspace } = {}) =>
+  request.get({
+    entity: workspace
+      ? `superadmin/users?workspace=${encodeURIComponent(workspace)}`
+      : 'superadmin/users',
+  });
 
 export const createUser = ({ jsonData }) => request.post({ entity: 'superadmin/users', jsonData });
 
