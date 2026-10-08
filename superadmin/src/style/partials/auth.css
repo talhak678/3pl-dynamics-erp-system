@@ -182,10 +182,22 @@
   }
 }
 
+/* The logo, at the WMS's width.
+ *
+ * The WMS writes `width={120} height={15}`, which reads like a wide flat strip -
+ * and is not what renders. Both products use the same 2669x1944 asset (a mark
+ * above a wordmark, 1.37:1, byte-identical between the two repos), and Tailwind's
+ * preflight ends with `img,video{max-width:100%;height:auto}`. That is an author
+ * rule, so it beats the `height="15"` attribute, which is only a presentational
+ * hint. The WMS logo therefore draws 120px wide by 87px tall, at its true ratio.
+ * Capping this one at 120px wide lands on the same 120x87 and saves 44px of card
+ * height against the 180px it was, which is most of why this card read as the
+ * larger of the two. `height: auto` is already stated below, so the ratio holds
+ * here without depending on a preflight this app does not have. */
 .auth-card-logo {
   display: block;
   width: 60%;
-  max-width: 180px;
+  max-width: 120px;
   height: auto;
   margin: 0 auto 20px;
   object-fit: contain;
