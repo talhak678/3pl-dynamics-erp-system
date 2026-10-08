@@ -1,4 +1,5 @@
 const { scopedFilter, userFilter, isReservedFilterKey } = require('../../../middlewares/ownership');
+const { datedWindowFor } = require('../../../utils/dateRange');
 
 const paginatedList = async (Model, req, res) => {
   const page = req.query.page || 1;
@@ -49,6 +50,25 @@ const paginatedList = async (Model, req, res) => {
   const perUser = userFilter(Model, req);
 
   if (Object.keys(perUser).length > 0) conditions.push(perUser);
+
+  /*
+   * The header's date window.
+   *
+   * This file is People's own list controller rather than the shared one, so it
+   * does not inherit the clause the shared one pushes - which is why People kept
+   * showing every person after the rest of the app had been brought under the
+   * control. The call here is the same one, through the same gate: it returns
+   * null unless `People` is in DATED_MODELS, so the policy still lives in one
+   * place and this controller cannot widen it.
+   *
+   * Pushed as its own `$and` entry beside the scope, so it can only remove rows.
+   * People declares no business date, so the window resolves to `created` - the
+   * moment the person was entered - and not to a `createdAt`, which this schema
+   * does not have.
+   */
+  const dateWindow = datedWindowFor(Model, req);
+
+  if (dateWindow) conditions.push(dateWindow);
 
   const query = { $and: conditions };
 

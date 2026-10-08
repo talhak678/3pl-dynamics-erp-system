@@ -416,6 +416,13 @@ export default function DashboardModule() {
    * and a printable page is opened in a tab so the user's own browser can produce
    * the file. Without that branch the fallback would be saved as a file called
    * .pdf containing HTML.
+   *
+   * The chosen window travels with the request. The server assembles the report
+   * from the very summary handlers this page calls, so handing it the same two
+   * parameters is what makes the document say what the screen says — the same
+   * figures, over the same period the reader is looking at. Without them the
+   * handlers receive no bounds, every section answers for all time, and the PDF
+   * contradicts the dashboard it was generated from.
    */
   const [reportLoading, setReportLoading] = useState(false);
 
@@ -423,7 +430,7 @@ export default function DashboardModule() {
     setReportLoading(true);
 
     try {
-      const response = await request.download({ url: 'dashboard/report' });
+      const response = await request.download({ url: 'dashboard/report', options: dateQuery });
 
       // A failure here has already been reported by the request layer, which
       // returns its own shape rather than a response.

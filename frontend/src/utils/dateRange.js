@@ -117,23 +117,32 @@ export const rangeForPreset = (preset, custom, now = dayjs()) => {
  * already use for backend/src/utils/roles.js. The server remains the authority
  * on whether the window is applied; this list only decides which tables bother
  * re-fetching when it moves, and the two must not drift: a module named on the
- * server but missing here would silently stop refreshing.
+ * server but missing here would keep its old rows until the reader navigated
+ * away and back, which reads as the filter half-working.
  *
- * The list is short and the tables that are NOT on it are many - Product, Taxes,
- * PaymentMode, Client, Company, People, Order, ExpenseCategory. That asymmetry is
- * the reason this gate exists rather than re-fetching everywhere. The header's
- * control is rendered on every page, so an ungated re-fetch would reload those
- * tables, and drop them back to page one, on a filter the server ignores for
- * them entirely.
+ * What is left out is the catalogue - Product, ProductCategory, ExpenseCategory,
+ * Taxes and PaymentMode - and the absence of those is the reason this gate
+ * exists rather than re-fetching everywhere. The header's control is rendered on
+ * every page, so an ungated re-fetch would reload those tables, and drop them
+ * back to page one, on a filter the server ignores for them entirely.
+ *
+ * Client, Company, People and Order are here because the module checklist
+ * requires a range on those screens. Those four models declare no business date,
+ * so the server windows them on `created`; the invoice, quote, offer and payment
+ * lists are windowed on their own `date` instead.
  *
  * Shipment is here because the server lists it, though no screen shows one yet.
  */
 export const DATED_ENTITIES = Object.freeze([
+  'client',
+  'company',
   'expense',
   'invoice',
   'lead',
   'offer',
+  'order',
   'payment',
+  'people',
   'quote',
   'shipment',
 ]);

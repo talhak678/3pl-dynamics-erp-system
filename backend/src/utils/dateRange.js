@@ -13,8 +13,10 @@
  * Nothing here is applied unless a caller asks for it. A request carrying
  * neither param gets the same clause it got before this existed, which is what
  * keeps the older field-specific `type` preset below working unchanged - and
- * what leaves the pipeline board and the offer form, which share the leads
- * listAll endpoint, reading every lead exactly as they did before.
+ * what leaves the offer form's lead picker, which shares the leads listAll
+ * endpoint with the pipeline board, reading every lead exactly as it did
+ * before. The pipeline board now sends the params and is windowed; the picker
+ * is not a list screen and still asks for nothing.
  */
 
 /**
@@ -144,15 +146,42 @@ const withDateWindow = (Model, req, ...conditions) => {
  * catalogue.
  *
  * So the window is opt-in per model, and this set is the whole of the policy.
+ * Every list controller that applies a window asks through datedWindowFor, so
+ * this Set and not the controller is what decides - a name added here and
+ * nowhere else still does nothing until its controller asks, and a controller
+ * that asks for a name missing from here gets null and quietly shows
+ * everything.
+ *
  * Shipment is in it because it declares a business date, though no screen lists
  * one yet.
+ *
+ * Client, Company, People and Order are in it because the module checklist
+ * requires a range on those screens. None of the four declares a business date,
+ * so all four window on `created` - the moment the record was entered. On a
+ * customer that is "added in the range" rather than "dated in the range", which
+ * is the only reading the schema supports; an invoice or a quote does have a
+ * business date and is windowed on that instead, so the two families answer
+ * subtly different questions over the same control.
+ *
+ * The catalogue is deliberately absent: Product, ProductCategory,
+ * ExpenseCategory, Taxes and PaymentMode are all things a workspace sets up
+ * once and then lists in full, and hiding half a list of categories behind a
+ * range no one associates with them is the bug the Set exists to prevent.
+ *
+ * The field is `created`. Never `createdAt` - these schemas declare their own
+ * `created` and `updated` and carry no Mongoose timestamps, so a clause on
+ * `createdAt` matches no document at all and every list reads empty.
  */
 const DATED_MODELS = new Set([
+  'Client',
+  'Company',
   'Expense',
   'Invoice',
   'Lead',
   'Offer',
+  'Order',
   'Payment',
+  'People',
   'Quote',
   'Shipment',
 ]);

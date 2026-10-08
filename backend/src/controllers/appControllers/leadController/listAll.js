@@ -8,16 +8,17 @@ const { withDateWindow } = require('../../../utils/dateRange');
  * Every lead the caller may see. Two different screens read it, and they want
  * different things from it:
  *
- *   - The Sales Pipeline board and the offer form's lead picker want all of
- *     them, and ask with no query parameters at all.
- *   - The dashboard's sales analytics cards want the ones inside the date range
- *     the reader has chosen, and ask with `startDate` and `endDate`.
+ *   - The offer form's lead picker wants all of them, and is not a list screen,
+ *     so it asks with no query parameters at all and gets every lead.
+ *   - The Sales Pipeline board and the dashboard's sales analytics cards are
+ *     both under the header's date control, and both ask with `startDate` and
+ *     `endDate`.
  *
  * Both are served by sending the window through when it is there and leaving the
- * query exactly as it was when it is not, so neither screen has to know about
- * the other. A request with no window produces `$and: [{removed: false}, scope]`,
- * which is the same set the flat `{removed: false, ...scope}` it replaced
- * returned.
+ * query exactly as it was when it is not, so neither kind of caller has to know
+ * about the other. A request with no window produces
+ * `$and: [{removed: false}, scope]`, which is the same set the flat
+ * `{removed: false, ...scope}` it replaced returned.
  *
  * The window is measured against `created`, the moment the lead was entered -
  * not, as one might expect, against a `createdAt`. This schema does not use

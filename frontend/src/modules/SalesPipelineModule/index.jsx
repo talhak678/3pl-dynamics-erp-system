@@ -13,6 +13,7 @@ import {
 
 import { request } from '@/request';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
+import { selectDateRangeDescription, selectDateRangeQuery } from '@/redux/dateRange/selectors';
 import StatTile from '@/components/StatTile';
 import useAssigneeDirectory from '@/hooks/useAssigneeDirectory';
 import { SALES_STAGES, stageOf } from '@/utils/salesStages';
@@ -39,13 +40,37 @@ const { Title, Text } = Typography;
  * real.
  *
  * Data comes from listAll rather than the paginated list on purpose. A board is
- * a view of everything at once, and a column showing only the first page of its
- * leads would be quietly lying. The cost is an unbounded request, so a workspace
- * with a very large pipeline is the case to watch; the fix is a per-stage count
- * plus a per-stage page, which is a change to this call and not to the board.
+ * a view of the whole pipeline at once, and a column showing only the first page
+ * of its leads would be quietly lying. The listAll call carries the header's
+ * date window, so "the whole pipeline" means the whole of it inside the chosen
+ * range. The cost is an unbounded request, so a workspace with a very large
+ * pipeline is the case to watch; the fix is a per-stage count plus a per-stage
+ * page, which is a change to this call and not to the board.
  */
 export default function SalesPipelineModule() {
   const currentAdmin = useSelector(selectCurrentAdmin);
+
+  /*
+   * The header's window, read from the same slice the list thunks read.
+   *
+   * The board is a leads screen like any other, so it is under the same control
+   * as the leads table - and until this was wired up it was the one screen in
+   * the app where moving that control changed nothing at all. The header renders
+   * it on every page, including this one, so the board is where the omission was
+   * most visible: a visible control that did nothing.
+   *
+   * The window is applied by the server, through the leadFilter the board's
+   * scoping already goes through, rather than filtered here: the whole
+   * workspace's leads would still cross the wire for a browser-side pass to
+   * throw most of them away. See utils/dateRange.js in the backend.
+   */
+  const dateQuery = useSelector(selectDateRangeQuery);
+  const dateDescription = useSelector(selectDateRangeDescription);
+
+  // The two bounds named individually, so the loader re-runs when the window
+  // itself moves and not when the memoised query wrapper is rebuilt. They are
+  // strings and change only when the reader applies a different range.
+  const { startDate, endDate } = dateQuery;
 
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +101,16 @@ export default function SalesPipelineModule() {
     setFailed(false);
 
     try {
-      const data = await request.listAll({ entity: 'lead' });
+      /*
+       * The window goes over as the two query parameters the server already
+       * understands, and nothing else changes: leadFilter still decides which
+       * rows the caller may see at all, and the window is a separate `$and`
+       * entry beside it, so an executive's board narrows within their own leads
+       * and never reaches past them. An empty query object is passed straight
+       * through when no window is set, so a request with no range is byte-for-
+       * byte the one this call made before.
+       */
+      const data = await request.listAll({ entity: 'lead', options: dateQuery });
 
       // The request layer returns its own failure shape rather than throwing, so
       // a refused or broken call arrives as a missing result rather than as an
@@ -92,7 +126,10 @@ export default function SalesPipelineModule() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // The range, so this re-runs when it moves and the board is never left
+    // showing rows from a window the header has already moved off.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
 
   useEffect(() => {
     loadLeads();
@@ -201,8 +238,17 @@ export default function SalesPipelineModule() {
           <Title level={2} style={{ margin: 0 }}>
             Sales Pipeline
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ display: 'block' }}>
             Drag a lead between stages, or use the stage selector on its card.
+          </Text>
+          {/*
+            Which window the board is drawn over. The control that sets it is in
+            the app header, well away from these columns, so without a caption a
+            reader who had left a range applied on another page would find a
+            thinned-out pipeline and nothing on screen accounting for it.
+          */}
+          <Text type="secondary" style={{ display: 'block', fontSize: 12.5 }}>
+            Showing {dateDescription}
           </Text>
         </div>
         <Tooltip title="Reload the pipeline">

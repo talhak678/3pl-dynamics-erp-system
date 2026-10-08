@@ -315,11 +315,27 @@ const request = {
    * The raw response is returned rather than response.data, because the caller
    * needs the Content-Type (PDF or the printable-page fallback) and the
    * Content-Disposition filename, both of which successHandler would discard.
+   *
+   * `options` is serialised exactly as list, listAll and summary serialise theirs,
+   * so a caller passes the same `{startDate, endDate}` object it would pass to a
+   * summary and the document is generated over the same window. The report reads
+   * its window from `req.query` and nowhere else, and this is the only route to
+   * it — without this the handler sees no bounds and reports all time while the
+   * dashboard behind it shows a month.
+   *
+   * An empty object produces no query string at all rather than a bare '?',
+   * because '?' is sliced off with the trailing ampersand that was never added.
    */
-  download: async ({ url }) => {
+  download: async ({ url, options = {} }) => {
     try {
       includeToken();
-      const response = await axios.get(url, { responseType: 'blob' });
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+
+      const response = await axios.get(url + query, { responseType: 'blob' });
 
       return response;
     } catch (error) {
