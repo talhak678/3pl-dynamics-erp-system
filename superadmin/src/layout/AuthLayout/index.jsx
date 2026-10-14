@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 
 // The two images in public/. Percent-encoded because they are interpolated into
 // a CSS url() below, where a literal space would end the token.
-const AUTH_BACKGROUNDS = ['/ERP%20BG%201.jpg', '/ERP%20BG%202.jpg'];
+const AUTH_BACKGROUNDS = ['/ERP%20BG%201.jpg', '/ERP%20BG%202-1.jpg'];
 
 // Matches the WMS auth layout: swap every 5s, cross-fade over 1s.
 const BACKGROUND_INTERVAL_MS = 5000;
