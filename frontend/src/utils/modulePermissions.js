@@ -70,6 +70,13 @@ export const ALL_MODULES = [
   'generalSettings',
   'taxes',
   'help',
+
+  // The three Sales & CRM sub-modules. Additive: every key above is unchanged,
+  // so an account whose stored array predates this feature keeps every grant it
+  // had. Mirrors the same three additions in backend/src/utils/moduleList.js.
+  'sales_followups',
+  'sales_targets',
+  'sales_forecasting',
 ];
 
 /**

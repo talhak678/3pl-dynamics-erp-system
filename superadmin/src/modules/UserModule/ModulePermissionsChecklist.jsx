@@ -1,19 +1,34 @@
-import { Alert, Button, Checkbox, Divider, Typography } from 'antd';
+import { Alert, Button, Checkbox, Divider, Tag, Typography } from 'antd';
 
-import { ERP_MODULES, MODULE_GROUPS, modulesInGroup } from '@/utils/moduleList';
+import {
+  ERP_MODULES,
+  MODULE_GROUPS_IN_ORDER,
+  modulesInGroup,
+  placeholdersInGroup,
+} from '@/utils/moduleList';
 
 const { Text } = Typography;
 
 /**
- * Grouped checkbox grid over the 17 ERP modules.
+ * Parent/child checkbox grid over the ten ERP modules.
+ *
+ * Each parent header carries a tri-state checkbox - ticked when all of its
+ * children are ticked, indeterminate when only some are - and a Select all /
+ * Clear shortcut beside it. Individual children stay independently toggleable.
  *
  * The warning banner is not decoration. The backend resolves an empty array to
- * "every module", so a super admin who clears all 18 boxes and saves has granted
+ * "every module", so a super admin who clears every box and saves has granted
  * FULL access, not none. The UI has to say so or the control silently does the
  * opposite of what it looks like it does.
+ *
+ * Placeholders render disabled and tagged "Soon". They are entries from the
+ * shared registry with no implementation behind them; they appear so this
+ * hierarchy matches the sidebar, but they cannot be ticked because granting one
+ * would grant nothing.
  */
 export default function ModulePermissionsChecklist({ value = [], onChange, disabled = false }) {
-  const selected = Array.isArray(value) ? value : [];
+  const knownKeys = new Set(ERP_MODULES.map((module) => module.key));
+  const selected = (Array.isArray(value) ? value : []).filter((key) => knownKeys.has(key));
   const isEmpty = selected.length === 0;
 
   const toggle = (key, checked) => {
@@ -21,8 +36,8 @@ export default function ModulePermissionsChecklist({ value = [], onChange, disab
     onChange?.([...new Set(next)]);
   };
 
-  const toggleGroup = (group, checked) => {
-    const keys = modulesInGroup(group).map((module) => module.key);
+  const toggleGroup = (groupKey, checked) => {
+    const keys = modulesInGroup(groupKey).map((module) => module.key);
     const next = checked
       ? [...selected, ...keys]
       : selected.filter((item) => !keys.includes(item));
@@ -49,29 +64,31 @@ export default function ModulePermissionsChecklist({ value = [], onChange, disab
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {MODULE_GROUPS.map((group) => {
-          const modules = modulesInGroup(group);
+        {MODULE_GROUPS_IN_ORDER.map((group) => {
+          const modules = modulesInGroup(group.key);
+          const placeholders = placeholdersInGroup(group.key);
+
           const keys = modules.map((module) => module.key);
-          const allChecked = keys.every((key) => selected.includes(key));
+          const allChecked = keys.length > 0 && keys.every((key) => selected.includes(key));
           const someChecked = keys.some((key) => selected.includes(key));
 
           return (
-            <div key={group}>
+            <div key={group.key}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                 <Checkbox
                   checked={allChecked}
                   indeterminate={!allChecked && someChecked}
-                  disabled={disabled}
-                  onChange={(event) => toggleGroup(group, event.target.checked)}
+                  disabled={disabled || keys.length === 0}
+                  onChange={(event) => toggleGroup(group.key, event.target.checked)}
                 >
-                  <Text strong>{group}</Text>
+                  <Text strong>{group.label}</Text>
                 </Checkbox>
                 <Divider style={{ margin: 0, flex: 1, minWidth: 0 }} />
                 <Button
                   type="link"
                   size="small"
-                  disabled={disabled}
-                  onClick={() => toggleGroup(group, !allChecked)}
+                  disabled={disabled || keys.length === 0}
+                  onClick={() => toggleGroup(group.key, !allChecked)}
                 >
                   {allChecked ? 'Clear' : 'Select all'}
                 </Button>
@@ -93,6 +110,13 @@ export default function ModulePermissionsChecklist({ value = [], onChange, disab
                     onChange={(event) => toggle(module.key, event.target.checked)}
                   >
                     {module.label}
+                  </Checkbox>
+                ))}
+
+                {placeholders.map((entry) => (
+                  <Checkbox key={entry.key} disabled>
+                    <Text type="secondary">{entry.label}</Text>{' '}
+                    <Tag style={{ marginInlineEnd: 0, fontSize: 10 }}>Soon</Tag>
                   </Checkbox>
                 ))}
               </div>

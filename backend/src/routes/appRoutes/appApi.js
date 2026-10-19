@@ -5,6 +5,7 @@ const router = express.Router();
 const appControllers = require('../../controllers/appControllers');
 const { routesList } = require('../../models/utils');
 const requireModuleAccess = require('../../middlewares/requireModuleAccess');
+const salesForecastController = require('../../controllers/appControllers/salesForecastController');
 
 // Registered ahead of the entity routes below so it runs first for every request
 // this router handles. req.admin is already populated by the time we get here:
@@ -35,5 +36,20 @@ routesList.forEach(({ entity, controllerName }) => {
   const controller = appControllers[controllerName];
   routerApp(entity, controller);
 });
+
+/**
+ * Sales Forecasting is the one module with no model behind it, so it gets no
+ * automatic route: routesList is generated from the filenames in
+ * models/appModels, and there is deliberately no SalesForecast model - every
+ * figure is derived on read. The route is written out here, under the same
+ * requireModuleAccess guard mounted above, which resolves the `salesforecast`
+ * first segment to the `sales_forecasting` key through ENTITY_MODULE_MAP.
+ *
+ * Registered after the entity routes for readability only; no entity is named
+ * `salesforecast`, so nothing above can match this path.
+ */
+router
+  .route('/salesforecast/summary')
+  .get(catchErrors(salesForecastController.summary));
 
 module.exports = router;

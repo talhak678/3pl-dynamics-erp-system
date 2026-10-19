@@ -194,6 +194,12 @@ const SCOPED_MODEL_NAMES = [
   'Order',
   'Expense',
   'ExpenseCategory',
+  // A follow-up records both authorship and an assignee, so a child account
+  // sees the ones it scheduled plus the ones handed to it - the same rule as
+  // the lead it belongs to. SalesTarget is deliberately absent: a target is a
+  // workspace-level figure that the owner publishes, so every account granted
+  // the module sees the company-wide set (see salesTargetController/listAll.js).
+  'FollowUp',
 ];
 
 const isScopedModel = (Model) =>

@@ -119,4 +119,9 @@ export const SALES_EXECUTIVE_MODULES = [
   'customer',
   'company',
   'people',
+  // Working a lead is mostly making the next call, so the dedicated module is
+  // part of the job rather than an optional extra. It is a grantable key of its
+  // own (unlike the pipeline, which is a second view of `lead`), so it belongs
+  // in this list where a role preset can hand it out.
+  'sales_followups',
 ];

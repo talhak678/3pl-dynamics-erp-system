@@ -1,67 +1,222 @@
 import { ALL_MODULES, resolveModules } from './modulePermissions';
 
 /**
- * The grantable ERP modules, with the labels and grouping the permission
- * checklist renders.
+ * The ERP's ten parent modules, in sidebar order, with the grantable children
+ * under each and the placeholders that have no implementation yet.
  *
- * The keys are taken from ALL_MODULES in utils/modulePermissions.js rather than
- * written out again, so the two can never drift: that file already mirrors
- * MODULE_KEYS in backend/src/utils/moduleList.js, which is the authority and
- * rejects any key it does not know. This file adds only presentation.
+ * The parent is a RENDERING hierarchy, not a second permission layer. It has no
+ * key of its own and cannot be granted; it is shown when at least one of its
+ * children is held. That is why every parent below carries `order` (the
+ * grantable keys) and `placeholders` (entries that are drawn but do nothing).
  *
- * A key with no entry below still renders, labelled with its raw key, in
- * "Other". That is deliberately ugly - it means a module was added to the
- * backend and to ALL_MODULES without anyone deciding where it belongs in the
- * UI, and a visible oddity is a better outcome than a checkbox that silently
- * does not appear.
+ * Placeholders are deliberately NOT in ALL_MODULES. Granting one would hand out
+ * a capability that does not exist - a checked box that changes nothing - so
+ * they are presentation only and the checklists render them disabled. They are
+ * still listed here, in the shared registry, because the sidebar, the
+ * permission checklist and the checklist's "Soon" tags all have to agree about
+ * which entries exist.
  *
- * The reverse - a line here for a key ALL_MODULES no longer carries - is simply
- * unreachable, since this table is only read through the keys. One such line was
- * deleted when 'report' was retired, rather than left as a lookup nothing
- * reaches.
+ * The grantable keys are still checked against ALL_MODULES, which mirrors the
+ * backend's MODULE_KEYS - the authority. If a key is added to the backend and
+ * to ALL_MODULES but not placed in `order` below, it falls into the "Other"
+ * group rather than disappearing: a visible oddity is better than a checkbox
+ * nobody can find.
  */
+export const MODULE_GROUPS = [
+  {
+    key: 'dashboard-reports',
+    label: 'Dashboard & Reports',
+    order: ['dashboard'],
+    placeholders: [{ key: 'placeholder:reports', label: 'Reports' }],
+  },
+  {
+    key: 'sales-crm',
+    label: 'Sales & CRM',
+    order: [
+      'customer',
+      'lead',
+      'quote',
+      'offer',
+      'order',
+      'sales_followups',
+      'sales_targets',
+      'sales_forecasting',
+    ],
+    // Sales Pipeline has no checkbox and should not get one: it is a second view
+    // of the `lead` module, served entirely by /api/lead/*, so the Leads grant
+    // already covers it. See utils/salesPipeline.js.
+    placeholders: [],
+  },
+  {
+    key: 'accounting-finance',
+    label: 'Accounting & Finance',
+    order: ['invoice', 'payment', 'expenses', 'category/expenses', 'taxes'],
+    placeholders: [
+      { key: 'placeholder:chart_of_accounts', label: 'Chart of Accounts' },
+      { key: 'placeholder:vouchers', label: 'Vouchers' },
+      { key: 'placeholder:ledger', label: 'Ledger' },
+      { key: 'placeholder:customer_supplier_balances', label: 'Customer / Supplier Balances' },
+      { key: 'placeholder:financial_statements', label: 'Financial Statements' },
+    ],
+  },
+  {
+    key: 'products-inventory',
+    label: 'Products & Inventory',
+    order: ['product', 'category/product'],
+    placeholders: [
+      { key: 'placeholder:stock_tracking', label: 'Stock Tracking' },
+      { key: 'placeholder:warehouses', label: 'Warehouses' },
+      { key: 'placeholder:stock_adjustments', label: 'Stock Adjustments' },
+      { key: 'placeholder:stock_transfers', label: 'Stock Transfers' },
+    ],
+  },
+  {
+    key: 'purchase-suppliers',
+    label: 'Purchase & Suppliers',
+    order: [],
+    placeholders: [
+      { key: 'placeholder:suppliers', label: 'Suppliers' },
+      { key: 'placeholder:purchase_orders', label: 'Purchase Orders' },
+      { key: 'placeholder:goods_received', label: 'Goods Received' },
+      { key: 'placeholder:supplier_bills', label: 'Supplier Bills' },
+    ],
+  },
+  {
+    key: 'pos',
+    label: 'POS (Point of Sale)',
+    order: [],
+    placeholders: [
+      { key: 'placeholder:pos_billing', label: 'POS Billing' },
+      { key: 'placeholder:pos_sales_transactions', label: 'Sales Transactions' },
+      { key: 'placeholder:pos_payment_processing', label: 'Payment Processing' },
+      { key: 'placeholder:pos_receipt_generation', label: 'Receipt Generation' },
+      { key: 'placeholder:pos_inventory_sync', label: 'POS Inventory Synchronization' },
+    ],
+  },
+  {
+    key: 'hr-payroll',
+    label: 'HR & Payroll',
+    order: ['people'],
+    placeholders: [
+      { key: 'placeholder:employee_records', label: 'Employee Records' },
+      { key: 'placeholder:attendance', label: 'Attendance' },
+      { key: 'placeholder:leave_management', label: 'Leave Management' },
+      { key: 'placeholder:basic_payroll', label: 'Basic Payroll' },
+    ],
+  },
+  {
+    key: 'operations',
+    label: 'Operations',
+    order: [],
+    placeholders: [
+      { key: 'placeholder:tasks', label: 'Tasks' },
+      { key: 'placeholder:activities', label: 'Activities' },
+      { key: 'placeholder:approval_workflows', label: 'Approval Workflows' },
+      { key: 'placeholder:production_work_orders', label: 'Basic Production / Work Orders' },
+    ],
+  },
+  {
+    key: 'website-ecommerce',
+    label: 'Website & E-Commerce',
+    order: [],
+    placeholders: [
+      { key: 'placeholder:website_management', label: 'Website Management' },
+      { key: 'placeholder:product_catalog_sync', label: 'Product Catalog Sync' },
+      { key: 'placeholder:online_orders', label: 'Online Orders' },
+      { key: 'placeholder:customer_sync', label: 'Customer Sync' },
+    ],
+  },
+  {
+    key: 'administration-settings',
+    label: 'Administration & Settings',
+    order: ['company', 'generalSettings', 'help'],
+    // User Management is owner-only and deliberately not grantable, so it has no
+    // checkbox. It is still in the sidebar's Administration group.
+    placeholders: [
+      { key: 'placeholder:role_permissions', label: 'Role-Based Permissions' },
+      { key: 'placeholder:audit_history', label: 'Audit History' },
+      { key: 'placeholder:department_management', label: 'Department Management' },
+    ],
+  },
+];
+
+// Where each grantable key lives, and what it is called. Kept as a flat table
+// rather than nested inside MODULE_GROUPS so ERP_MODULES can be derived from
+// ALL_MODULES - the list that mirrors the server - instead of from a second
+// hand-written list of keys.
 const PRESENTATION = {
-  dashboard: ['Dashboard & Reports', 'Overview'],
+  dashboard: ['Dashboard', 'dashboard-reports'],
 
-  invoice: ['Invoices', 'Sales'],
-  quote: ['Quotes', 'Sales'],
-  payment: ['Payments', 'Sales'],
-  order: ['Orders', 'Sales'],
-  offer: ['Offers for Leads', 'Sales'],
-  lead: ['Leads', 'Sales'],
+  customer: ['Customers', 'sales-crm'],
+  lead: ['Leads', 'sales-crm'],
+  quote: ['Quotes', 'sales-crm'],
+  offer: ['Offers for Leads', 'sales-crm'],
+  order: ['Orders', 'sales-crm'],
+  sales_followups: ['Sales Follow-ups', 'sales-crm'],
+  sales_targets: ['Sales Targets', 'sales-crm'],
+  sales_forecasting: ['Sales Forecasting', 'sales-crm'],
 
-  customer: ['Customers', 'Contacts'],
-  people: ['People', 'Contacts'],
-  company: ['Companies', 'Contacts'],
+  invoice: ['Invoices', 'accounting-finance'],
+  payment: ['Payments', 'accounting-finance'],
+  expenses: ['Expenses', 'accounting-finance'],
+  'category/expenses': ['Expenses Category', 'accounting-finance'],
+  taxes: ['Taxes', 'accounting-finance'],
 
-  product: ['Products', 'Catalog'],
-  'category/product': ['Products Category', 'Catalog'],
+  product: ['Products', 'products-inventory'],
+  'category/product': ['Products Category', 'products-inventory'],
 
-  expenses: ['Expenses', 'Finance'],
-  'category/expenses': ['Expenses Category', 'Finance'],
-  taxes: ['Taxes', 'Finance'],
+  people: ['People', 'hr-payroll'],
 
-  generalSettings: ['Settings', 'System'],
-  help: ['Help', 'System'],
+  company: ['Companies', 'administration-settings'],
+  generalSettings: ['Settings', 'administration-settings'],
+  help: ['Help', 'administration-settings'],
 };
 
-// Rendered in this order; anything unlisted follows, in ALL_MODULES order.
-const GROUP_ORDER = ['Overview', 'Sales', 'Contacts', 'Catalog', 'Finance', 'System', 'Other'];
+const OTHER_GROUP = {
+  key: 'other',
+  label: 'Other',
+  order: [],
+  placeholders: [],
+};
 
+const ALL_GROUPS = [...MODULE_GROUPS, OTHER_GROUP];
+
+const groupLabelFor = (key) =>
+  ALL_GROUPS.find((group) => group.key === key)?.label ?? OTHER_GROUP.label;
+
+/** The flat list of grantable modules, labelled and placed. */
 export const ERP_MODULES = ALL_MODULES.map((key) => {
-  const [label, group] = PRESENTATION[key] ?? [key, 'Other'];
-  return { key, label, group };
+  const [label, group] = PRESENTATION[key] ?? [key, 'other'];
+
+  return { key, label, group, groupLabel: groupLabelFor(group) };
 });
 
-export const MODULE_GROUPS = [...new Set(ERP_MODULES.map((module) => module.group))].sort(
-  (a, b) => {
-    const ai = GROUP_ORDER.indexOf(a);
-    const bi = GROUP_ORDER.indexOf(b);
-    return (ai === -1 ? GROUP_ORDER.length : ai) - (bi === -1 ? GROUP_ORDER.length : bi);
-  }
+/** The groups a checklist should render, in order, including "Other" only when used. */
+export const MODULE_GROUPS_IN_ORDER = ALL_GROUPS.filter(
+  (group) => group.order.length > 0 || group.placeholders.length > 0
 );
 
-export const modulesInGroup = (group) => ERP_MODULES.filter((module) => module.group === group);
+/**
+ * The grantable modules in one group, in the order the sidebar shows them.
+ *
+ * Anything placed in the group by PRESENTATION but missing from `order` is
+ * appended rather than dropped - see the file comment.
+ */
+export const modulesInGroup = (groupKey) => {
+  const group = ALL_GROUPS.find((item) => item.key === groupKey);
+  const inGroup = ERP_MODULES.filter((module) => module.group === groupKey);
+
+  if (!group) return inGroup;
+
+  const byKey = new Map(inGroup.map((module) => [module.key, module]));
+  const ordered = group.order.map((key) => byKey.get(key)).filter(Boolean);
+  const placed = new Set(ordered.map((module) => module.key));
+
+  return [...ordered, ...inGroup.filter((module) => !placed.has(module.key))];
+};
+
+export const placeholdersInGroup = (groupKey) =>
+  ALL_GROUPS.find((item) => item.key === groupKey)?.placeholders ?? [];
 
 export const labelForKey = (key) => ERP_MODULES.find((module) => module.key === key)?.label ?? key;
 
@@ -84,7 +239,9 @@ export const describePermissions = (permissions) => {
 
   return {
     all: false,
-    count: permissions.length,
+    // Ignore retired and placeholder keys when counting: they grant nothing, so
+    // counting them would overstate what the account can reach.
+    count: permissions.filter((key) => ERP_MODULES.some((module) => module.key === key)).length,
     labels: permissions.map(labelForKey),
   };
 };

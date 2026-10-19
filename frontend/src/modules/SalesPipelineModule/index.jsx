@@ -16,9 +16,11 @@ import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { selectDateRangeDescription, selectDateRangeQuery } from '@/redux/dateRange/selectors';
 import StatTile from '@/components/StatTile';
 import useAssigneeDirectory from '@/hooks/useAssigneeDirectory';
+import { hasModule } from '@/utils/modulePermissions';
 import { SALES_STAGES, stageOf } from '@/utils/salesStages';
 
 import LeadCard from './components/LeadCard';
+import LeadFollowUpsDrawer from './components/LeadFollowUpsDrawer';
 import StageColumn from './components/StageColumn';
 
 const { Title, Text } = Typography;
@@ -84,6 +86,12 @@ export default function SalesPipelineModule() {
   // awkward to do safely and unavailable during dragenter, when the column needs
   // to know whether this drag is even one of ours.
   const [draggedLead, setDraggedLead] = useState(null);
+
+  // The lead whose follow-up drawer is open, if any. Follow-ups are a separate
+  // module grant: an account with the pipeline but not `sales_followups` still
+  // moves cards, and simply is not offered the button.
+  const [followUpLead, setFollowUpLead] = useState(null);
+  const canFollowUps = hasModule(currentAdmin, 'sales_followups');
 
   // /api/team is owner-only, so an executive never loads a directory and their
   // colleagues stay unnamed rather than the request failing on every sign-in.
@@ -349,6 +357,7 @@ export default function SalesPipelineModule() {
                     onMove={(next) => moveLead(lead, next)}
                     onDragStart={setDraggedLead}
                     onDragEnd={() => setDraggedLead(null)}
+                    onOpenFollowUps={canFollowUps ? setFollowUpLead : undefined}
                   />
                 ))}
               </StageColumn>
@@ -356,6 +365,19 @@ export default function SalesPipelineModule() {
           })}
         </div>
       )}
+
+      {/*
+        The board's shared-follow-up entry point. `onChanged` reloads the board,
+        which is how a follow-up scheduled or completed here updates the cached
+        `followUpDate` the card draws - the server has already written it to the
+        lead by the time the drawer reports back.
+      */}
+      <LeadFollowUpsDrawer
+        open={Boolean(followUpLead)}
+        lead={followUpLead}
+        onClose={() => setFollowUpLead(null)}
+        onChanged={loadLeads}
+      />
     </Space>
   );
 }

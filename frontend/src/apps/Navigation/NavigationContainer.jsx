@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Button, Drawer, Layout, Menu } from 'antd';
@@ -9,7 +9,6 @@ import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { resolveModules } from '@/utils/modulePermissions';
 import { canUseSalesPipeline } from '@/utils/salesPipeline';
 
-import useLanguage from '@/locale/useLanguage';
 import lightLogo from '@/style/images/light-logo.png';
 import darkLogo from '@/style/images/dark-logo.png';
 import { useTheme } from '@/context/ThemeContext';
@@ -17,111 +16,213 @@ import { useTheme } from '@/context/ThemeContext';
 import useResponsive from '@/hooks/useResponsive';
 
 import {
-  CustomerServiceOutlined,
+  AimOutlined,
+  AppstoreOutlined,
+  BankOutlined,
+  ClockCircleOutlined,
   ContainerOutlined,
-  FileSyncOutlined,
-  DashboardOutlined,
   CreditCardOutlined,
-  MenuOutlined,
-  ShopOutlined,
-  WalletOutlined,
-  ReconciliationOutlined,
-  UserOutlined,
+  CustomerServiceOutlined,
+  DashboardOutlined,
   FileOutlined,
+  FileSyncOutlined,
   FilterOutlined,
+  FunnelPlotOutlined,
+  GlobalOutlined,
+  LineChartOutlined,
+  MenuOutlined,
+  ReconciliationOutlined,
+  RiseOutlined,
+  ScheduleOutlined,
+  SettingOutlined,
+  ShopOutlined,
+  ShoppingCartOutlined,
+  ShoppingOutlined,
   TagOutlined,
   TagsOutlined,
-  ShoppingCartOutlined,
   TeamOutlined,
-  FunnelPlotOutlined,
+  ToolOutlined,
+  TruckOutlined,
+  UserOutlined,
+  UsergroupAddOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
 
 /**
- * Not gated by the module allow-list: the navigation entries carrying
- * `ungated: true`.
+ * The sidebar is ten collapsible parent modules, not a flat list.
  *
- * filterByModules drops every item whose key is absent from the granted list.
- * Two entries cannot be expressed as a module key at all:
+ * A parent is a RENDERING hierarchy, not a permission. It has no key of its own
+ * and cannot be granted; it is drawn while at least one of its children is
+ * held. The `module` property on a child is the grantable key from the server's
+ * MODULE_KEYS - it is separate from `key` because a few modules have a
+ * hyphenated URL that is not their permission key (`sales-follow-ups` vs
+ * `sales_followups`), and because the key is what `selectedKeys` matches.
  *
- *   User Management  a capability of owning the workspace, and deliberately not
- *                    something an owner can grant away.
- *   Sales Pipeline   real, but a second view of the `lead` module rather than a
- *                    module of its own - /api/lead/* is what sits behind it -
- *                    so its key is not in the granted list and never will be.
+ * Placeholders are entries with no implementation. They are marked
+ * `placeholder: true`, rendered disabled, and carry a small "Soon" marker. A
+ * disabled Ant Design menu item is inert - no route change, no 404, no reload -
+ * which is exactly the requirement; the marker is what keeps it from reading as
+ * a broken link.
  *
- * Without this both would vanish from the sidebar of any tenant whose modules
- * are restricted, which is exactly the tenant most likely to be managing
- * employees or working leads.
- *
- * Such an entry is passed through the filter untouched and rebuilt without the
- * marker, so it never reaches the Ant Design Menu. The marker is not what gates
- * it: the entry is only built into `items` at all when its own condition holds,
- * a few lines below. This just stops the module filter from removing it a
- * second time.
+ * Labels are plain strings. `translate()` only title-cases and does not read the
+ * locale files, so wrapping these would add indirection without adding a
+ * translation.
  */
+
+/** A working entry: it links somewhere and is gated by `module`. */
+const navItem = (module, path, label, icon) => ({
+  key: path.replace(/^\//, '') || 'dashboard',
+  module,
+  icon,
+  label: <Link to={path}>{label}</Link>,
+});
+
+/** A not-yet-built entry. Disabled, so Ant Design makes it inert. */
+const placeholderItem = (key, label) => ({
+  key,
+  placeholder: true,
+  disabled: true,
+  icon: <ClockCircleOutlined />,
+  label: (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        // The disabled state already mutes the row; this keeps the marker a
+        // shade quieter than the label so it does not read as a status badge.
+        opacity: 0.85,
+      }}
+    >
+      <span>{label}</span>
+      <span style={{ fontSize: 10, letterSpacing: 0.3, opacity: 0.7 }}>SOON</span>
+    </span>
+  ),
+});
+
 const isUngatedEntry = (item) => item.ungated === true;
 
-/** Drops the marker so it never reaches the Ant Design Menu. */
+/**
+ * Drops the navigation-only markers so they never reach the Ant Design Menu.
+ *
+ * `disabled` is deliberately kept: Ant Design understands it, and it is what
+ * makes a placeholder inert.
+ */
 const stripMarker = (item) => {
-  // A copy with the key deleted, rather than `({ ungated, ...item }) => item`.
-  // The destructure reads better but names a binding it never uses, which
-  // no-unused-vars reports - and silence would need ignoreRestSiblings turned
-  // on for the whole project, hiding genuine unused variables everywhere else.
   const stripped = { ...item };
   delete stripped.ungated;
+  delete stripped.placeholder;
+  delete stripped.module;
   return stripped;
 };
 
+const groupHasVisibleActiveChild = (children) => children.some((child) => !child.placeholder);
+
+const onlyPlaceholders = (children) =>
+  children.length > 0 && children.every((child) => child.placeholder);
+
 /**
- * Narrows the navigation tree to the modules an account has been granted.
+ * Narrows the ten groups to the modules an account has been granted.
+ *
+ * Rules, in the order they matter:
+ *
+ *   - An ungated child (Sales Pipeline, User Management) is not a grantable
+ *     module. It was only built into the tree when its own role condition held,
+ *     so it is always kept. See the comments where each is appended.
+ *   - A placeholder is kept with its parent. Placeholders have no permission
+ *     key, and hiding the roadmap of a module the account does hold would make
+ *     the parent look emptier than the product's own structure.
+ *   - A parent is shown when at least one ACTIVE child is granted, or when the
+ *     parent has no active children at all (Purchase & Suppliers, POS,
+ *     Operations, Website & E-Commerce). Those four exist only as roadmaps, so
+ *     "no granted child" cannot hide them - and hiding them from restricted
+ *     tenants would make the ten-module structure look like six.
+ *   - A parent whose active children were all withheld is dropped, because a
+ *     dropdown containing nothing but "Soon" entries describes work the account
+ *     cannot do.
  *
  * The "empty or absent list means every module" rule lives in
- * utils/modulePermissions.js, which the route guard reads too — so the menu and
+ * utils/modulePermissions.js, which the route guard reads too - so the menu and
  * the routes can never disagree about who may see what.
- *
- * Every entry is rebuilt without the marker, on both paths, so an unknown prop
- * never reaches rc-menu's item.
  */
-const filterByModules = (items, admin) => {
+const filterByModules = (groups, admin) => {
   const granted = resolveModules(admin);
 
-  // Mapped even on this path: an unrestricted account still carries the ungated
-  // entries, and letting that marker reach the Menu would spread an unknown
-  // prop onto rc-menu's item.
-  if (!granted) return items.map(stripMarker);
+  if (!granted) {
+    return groups.map((group) => ({
+      ...group,
+      children: group.children.map(stripMarker),
+    }));
+  }
 
-  return items.reduce((visible, item) => {
-    // Not module-gated, so the granted list says nothing about it. Rebuilt
-    // without the marker rather than pushed as-is, so the Menu never sees it.
-    if (isUngatedEntry(item)) {
-      visible.push(stripMarker(item));
-      return visible;
+  return groups.reduce((visible, group) => {
+    const children = group.children ?? [];
+
+    const kept = children.filter((child) => {
+      if (child.placeholder) return true;
+      if (isUngatedEntry(child)) return true;
+      return granted.includes(child.module ?? child.key);
+    });
+
+    // `children`, not `kept`: a group whose active children were all withheld
+    // must be dropped even though its placeholders survived the filter.
+    if (groupHasVisibleActiveChild(kept) || onlyPlaceholders(children)) {
+      visible.push({ ...group, children: kept.map(stripMarker) });
     }
 
-    // A container entry - one that renders a disclosure triangle over `children`
-    // - is not a module and has no key in the server's MODULE_KEYS, so it can
-    // never appear in the allow-list. Matching one on its own key would drop the
-    // whole group even for an account granted every module inside it; it has to
-    // survive on its children and fall away only once none of them are granted.
-    //
-    // Nothing in `items` above is shaped that way any more. The Settings group
-    // was the last one, and Taxes and Help were promoted out of it to top-level
-    // entries. The branch stays because dropping it would not fail loudly: the
-    // fall-through below would match a container on its own key, find nothing,
-    // and silently delete any nested entry someone adds later for exactly the
-    // restricted tenants the filter exists to serve.
-    if (Array.isArray(item.children)) {
-      const children = item.children.filter((child) => granted.includes(child.key));
-      if (children.length > 0) visible.push({ ...item, children });
-      return visible;
-    }
-
-    if (granted.includes(item.key)) visible.push(item);
     return visible;
   }, []);
 };
+
+/**
+ * Which menu entry a URL belongs to.
+ *
+ * Longest match wins, so `/category/product` beats `/category`, and a detail
+ * route such as `/invoice/read/123` still highlights Invoices rather than
+ * matching nothing. The fallback is the path itself, which simply highlights
+ * nothing - the same outcome as before this existed.
+ */
+const SELECTABLE_PATHS = [
+  'dashboard',
+  'invoice',
+  'quote',
+  'payment',
+  'customer',
+  'people',
+  'company',
+  'lead',
+  'sales-pipeline',
+  'offer',
+  'product',
+  'category/product',
+  'order',
+  'expenses',
+  'category/expenses',
+  'sales-follow-ups',
+  'sales-targets',
+  'sales-forecasting',
+  'user-management',
+  // `/settings/edit/:key` is the Settings editor; without this the page
+  // highlights nothing and Administration & Settings never auto-opens.
+  'settings',
+];
+
+const selectedKeyFor = (pathname) => {
+  const path = String(pathname || '').replace(/^\//, '');
+
+  if (path === '') return 'dashboard';
+
+  const match = SELECTABLE_PATHS.filter(
+    (candidate) => path === candidate || path.startsWith(`${candidate}/`)
+  ).sort((a, b) => b.length - a.length)[0];
+
+  return match ?? path;
+};
+
+const parentKeyFor = (groups, selectedKey) =>
+  groups.find((group) => group.children?.some((child) => child.key === selectedKey))?.key;
 
 export default function Navigation() {
   const { isMobile } = useResponsive();
@@ -130,15 +231,13 @@ export default function Navigation() {
 }
 
 function Sidebar({ collapsible, isMobile = false }) {
-  let location = useLocation();
+  const location = useLocation();
   const { theme } = useTheme();
 
   const { state: stateApp, appContextAction } = useAppContext();
   const { isNavMenuClose } = stateApp;
   const { navMenu } = appContextAction;
-  const [currentPath, setCurrentPath] = useState(location.pathname.slice(1));
 
-  const translate = useLanguage();
   const navigate = useNavigate();
   const currentAdmin = useSelector(selectCurrentAdmin);
 
@@ -153,134 +252,185 @@ function Sidebar({ collapsible, isMobile = false }) {
   // page and must not be offered the pipeline.
   const canSeePipeline = canUseSalesPipeline(currentAdmin);
 
-  const items = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: <Link to={'/'}>{translate('Dashboard & Reports')}</Link>,
-    },
-    {
-      key: 'invoice',
-      icon: <ContainerOutlined />,
-      label: <Link to={'/invoice'}>{translate('invoices')}</Link>,
-    },
-    {
-      key: 'payment',
-      icon: <CreditCardOutlined />,
-      label: <Link to={'/payment'}>{translate('payments')}</Link>,
-    },
-    {
-      key: 'quote',
-      icon: <FileSyncOutlined />,
-      label: <Link to={'/quote'}>{translate('quote')}</Link>,
-    },
-    {
-      key: 'customer',
-      icon: <CustomerServiceOutlined />,
-      label: <Link to={'/customer'}>{translate('customers')}</Link>,
-    },
-    {
-      key: 'people',
-      icon: <UserOutlined />,
-      label: <Link to={'/people'}>{translate('peoples')}</Link>,
-    },
-    {
-      key: 'company',
-      icon: <ShopOutlined />,
-      label: <Link to={'/company'}>{translate('companies')}</Link>,
-    },
-    {
-      key: 'lead',
-      icon: <FilterOutlined />,
-      label: <Link to={'/lead'}>{translate('leads')}</Link>,
-    },
-    // Sits next to Leads because it is the same records seen another way.
-    // Appended here rather than filtered out later, for the same reason as the
-    // entry below: an item that was never built is not one devtools inspection
-    // away from being a visible one.
-    ...(canSeePipeline
-      ? [
-          {
-            // Must match the URL minus its leading slash: the Menu highlights
-            // with selectedKeys={[currentPath]}, and currentPath is the
-            // pathname sliced at 1.
-            key: 'sales-pipeline',
-            icon: <FunnelPlotOutlined />,
-            label: <Link to={'/sales-pipeline'}>{translate('Sales Pipeline')}</Link>,
-            ungated: true,
-          },
-        ]
-      : []),
-    {
-      key: 'offer',
-      icon: <FileOutlined />,
-      label: <Link to={'/offer'}>{translate('Offers for Leads')}</Link>,
-    },
-    {
-      key: 'product',
-      icon: <TagOutlined />,
-      label: <Link to={'/product'}>{translate('products')}</Link>,
-    },
-    {
-      key: 'category/product',
-      icon: <TagsOutlined />,
-      label: <Link to={'/category/product'}>{translate('Products Category')}</Link>,
-    },
-    {
-      key: 'order',
-      icon: <ShoppingCartOutlined />,
-      label: <Link to={'/order'}>{translate('Order')}</Link>,
-    },
-    {
-      key: 'expenses',
-      icon: <WalletOutlined />,
-      label: <Link to={'/expenses'}>{translate('expenses')}</Link>,
-    },
-    {
-      key: 'category/expenses',
-      icon: <ReconciliationOutlined />,
-      label: <Link to={'/category/expenses'}>{translate('Expenses Category')}</Link>,
-    },
-    // Only the account that owns the workspace sees this, and employees never
-    // do. Appended conditionally rather than filtered out afterwards, so the
-    // entry does not exist at all for an employee - a hidden menu item is one
-    // devtools inspection away from being a visible one.
-    ...(isOwner
-      ? [
-          {
-            // Must match the URL minus its leading slash: the Menu highlights
-            // with selectedKeys={[currentPath]}, and currentPath is the
-            // pathname sliced at 1. 'category/product' works the same way.
-            key: 'user-management',
-            icon: <TeamOutlined />,
-            label: <Link to={'/user-management'}>{translate('User Management')}</Link>,
-            ungated: true,
-          },
-        ]
-      : []),
-    // Nothing below here belongs to the sidebar any more. Taxes and Help used to
-    // sit in a "Settings" group at this position, and General Settings in the
-    // same group; all three now live in a nested Settings submenu on the profile
-    // dropdown in the header, which is where an account looks for its own
-    // configuration. The sidebar is left carrying the modules that are work -
-    // the pipeline, the records, the documents - rather than a second copy of
-    // the app's settings screens.
-    //
-    // Their module keys are unchanged and still gate them: the header asks
-    // hasModule() for the same 'generalSettings', 'taxes' and 'help' strings
-    // that filterByModules used to ask on this side, so no permission moved.
-  ];
+  const selectedKey = selectedKeyFor(location.pathname);
 
-  const visibleItems = filterByModules(items, currentAdmin);
+  /*
+   * The ten parents, in the CEO's order. Conditional entries are appended in
+   * place rather than filtered out later, because an item that was never built
+   * is never one devtools inspection away from being a visible one.
+   */
+  const groups = useMemo(
+    () => [
+      {
+        key: 'group-dashboard-reports',
+        icon: <DashboardOutlined />,
+        label: 'Dashboard & Reports',
+        children: [
+          navItem('dashboard', '/', 'Dashboard', <DashboardOutlined />),
+          placeholderItem('placeholder:reports', 'Reports'),
+        ],
+      },
+      {
+        key: 'group-sales-crm',
+        icon: <RiseOutlined />,
+        label: 'Sales & CRM',
+        children: [
+          navItem('customer', '/customer', 'Customers', <CustomerServiceOutlined />),
+          navItem('lead', '/lead', 'Leads', <FilterOutlined />),
+          ...(canSeePipeline
+            ? [
+                {
+                  key: 'sales-pipeline',
+                  icon: <FunnelPlotOutlined />,
+                  label: <Link to="/sales-pipeline">Sales Pipeline</Link>,
+                  // A second view of the `lead` module, so its key is not in the
+                  // granted list and never will be. Built only when the role
+                  // predicate holds.
+                  ungated: true,
+                },
+              ]
+            : []),
+          navItem('quote', '/quote', 'Quotes', <FileSyncOutlined />),
+          navItem('offer', '/offer', 'Offers for Leads', <FileOutlined />),
+          navItem('order', '/order', 'Orders', <ShoppingCartOutlined />),
+          navItem('sales_followups', '/sales-follow-ups', 'Sales Follow-ups', <ScheduleOutlined />),
+          navItem('sales_targets', '/sales-targets', 'Sales Targets', <AimOutlined />),
+          navItem('sales_forecasting', '/sales-forecasting', 'Sales Forecasting', <LineChartOutlined />),
+        ],
+      },
+      {
+        key: 'group-accounting-finance',
+        icon: <BankOutlined />,
+        label: 'Accounting & Finance',
+        children: [
+          navItem('invoice', '/invoice', 'Invoices', <ContainerOutlined />),
+          navItem('payment', '/payment', 'Payments', <CreditCardOutlined />),
+          navItem('expenses', '/expenses', 'Expenses', <WalletOutlined />),
+          navItem('category/expenses', '/category/expenses', 'Expense Categories', <ReconciliationOutlined />),
+          placeholderItem('placeholder:chart_of_accounts', 'Chart of Accounts'),
+          placeholderItem('placeholder:vouchers', 'Vouchers'),
+          placeholderItem('placeholder:ledger', 'Ledger'),
+          placeholderItem('placeholder:customer_supplier_balances', 'Customer / Supplier Balances'),
+          placeholderItem('placeholder:financial_statements', 'Financial Statements'),
+        ],
+      },
+      {
+        key: 'group-products-inventory',
+        icon: <AppstoreOutlined />,
+        label: 'Products & Inventory',
+        children: [
+          navItem('product', '/product', 'Products', <TagOutlined />),
+          navItem('category/product', '/category/product', 'Product Categories', <TagsOutlined />),
+          placeholderItem('placeholder:stock_tracking', 'Stock Tracking'),
+          placeholderItem('placeholder:warehouses', 'Warehouses'),
+          placeholderItem('placeholder:stock_adjustments', 'Stock Adjustments'),
+          placeholderItem('placeholder:stock_transfers', 'Stock Transfers'),
+        ],
+      },
+      {
+        key: 'group-purchase-suppliers',
+        icon: <TruckOutlined />,
+        label: 'Purchase & Suppliers',
+        children: [
+          placeholderItem('placeholder:suppliers', 'Suppliers'),
+          placeholderItem('placeholder:purchase_orders', 'Purchase Orders'),
+          placeholderItem('placeholder:goods_received', 'Goods Received'),
+          placeholderItem('placeholder:supplier_bills', 'Supplier Bills'),
+        ],
+      },
+      {
+        key: 'group-pos',
+        icon: <ShoppingOutlined />,
+        label: 'POS (Point of Sale)',
+        children: [
+          placeholderItem('placeholder:pos_billing', 'POS Billing'),
+          placeholderItem('placeholder:pos_sales_transactions', 'Sales Transactions'),
+          placeholderItem('placeholder:pos_payment_processing', 'Payment Processing'),
+          placeholderItem('placeholder:pos_receipt_generation', 'Receipt Generation'),
+          placeholderItem('placeholder:pos_inventory_sync', 'POS Inventory Synchronization'),
+        ],
+      },
+      {
+        key: 'group-hr-payroll',
+        icon: <UsergroupAddOutlined />,
+        label: 'HR & Payroll',
+        children: [
+          navItem('people', '/people', 'People', <UserOutlined />),
+          placeholderItem('placeholder:employee_records', 'Employee Records'),
+          placeholderItem('placeholder:attendance', 'Attendance'),
+          placeholderItem('placeholder:leave_management', 'Leave Management'),
+          placeholderItem('placeholder:basic_payroll', 'Basic Payroll'),
+        ],
+      },
+      {
+        key: 'group-operations',
+        icon: <ToolOutlined />,
+        label: 'Operations',
+        children: [
+          placeholderItem('placeholder:tasks', 'Tasks'),
+          placeholderItem('placeholder:activities', 'Activities'),
+          placeholderItem('placeholder:approval_workflows', 'Approval Workflows'),
+          placeholderItem('placeholder:production_work_orders', 'Basic Production / Work Orders'),
+        ],
+      },
+      {
+        key: 'group-website-ecommerce',
+        icon: <GlobalOutlined />,
+        label: 'Website & E-Commerce',
+        children: [
+          placeholderItem('placeholder:website_management', 'Website Management'),
+          placeholderItem('placeholder:product_catalog_sync', 'Product Catalog Sync'),
+          placeholderItem('placeholder:online_orders', 'Online Orders'),
+          placeholderItem('placeholder:customer_sync', 'Customer Sync'),
+        ],
+      },
+      {
+        key: 'group-administration-settings',
+        icon: <SettingOutlined />,
+        label: 'Administration & Settings',
+        children: [
+          navItem('company', '/company', 'Companies', <ShopOutlined />),
+          // Only the account that owns the workspace sees this. Appended
+          // conditionally for the same reason as the pipeline entry: the entry
+          // does not exist at all for an employee.
+          ...(isOwner
+            ? [
+                {
+                  key: 'user-management',
+                  icon: <TeamOutlined />,
+                  label: <Link to="/user-management">User Management</Link>,
+                  ungated: true,
+                },
+              ]
+            : []),
+          navItem('generalSettings', '/settings', 'Settings', <SettingOutlined />),
+          placeholderItem('placeholder:role_permissions', 'Role-Based Permissions'),
+          placeholderItem('placeholder:audit_history', 'Audit History'),
+          placeholderItem('placeholder:department_management', 'Department Management'),
+        ],
+      },
+    ],
+    [canSeePipeline, isOwner]
+  );
+
+  const visibleItems = useMemo(
+    () => filterByModules(groups, currentAdmin),
+    [groups, currentAdmin]
+  );
+
+  // The active parent opens on arrival and whenever navigation moves to another
+  // group. Controlled so a reader can also collapse a group they are not using;
+  // this only ever ADDS the active one.
+  const activeParent = parentKeyFor(groups, selectedKey);
+  const [openKeys, setOpenKeys] = useState(() => (activeParent ? [activeParent] : []));
 
   useEffect(() => {
-    if (location)
-      if (currentPath !== location.pathname) {
-        if (location.pathname === '/') {
-          setCurrentPath('dashboard');
-        } else setCurrentPath(location.pathname.slice(1));
-      }
-  }, [location, currentPath]);
+    if (!activeParent) return;
+
+    setOpenKeys((current) =>
+      current.includes(activeParent) ? current : [...current, activeParent]
+    );
+  }, [activeParent]);
 
   const onCollapse = () => {
     navMenu.collapse();
@@ -312,7 +462,9 @@ function Sidebar({ collapsible, isMobile = false }) {
         items={visibleItems}
         mode="inline"
         theme={theme}
-        selectedKeys={[currentPath]}
+        selectedKeys={[selectedKey]}
+        openKeys={openKeys}
+        onOpenChange={setOpenKeys}
         style={{
           width: 256,
         }}

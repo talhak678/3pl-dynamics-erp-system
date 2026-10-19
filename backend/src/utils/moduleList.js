@@ -38,6 +38,21 @@ const MODULE_KEYS = [
   'generalSettings',
   'taxes',
   'help',
+
+  // The three Sales & CRM sub-modules added alongside the grouped navigation.
+  //
+  // They are ordinary grantable keys, not navigation-only markers: each has a
+  // page, a route and API endpoints, so granting one grants something. The
+  // sidebar's ten parent modules are a rendering hierarchy, not a second
+  // permission layer - a parent has no key of its own and is shown when at
+  // least one of its children is held.
+  //
+  // Every pre-existing key above is unchanged, which is what makes accounts
+  // saved before this feature keep working: their stored arrays are still
+  // entirely valid, and the new keys are additive.
+  'sales_followups',
+  'sales_targets',
+  'sales_forecasting',
 ];
 
 /**
@@ -97,6 +112,16 @@ const ENTITY_MODULE_MAP = {
   expense: 'expenses',
   expensecategory: 'category/expenses',
   taxes: 'taxes',
+
+  // The three new Sales & CRM modules. The entity names are derived from the
+  // model filenames by models/utils, so they are `followup` for FollowUp.js and
+  // `salestarget` for SalesTarget.js. `salesforecast` is not a model - it is
+  // the aggregation endpoint mounted explicitly in routes/appRoutes/appApi.js -
+  // but it still arrives at requireModuleAccess with that first path segment, so
+  // it needs an entry here for the same reason the others do.
+  followup: 'sales_followups',
+  salestarget: 'sales_targets',
+  salesforecast: 'sales_forecasting',
 };
 
 /** The module governing an entity, or null when no module covers it. */

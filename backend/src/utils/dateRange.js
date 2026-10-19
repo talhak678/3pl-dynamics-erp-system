@@ -176,6 +176,10 @@ const DATED_MODELS = new Set([
   'Client',
   'Company',
   'Expense',
+  // A follow-up has a real business date (`date`), so the window means "due in
+  // this range" rather than "entered in this range" - which is the reading the
+  // Sales Follow-ups module's Today/Overdue tabs assume.
+  'FollowUp',
   'Invoice',
   'Lead',
   'Offer',
@@ -183,6 +187,11 @@ const DATED_MODELS = new Set([
   'Payment',
   'People',
   'Quote',
+  // Sales targets are windowed on `created`, not on their own startDate/endDate:
+  // the header control decides which target CARDS are listed, while each
+  // target's period decides which real records count toward its progress. Those
+  // are two separate questions - see the model comment.
+  'SalesTarget',
   'Shipment',
 ]);
 

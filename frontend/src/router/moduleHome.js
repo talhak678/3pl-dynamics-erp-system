@@ -14,7 +14,7 @@ import { resolveModules } from '@/utils/modulePermissions';
  * rather than at some other page. Both are a visible oddity, not a wrong
  * destination.
  *
- * Every one of the seventeen keys has an entry today.
+ * Every one of the twenty keys has an entry today.
  *
  * A plain module rather than a hook or a component, because two guards and the
  * refusal screen all need this answer and none of them owns it.
@@ -37,6 +37,14 @@ export const MODULE_HOME_PATHS = {
   generalSettings: '/settings',
   taxes: '/taxes',
   help: '/help',
+
+  // The three Sales & CRM modules. Their URLs are hyphenated even though their
+  // permission keys are underscored - the key is the server's vocabulary, the
+  // path is the sidebar's, and the two have never been the same string for
+  // `category/product` either.
+  sales_followups: '/sales-follow-ups',
+  sales_targets: '/sales-targets',
+  sales_forecasting: '/sales-forecasting',
 };
 
 /**

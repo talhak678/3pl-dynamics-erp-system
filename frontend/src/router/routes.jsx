@@ -50,6 +50,10 @@ const UserManagement = lazy(() => import('@/pages/UserManagement'));
 
 const SalesPipeline = lazy(() => import('@/pages/SalesPipeline'));
 
+const SalesFollowUps = lazy(() => import('@/pages/SalesFollowUps'));
+const SalesTargets = lazy(() => import('@/pages/SalesTargets'));
+const SalesForecasting = lazy(() => import('@/pages/SalesForecasting'));
+
 const About = lazy(() => import('@/pages/About'));
 
 /**
@@ -197,6 +201,18 @@ let routes = {
           <SalesPipeline />
         </RequireSalesPipeline>
       ),
+    },
+    {
+      path: '/sales-follow-ups',
+      element: guarded('sales_followups', <SalesFollowUps />),
+    },
+    {
+      path: '/sales-targets',
+      element: guarded('sales_targets', <SalesTargets />),
+    },
+    {
+      path: '/sales-forecasting',
+      element: guarded('sales_forecasting', <SalesForecasting />),
     },
     {
       path: '/offer',

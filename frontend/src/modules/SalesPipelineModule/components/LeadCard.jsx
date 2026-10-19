@@ -1,10 +1,11 @@
 import { useRef } from 'react';
 
-import { Avatar, Select, Space, Tag, Tooltip, Typography } from 'antd';
+import { Avatar, Button, Select, Space, Tag, Tooltip, Typography } from 'antd';
 
 import {
   CalendarOutlined,
   MailOutlined,
+  ScheduleOutlined,
   ShopOutlined,
   UserOutlined,
   UserSwitchOutlined,
@@ -26,7 +27,15 @@ const { Text } = Typography;
  * not a redundant second control, it is the only one. It is also what a
  * keyboard user reaches for.
  */
-export default function LeadCard({ lead, assignee, isPending, onMove, onDragStart, onDragEnd }) {
+export default function LeadCard({
+  lead,
+  assignee,
+  isPending,
+  onMove,
+  onDragStart,
+  onDragEnd,
+  onOpenFollowUps,
+}) {
   const stage = stageOf(lead.salesStage);
 
   // Set while the pointer is down inside the controls. The card is the
@@ -165,6 +174,26 @@ export default function LeadCard({ lead, assignee, isPending, onMove, onDragStar
               }))}
             />
           </Tooltip>
+
+          {/*
+            The board's path into the shared follow-up collection. It writes
+            through /api/followup/*, the same endpoints the Sales Follow-ups
+            module uses, so completing a follow-up here and completing it there
+            are the same action - not two records that look alike.
+          */}
+          {onOpenFollowUps && (
+            <Tooltip title="View and schedule follow-ups for this lead">
+              <Button
+                size="small"
+                block
+                icon={<ScheduleOutlined />}
+                style={{ marginTop: 6 }}
+                onClick={() => onOpenFollowUps(lead)}
+              >
+                Follow-ups
+              </Button>
+            </Tooltip>
+          )}
         </div>
       </Space>
     </div>

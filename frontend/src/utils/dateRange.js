@@ -137,6 +137,7 @@ export const DATED_ENTITIES = Object.freeze([
   'client',
   'company',
   'expense',
+  'followup',
   'invoice',
   'lead',
   'offer',
@@ -144,6 +145,7 @@ export const DATED_ENTITIES = Object.freeze([
   'payment',
   'people',
   'quote',
+  'salestarget',
   'shipment',
 ]);
 
