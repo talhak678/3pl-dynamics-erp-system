@@ -33,6 +33,20 @@ export default function Localization({ children }) {
             darkItemSelectedColor: '#7592ff',
             itemSelectedBg: '#ecf3ff',
             itemSelectedColor: '#465fff',
+
+            /*
+             * An expanded inline submenu is its own surface in Ant Design:
+             * the light theme tints it with `colorFillAlter` and the dark
+             * algorithm swaps in `darkSubMenuItemBg` (#000c17), a near-black
+             * slab under the open parent. Both are pinned to the sider's own
+             * surface so an open group is indistinguishable from the rail
+             * behind it - in either theme.
+             *
+             * Keep these in step with `--app-surface` in style/theme.css.
+             * navigation.css carries the same rule as a stylesheet fallback.
+             */
+            subMenuItemBg: isDark ? '#1a2231' : '#ffffff',
+            darkSubMenuItemBg: '#1a2231',
           },
         },
       }}

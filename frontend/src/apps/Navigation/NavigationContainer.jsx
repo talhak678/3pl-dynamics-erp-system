@@ -418,19 +418,52 @@ function Sidebar({ collapsible, isMobile = false }) {
     [groups, currentAdmin]
   );
 
-  // The active parent opens on arrival and whenever navigation moves to another
-  // group. Controlled so a reader can also collapse a group they are not using;
-  // this only ever ADDS the active one.
-  const activeParent = parentKeyFor(groups, selectedKey);
+  // The parent of the route on screen. `visibleItems`, not `groups`: the active
+  // route must never put the key of a group this account cannot see into
+  // `openKeys`.
+  const activeParent = parentKeyFor(visibleItems, selectedKey);
+
+  // At most one parent is ever expanded. State holds an array because that is
+  // the Menu API's shape, but every writer below produces zero or one key.
   const [openKeys, setOpenKeys] = useState(() => (activeParent ? [activeParent] : []));
 
+  /*
+   * Navigation - not a click on a header - keeps the active group open.
+   *
+   * Replace rather than append: with a single-accordion state, appending would
+   * briefly hold two keys and let the next toggle close the wrong group. The
+   * guard leaves an already-correct single key alone, so clicking a child of
+   * the open group does not cause a pointless render.
+   *
+   * `selectedKey` is a dependency as well as `activeParent` because moving
+   * between two children of the same parent leaves `activeParent` unchanged;
+   * the active child must still find its group open.
+   */
   useEffect(() => {
     if (!activeParent) return;
 
     setOpenKeys((current) =>
-      current.includes(activeParent) ? current : [...current, activeParent]
+      current.length === 1 && current[0] === activeParent ? current : [activeParent]
     );
-  }, [activeParent]);
+  }, [activeParent, selectedKey]);
+
+  /*
+   * The single-accordion rule.
+   *
+   * Menu hands back the complete set of open keys, not the delta, so:
+   *   - a key that was not open before is the header just clicked - keep only
+   *     that one, closing whichever group was open;
+   *   - no new key means the click closed the open header - keep nothing.
+   *
+   * This only changes which dropdown is expanded. Parent headers are submenu
+   * titles with no link and no route of their own, so toggling one cannot
+   * navigate or reload the page.
+   */
+  const handleOpenChange = (keys) => {
+    const opened = keys.filter((key) => !openKeys.includes(key));
+
+    setOpenKeys(opened.length > 0 ? [opened[opened.length - 1]] : []);
+  };
 
   const onCollapse = () => {
     navMenu.collapse();
@@ -464,7 +497,7 @@ function Sidebar({ collapsible, isMobile = false }) {
         theme={theme}
         selectedKeys={[selectedKey]}
         openKeys={openKeys}
-        onOpenChange={setOpenKeys}
+        onOpenChange={handleOpenChange}
         style={{
           width: 256,
         }}

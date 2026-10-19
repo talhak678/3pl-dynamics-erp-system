@@ -3,6 +3,22 @@
   border-right: 1px solid var(--app-border);
 }
 
+/*
+ * An expanded parent group must not introduce a second background.
+ *
+ * Ant Design gives `.ant-menu-sub` its own surface - `colorFillAlter` in the
+ * light theme, `darkSubMenuItemBg` (#000c17, near-black) in the dark one - so
+ * an open dropdown drew a darker slab inside the sider. The Menu tokens in
+ * locale/Localization.jsx set both to the sider surface; this rule keeps the
+ * submenu matched to the same `--app-surface` even if a token is changed or a
+ * nested submenu picks up the default. Covers light and dark because the
+ * variable itself changes with the theme.
+ */
+.navigation .ant-menu-sub.ant-menu-inline,
+.navigation .ant-menu-inline .ant-menu-sub.ant-menu-inline {
+  background: var(--app-surface) !important;
+}
+
 .navigation::-webkit-scrollbar {
   display: none;
 }
