@@ -170,4 +170,24 @@ export const fields = {
     label: 'Follow-Up Date',
     disableForTable: true,
   },
+  /**
+   * The lead's expected value, and the number Sales Forecasting treats as the
+   * deal's size.
+   *
+   * The schema has always carried `total`, but nothing wrote it: the pipeline
+   * forecast therefore read zero for every lead that had no offer attached, and
+   * the module looked broken on a workspace that records value on the lead
+   * rather than in a document. A currency input is the missing write path.
+   *
+   * Optional. A lead with no value is still a lead; the forecast falls back to
+   * the largest active Offer linked to it, and only then reports zero.
+   *
+   * `disableForTable` because the leads list already has enough columns and a
+   * money figure without its currency reads worse there than on the form.
+   */
+  total: {
+    type: 'currency',
+    label: 'Deal Value',
+    disableForTable: true,
+  },
 };

@@ -40,19 +40,36 @@ const { Title, Text } = Typography;
  * Sales Forecasting.
  *
  * Every figure is derived on read from the tenant-scoped Lead, Offer, Quote,
- * Order and Invoice collections inside the active date window. There is no
- * forecast model and nothing to recompute: moving the header range re-asks the
- * question, and the answer is rebuilt from live records.
+ * Order and Invoice collections. There is no forecast model and nothing to
+ * recompute: the answer is rebuilt from live records on every request.
  *
- * The pipeline is the forecast; the other sources are reported separately rather
- * than added to it. An accepted offer becomes an invoice and an order may be
- * invoiced, so summing the sources would count one sale several times. The KPI
- * row deliberately shows booked invoice revenue as its own figure.
+ * Two clocks, deliberately:
+ *
+ *   The open pipeline - leads in an open stage, active offers and active quotes
+ *   - is LIVE and not filtered by the header window. A deal opened before the
+ *   selected range is still open today; windowing it hid it and made every KPI
+ *   read zero. Closed outcomes (the win rate) and booked documents (orders and
+ *   invoices in the source breakdown) DO follow the header window.
+ *
+ * Where a lead's value comes from:
+ *
+ *   Its own `total` when that is positive. Most leads in this ERP carry no
+ *   monetary value, so otherwise the server uses the largest active Offer linked
+ *   to the lead. Quotes have no lead reference and are added to the forecast as
+ *   their own document pipeline, as are offers whose lead is outside this
+ *   account's lead scope.
+ *
+ * The source breakdown is shown separately rather than summed, because an
+ * accepted offer becomes an invoice: adding every source would count one sale
+ * several times. Only document pipeline that no lead already represents is
+ * added to the top-line figures, and the server has already made that
+ * distinction - this screen just displays it.
  *
  * Stage probabilities are the server's defaults, shown as editable percentages
  * for what-if analysis. Editing one changes only this screen's weighted figures;
  * nothing is persisted, because a weight is a modelling assumption rather than a
- * record.
+ * record. Document pipeline is weighted by the server's fixed offer/quote
+ * percentages and is not editable here.
  */
 export default function SalesForecastingModule() {
   const dateQuery = useSelector(selectDateRangeQuery);
@@ -116,14 +133,24 @@ export default function SalesForecastingModule() {
   const adjusted = useMemo(() => {
     const open = stages.filter((stage) => !stageOf(stage.stage).closed);
 
-    const weightedValue = open.reduce((sum, stage) => sum + stage.adjustedWeighted, 0);
+    // Document pipeline that no lead already represents: active quotes, plus
+    // offers whose lead is outside this account's lead scope. The server has
+    // already excluded anything it added to a lead's value, so this is additive
+    // rather than a second count.
+    const documentWeighted = Number(data?.kpis?.documentWeightedValue) || 0;
+    const documentCommit = Number(data?.kpis?.documentCommitValue) || 0;
 
-    const commitValue = open
-      .filter((stage) => stage.stage === 'Proposal Sent' || stage.stage === 'In Negotiation')
-      .reduce((sum, stage) => sum + stage.adjustedWeighted, 0);
+    const leadWeightedValue = open.reduce((sum, stage) => sum + stage.adjustedWeighted, 0);
 
-    return { weightedValue, commitValue };
-  }, [stages]);
+    const weightedValue = leadWeightedValue + documentWeighted;
+
+    const commitValue =
+      open
+        .filter((stage) => stage.stage === 'Proposal Sent' || stage.stage === 'In Negotiation')
+        .reduce((sum, stage) => sum + stage.adjustedWeighted, 0) + documentCommit;
+
+    return { weightedValue, commitValue, leadWeightedValue };
+  }, [stages, data?.kpis?.documentWeightedValue, data?.kpis?.documentCommitValue]);
 
   const kpis = data?.kpis;
   const sources = data?.sources;
@@ -264,10 +291,12 @@ export default function SalesForecastingModule() {
             Sales Forecasting
           </Title>
           <Text type="secondary" style={{ display: 'block' }}>
-            Weighted pipeline, commit projection and booked revenue, derived live from your records.
+            Live weighted pipeline, commit projection and booked revenue - open deals are not
+            hidden by the header range.
           </Text>
           <Text type="secondary" style={{ display: 'block', fontSize: 12.5 }}>
-            Window: {dateDescription}
+            Header window {dateDescription} applies to closed outcomes and booked documents; the
+            open pipeline is always current.
           </Text>
         </div>
 
@@ -326,7 +355,9 @@ export default function SalesForecastingModule() {
         <Col xs={24} sm={12} xl={4}>
           <StatTile
             icon={<PercentageOutlined />}
-            label="Historical win rate"
+            label={
+              kpis?.winRateScope === 'window' ? 'Win rate (this window)' : 'Win rate (all time)'
+            }
             value={`${(Math.round((kpis?.winRate || 0) * 10) / 10).toFixed(1)}%`}
             color="var(--color-success-500)"
           />
@@ -356,6 +387,8 @@ export default function SalesForecastingModule() {
           </Text>
           <Text type="secondary" style={{ display: 'block', fontSize: 12.5 }}>
             Standard probabilities are used unless you change one. Edits affect this screen only.
+            A lead uses its own value, or its largest active offer when it has none; active quotes
+            and unlinked offers are added to the weighted figures separately.
           </Text>
         </div>
 
@@ -365,7 +398,7 @@ export default function SalesForecastingModule() {
           dataSource={stages}
           loading={loading}
           pagination={false}
-          scroll={{ x: 780 }}
+          scroll={{ x: 'max-content' }}
           summary={() => (
             <Table.Summary fixed>
               <Table.Summary.Row>
@@ -376,11 +409,11 @@ export default function SalesForecastingModule() {
                   <Text strong>{stages.filter((stage) => !stageOf(stage.stage).closed).reduce((sum, stage) => sum + stage.count, 0)}</Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={2} align="right">
-                  <Text strong>{money(kpis?.pipelineValue)}</Text>
+                  <Text strong>{money(kpis?.leadPipelineValue)}</Text>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={3} />
                 <Table.Summary.Cell index={4} align="right">
-                  <Text strong>{money(adjusted.weightedValue)}</Text>
+                  <Text strong>{money(adjusted.leadWeightedValue)}</Text>
                 </Table.Summary.Cell>
               </Table.Summary.Row>
             </Table.Summary>
@@ -416,7 +449,7 @@ export default function SalesForecastingModule() {
               dataSource={data?.months ?? []}
               loading={loading}
               pagination={false}
-              scroll={{ x: 480 }}
+              scroll={{ x: 'max-content' }}
             />
           </div>
         </Col>
@@ -437,8 +470,9 @@ export default function SalesForecastingModule() {
                 Source breakdown
               </Text>
               <Text type="secondary" style={{ display: 'block', fontSize: 12.5 }}>
-                Reported separately, not summed: an accepted offer becomes an invoice, so adding the
-                sources would count one sale more than once.
+                Reported separately, not summed: an accepted offer becomes an invoice, so adding
+                every source would count one sale more than once. Offers and quotes are live;
+                orders and invoices follow the header window.
               </Text>
             </div>
 
@@ -446,32 +480,43 @@ export default function SalesForecastingModule() {
               rowKey="label"
               loading={loading}
               pagination={false}
-              scroll={{ x: 380 }}
+              scroll={{ x: 'max-content' }}
               dataSource={[
                 {
-                  label: 'Open offers',
+                  label: 'Open offers (live)',
                   count: sources?.offerCount ?? 0,
                   value: sources?.offerValue ?? 0,
                 },
                 {
-                  label: 'Open quotes',
+                  label: 'Open quotes (live)',
                   count: sources?.quoteCount ?? 0,
                   value: sources?.quoteValue ?? 0,
                 },
                 {
-                  label: 'Orders',
+                  label: 'Added to forecast (not on a lead)',
+                  count: null,
+                  value: sources?.documentValue ?? 0,
+                },
+                {
+                  label: 'Orders (in window)',
                   count: sources?.orderCount ?? 0,
                   value: sources?.orderValue ?? 0,
                 },
                 {
-                  label: 'Invoiced (booked)',
+                  label: 'Invoiced, booked (in window)',
                   count: sources?.invoiceCount ?? 0,
                   value: sources?.bookedRevenue ?? 0,
                 },
               ]}
               columns={[
                 { title: 'Source', dataIndex: 'label' },
-                { title: 'Records', dataIndex: 'count', width: 100, align: 'right' },
+                {
+                  title: 'Records',
+                  dataIndex: 'count',
+                  width: 100,
+                  align: 'right',
+                  render: (value) => (value === null ? <Text type="secondary">-</Text> : value),
+                },
                 {
                   title: 'Value',
                   dataIndex: 'value',
@@ -499,10 +544,13 @@ export default function SalesForecastingModule() {
             Top high-value opportunities
           </Text>
           <Text type="secondary" style={{ display: 'block', fontSize: 12.5 }}>
-            Open leads ranked by weighted value. Win rate counts the leads opened in this window:
-            {(kpis?.lostCount ?? 0) + (kpis?.wonCount ?? 0) > 0
-              ? ` ${kpis?.wonCount ?? 0} won of ${(kpis?.wonCount ?? 0) + (kpis?.lostCount ?? 0)} closed.`
-              : ' no leads have closed in this window yet.'}
+            Open leads ranked by weighted value, with each lead's value taken from its own total or
+            its largest active offer.{' '}
+            {kpis?.winRateScope === 'window'
+              ? `Win rate counts closed leads entered in this window: ${kpis?.wonCount ?? 0} won of ${(kpis?.wonCount ?? 0) + (kpis?.lostCount ?? 0)} closed.`
+              : (kpis?.wonCount ?? 0) + (kpis?.lostCount ?? 0) > 0
+                ? `The window contains no closed lead, so the win rate uses all closed leads: ${kpis?.wonCount ?? 0} won of ${(kpis?.wonCount ?? 0) + (kpis?.lostCount ?? 0)}.`
+                : 'No lead has been marked Won or Lost yet, so the win rate is not meaningful.'}
           </Text>
         </div>
 
@@ -511,7 +559,7 @@ export default function SalesForecastingModule() {
           columns={opportunityColumns}
           dataSource={data?.topOpportunities ?? []}
           loading={loading}
-          scroll={{ x: 960 }}
+          scroll={{ x: 'max-content' }}
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
         />
       </div>

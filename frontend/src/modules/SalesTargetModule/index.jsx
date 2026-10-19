@@ -18,6 +18,7 @@ import {
 import {
   AimOutlined,
   CalendarOutlined,
+  CheckCircleOutlined,
   DeleteOutlined,
   DollarOutlined,
   EditOutlined,
@@ -187,16 +188,30 @@ export default function SalesTargetModule() {
     {
       title: 'Target',
       dataIndex: 'title',
+      width: 260,
       render: (value, record) => (
-        <div style={{ minWidth: 200 }}>
-          <Text strong style={{ display: 'block' }}>
+        <div
+          style={{
+            minWidth: 0,
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            overflowWrap: 'anywhere',
+          }}
+        >
+          <Text strong style={{ display: 'block', whiteSpace: 'normal', wordBreak: 'break-word' }}>
             {value}
           </Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          {/* The period sits on its own line, and the Tag below it rather than
+              beside it: inline, the date ran under the adjacent Type column
+              whenever a title wrapped. */}
+          <Text
+            type="secondary"
+            style={{ display: 'block', fontSize: 12, whiteSpace: 'normal' }}
+          >
             {dayjs(record.startDate).format('DD MMM YYYY')} -{' '}
             {dayjs(record.endDate).format('DD MMM YYYY')}
           </Text>
-          <Tag style={{ marginInlineStart: 8 }}>{record.period}</Tag>
+          <Tag style={{ marginInlineStart: 0, marginTop: 4 }}>{record.period}</Tag>
         </div>
       ),
     },
@@ -380,7 +395,7 @@ export default function SalesTargetModule() {
       )}
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={4}>
           <StatTile
             icon={<AimOutlined />}
             label="Total target revenue"
@@ -388,7 +403,7 @@ export default function SalesTargetModule() {
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={4}>
           <StatTile
             icon={<DollarOutlined />}
             label="Achieved revenue"
@@ -396,28 +411,48 @@ export default function SalesTargetModule() {
             color="var(--color-success-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={4}>
           <StatTile
             icon={<TrophyOutlined />}
-            label="Overall achievement"
+            label="Revenue achievement"
             value={`${overall}%`}
             color="var(--color-warning-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={4}>
           <StatTile
             icon={<LineChartOutlined />}
-            label="Remaining gap"
+            label="Remaining revenue gap"
             value={money(summary?.remainingGap)}
             color="var(--color-error-500)"
           />
         </Col>
+        {/* Deals are a count, not money. Showing them beside the revenue tiles -
+            rather than in a footnote - is what stops a deals-only workspace
+            reading four PKR 0.00 cards and concluding nothing is set. */}
+        <Col xs={24} sm={12} xl={4}>
+          <StatTile
+            icon={<TeamOutlined />}
+            label="Deals target"
+            value={`${summary?.totalDealsTarget ?? 0} deals`}
+            color="var(--color-brand-500)"
+          />
+        </Col>
+        <Col xs={24} sm={12} xl={4}>
+          <StatTile
+            icon={<CheckCircleOutlined />}
+            label="Deals achieved"
+            value={`${summary?.achievedDeals ?? 0} deals`}
+            color="var(--color-success-500)"
+          />
+        </Col>
       </Row>
 
-      {summary && summary.totalDealsTarget > 0 && (
+      {summary && (summary.totalDealsTarget > 0 || summary.exceeded > 0 || summary.atRisk > 0) && (
         <Text type="secondary" style={{ fontSize: 12.5 }}>
           <CalendarOutlined style={{ marginInlineEnd: 6 }} />
-          Deals targets: {summary.achievedDeals} of {summary.totalDealsTarget} closed in their periods.
+          Revenue and deals are tracked separately - they are different units and are never added
+          together.
           {'  '}
           {summary.exceeded > 0 && <Tag color="green">{summary.exceeded} exceeded</Tag>}
           {summary.atRisk > 0 && <Tag color="orange">{summary.atRisk} at risk</Tag>}
@@ -438,7 +473,7 @@ export default function SalesTargetModule() {
           columns={columns}
           dataSource={items}
           loading={loading}
-          scroll={{ x: 1250 }}
+          scroll={{ x: 'max-content' }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

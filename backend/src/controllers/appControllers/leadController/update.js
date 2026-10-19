@@ -6,6 +6,7 @@ const { migrate } = require('./migrate');
 const { ownerFilter, leadFilter } = require('../../../middlewares/ownership');
 const { validateAssignedTo, canChooseAssignee } = require('./assignment');
 const { syncStageAndStatus } = require('./stageSync');
+const { ensureFollowUpForLead } = require('../followUpController/syncFollowUpFromLead');
 
 const update = async (Model, req, res) => {
   // Find document by id and update with the required fields
@@ -102,6 +103,39 @@ const update = async (Model, req, res) => {
       message: 'No document found ',
     });
   } else {
+    /*
+     * Keep the Sales Follow-ups module in step with a board drag or a lead edit.
+     *
+     * `syncStageAndStatus` has already turned a stage-shaped `status` into
+     * `salesStage`, so testing the normalised body covers both the board's
+     * `salesStage` write and the lead form's status write. `followUpDate` and
+     * `followUpNotes` are tested directly because the form may set either
+     * without touching the stage.
+     *
+     * The gate matters: without it, saving an unrelated field on a lead that is
+     * already in Follow-Up would schedule another reminder every time. The sync
+     * itself is non-fatal for the same reason as in create.js - the lead write
+     * has already succeeded, and the reminder can be created by the next list
+     * read's backfill.
+     */
+    const touchedFollowUp =
+      Object.prototype.hasOwnProperty.call(req.body, 'salesStage') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'followUpDate') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'followUpNotes');
+
+    if (touchedFollowUp) {
+      try {
+        await ensureFollowUpForLead(result, {
+          // Explicit date/note writes move the earliest pending reminder to
+          // match; a bare stage change only creates one when none exists.
+          syncDate: Object.prototype.hasOwnProperty.call(req.body, 'followUpDate'),
+          syncNotes: Object.prototype.hasOwnProperty.call(req.body, 'followUpNotes'),
+        });
+      } catch (error) {
+        console.error('Could not sync a follow-up from the updated lead:', error.message);
+      }
+    }
+
     const migratedData = migrate(result);
     return res.status(200).json({
       success: true,

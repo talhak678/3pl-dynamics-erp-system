@@ -16,11 +16,13 @@ const listAll = require('./listAll');
  *   create/update/delete  they own the lead resync, which is what keeps the
  *                         pipeline board's cached `followUpDate` correct
  *   update/delete         the generic versions ignore the link validation
- *   listAll               the generic one applies no date window and no
- *                         lead/client/status filters
+ *   listAll               the generic one applies no lead/client/status filters
+ *                         and, more importantly, no backfill from leads that
+ *                         are in the Follow-Up stage
  *
- * `list` is left generic: it is the paginated endpoint, which already applies
- * scopedFilter and, now that FollowUp is in DATED_MODELS, the header window.
+ * `list` is left generic. It is the paginated endpoint and applies the same
+ * tenant scope; it is not the endpoint this module uses, and FollowUp is
+ * deliberately outside the global date window (see utils/dateRange.js).
  */
 function modelController() {
   const modelName = 'FollowUp';

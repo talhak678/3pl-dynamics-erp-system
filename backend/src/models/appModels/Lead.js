@@ -67,6 +67,10 @@ const schema = new mongoose.Schema({
   assignedTo: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
 
   followUpDate: { type: Date },
+  // The note that goes with `followUpDate`. Kept on the lead because the
+  // pipeline card is where a rep types it; the follow-up sync copies it into the
+  // FollowUp record it creates, which is what the Sales Follow-ups module reads.
+  followUpNotes: { type: String, trim: true },
   subTotal: {
     type: Number,
   },

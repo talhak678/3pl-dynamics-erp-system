@@ -132,12 +132,17 @@ export const rangeForPreset = (preset, custom, now = dayjs()) => {
  * lists are windowed on their own `date` instead.
  *
  * Shipment is here because the server lists it, though no screen shows one yet.
+ *
+ * FollowUp is deliberately absent, matching the server. A follow-up's `date` is
+ * when it is DUE, so a window ending today would hide everything scheduled for
+ * tomorrow - the production bug this mirror previously caused by listing it.
+ * The Sales Follow-ups module reads the whole tenant queue and filters it with
+ * its own Today/Upcoming/Overdue/Completed tabs.
  */
 export const DATED_ENTITIES = Object.freeze([
   'client',
   'company',
   'expense',
-  'followup',
   'invoice',
   'lead',
   'offer',

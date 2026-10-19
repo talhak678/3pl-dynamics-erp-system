@@ -1,10 +1,11 @@
 const { scopedFilter } = require('../../../middlewares/ownership');
-const { withDateWindow } = require('../../../utils/dateRange');
+
+const { backfillFollowUps } = require('./syncFollowUpFromLead');
 
 /**
  * GET /api/followup/listAll
  *
- * Every follow-up the caller may see, narrowed by the optional filters the
+ * Every follow-up the caller may see, narrowed only by the optional filters the
  * module sends:
  *
  *   lead     only this lead's follow-ups - the pipeline card's drawer uses it
@@ -12,20 +13,29 @@ const { withDateWindow } = require('../../../utils/dateRange');
  *   status   'completed' or 'pending'
  *   channel  one of the enum values
  *
- * The header's date window is applied through withDateWindow, and because
- * FollowUp declares a real `date`, it measures the follow-up's DUE date. That is
- * the reading the module's Today/Overdue tabs assume: moving the header to
- * "Today" shows what is due today, not what was scheduled today.
+ * There is deliberately NO global date window here. A follow-up's `date` is
+ * when it is DUE, which is in the future for anything scheduled ahead; the
+ * header's default window ends today, so applying it hid every follow-up
+ * scheduled for tomorrow and the table stayed empty immediately after a
+ * successful create. FollowUp is therefore not in DATED_MODELS, and this list
+ * is the whole tenant-scoped queue. Today, Upcoming, Overdue and Completed are
+ * the module's own tabs, which is the correct place for that reading.
+ *
+ * Before reading, `backfillFollowUps` materialises records for leads that are in
+ * the Follow-Up stage (or carry a `followUpDate`) but predate the pipeline sync.
+ * That is what makes this module self-healing against the board: the board
+ * writes the lead, and the next read of the queue reflects it.
  *
  * Isolation is unchanged and cannot be widened here: scopedFilter carries the
- * tenant and, for a child account, the "mine or assigned to me" clause, and the
- * window is a separate `$and` entry that can only remove rows from it.
+ * tenant and, for a child account, the "mine or assigned to me" clause.
  *
  * Sorted by due date ascending - the thing a follow-up list is read to answer is
  * "what is next" - with the newest record breaking ties.
  */
 const listAll = async (Model, req, res) => {
-  const conditions = [scopedFilter(Model, req)];
+  await backfillFollowUps(req);
+
+  const conditions = [{ removed: false }, scopedFilter(Model, req)];
 
   if (req.query.lead) conditions.push({ lead: req.query.lead });
   if (req.query.client) conditions.push({ client: req.query.client });
@@ -34,7 +44,7 @@ const listAll = async (Model, req, res) => {
   if (req.query.status === 'completed') conditions.push({ completed: true });
   if (req.query.status === 'pending') conditions.push({ completed: false });
 
-  const result = await Model.find(withDateWindow(Model, req, ...conditions))
+  const result = await Model.find({ $and: conditions })
     .sort({ date: 1, created: -1 })
     .populate()
     .exec();

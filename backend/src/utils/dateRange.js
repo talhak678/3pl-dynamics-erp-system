@@ -171,15 +171,22 @@ const withDateWindow = (Model, req, ...conditions) => {
  * The field is `created`. Never `createdAt` - these schemas declare their own
  * `created` and `updated` and carry no Mongoose timestamps, so a clause on
  * `createdAt` matches no document at all and every list reads empty.
+ *
+ * FollowUp is deliberately NOT in this set, and its absence is the fix for a
+ * production bug rather than an oversight. A follow-up's `date` is when it is
+ * DUE, which is forward-looking: the header defaults to a window ending today,
+ * so every follow-up scheduled for tomorrow or next week fell outside it. The
+ * create returned success, then the module's listAll immediately filtered the
+ * new row out and showed an empty table. Overdue, due-today, upcoming and
+ * completed follow-ups are all operational work in flight, so the Sales
+ * Follow-ups module lists the whole tenant-scoped queue and lets its own
+ * Today/Upcoming/Overdue/Completed tabs decide what to show. The header range
+ * continues to mean "documents dated in this range" for the entities above.
  */
 const DATED_MODELS = new Set([
   'Client',
   'Company',
   'Expense',
-  // A follow-up has a real business date (`date`), so the window means "due in
-  // this range" rather than "entered in this range" - which is the reading the
-  // Sales Follow-ups module's Today/Overdue tabs assume.
-  'FollowUp',
   'Invoice',
   'Lead',
   'Offer',

@@ -36,7 +36,6 @@ import dayjs from 'dayjs';
 
 import { request } from '@/request';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
-import { selectDateRangeDescription, selectDateRangeQuery } from '@/redux/dateRange/selectors';
 import StatTile from '@/components/StatTile';
 import FollowUpModal, { FOLLOW_UP_CHANNELS } from '@/components/FollowUpModal';
 import { hasModule } from '@/utils/modulePermissions';
@@ -69,10 +68,12 @@ const isDueToday = (item) => !item.completed && isToday(item.date);
  * visible there after the board reloads and vice versa. See
  * backend/.../followUpController/syncLeadFollowUp.js.
  *
- * The header's global window is sent with the list request and the server
- * measures each follow-up's own DUE date. That makes the window mean "what is
- * due in this range", which is what the Today/Overdue/Upcoming tabs are reading
- * too. The window can only narrow the tenant-scoped list; it can never widen it.
+ * The header's global window does NOT apply here. Follow-ups are forward-looking:
+ * their `date` is when the work is DUE, not when it happened, so a window ending
+ * today would hide everything scheduled for tomorrow - and creation would look
+ * broken even though it succeeded. The server deliberately leaves FollowUp out
+ * of the dated-model window (see backend/src/utils/dateRange.js), and the
+ * Today/Overdue/Upcoming/Completed tabs provide the period view instead.
  *
  * Leads and customers are fetched only when the account holds the module that
  * owns them. A user granted Sales Follow-ups but not Leads would otherwise get a
@@ -81,10 +82,6 @@ const isDueToday = (item) => !item.completed && isToday(item.date);
  */
 export default function SalesFollowUpModule() {
   const currentAdmin = useSelector(selectCurrentAdmin);
-  const dateQuery = useSelector(selectDateRangeQuery);
-  const dateDescription = useSelector(selectDateRangeDescription);
-
-  const { startDate, endDate } = dateQuery;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +105,7 @@ export default function SalesFollowUpModule() {
     setFailed(false);
 
     try {
-      const data = await request.listAll({ entity: 'followup', options: dateQuery });
+      const data = await request.listAll({ entity: 'followup' });
 
       if (data?.success) {
         setItems(Array.isArray(data.result) ? data.result : []);
@@ -119,8 +116,7 @@ export default function SalesFollowUpModule() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -259,8 +255,9 @@ export default function SalesFollowUpModule() {
     {
       title: 'Follow-up',
       dataIndex: 'subject',
+      width: 280,
       render: (value, record) => (
-        <div style={{ minWidth: 180 }}>
+        <div style={{ minWidth: 0 }}>
           <Text strong style={{ display: 'block' }}>
             {value || 'Untitled follow-up'}
           </Text>
@@ -398,7 +395,8 @@ export default function SalesFollowUpModule() {
             Every scheduled call, email and meeting in one queue - shared with the pipeline board.
           </Text>
           <Text type="secondary" style={{ display: 'block', fontSize: 12.5 }}>
-            Showing {dateDescription}
+            All upcoming and completed follow-ups are shown; the header date range does not filter
+            this queue.
           </Text>
         </div>
 
@@ -503,14 +501,14 @@ export default function SalesFollowUpModule() {
               onChange={(event) => setSearch(event.target.value)}
               prefix={<SearchOutlined />}
               placeholder="Search follow-ups"
-              style={{ width: 220 }}
+              style={{ width: 220, maxWidth: '100%' }}
             />
             <Select
               allowClear
               value={channel}
               onChange={setChannel}
               placeholder="All channels"
-              style={{ width: 160 }}
+              style={{ width: 160, maxWidth: '100%' }}
               options={FOLLOW_UP_CHANNELS.map((value) => ({ value, label: value }))}
             />
           </Space>
@@ -521,7 +519,7 @@ export default function SalesFollowUpModule() {
           columns={columns}
           dataSource={visible}
           loading={loading}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 'max-content' }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

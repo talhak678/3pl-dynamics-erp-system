@@ -38,6 +38,14 @@ exports.migrate = (result) => {
   // fix it at that call site.
   newData.assignedTo = result.assignedTo;
   newData.followUpDate = result.followUpDate;
+  // The deal value Sales Forecasting uses. Whitelisted for the same reason as
+  // the follow-up fields: without it here, a value saved from the lead form
+  // would never come back to the form that set it.
+  newData.total = result.total;
+  // The note the follow-up sync copies into the record it creates. Exposed here
+  // because this mapper is a whitelist: without it the value would be stored but
+  // invisible to the edit form that sets it.
+  newData.followUpNotes = result.followUpNotes;
 
   return newData;
 };

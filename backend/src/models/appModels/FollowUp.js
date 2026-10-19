@@ -12,10 +12,12 @@ const mongoose = require('mongoose');
  * next due. Both screens write through /api/followup/*, which is what makes the
  * two views one dataset rather than two copies.
  *
- * `date` is deliberately named `date` and typed Date: utils/dateRange.js asks
- * the schema for that exact path when deciding what the header's date window
- * measures, so naming it anything else would silently leave this table
- * unwindowed.
+ * `date` is the DUE date, not the entry date. It is deliberately not used by the
+ * header's global date window: a follow-up is forward-looking work, and a window
+ * ending today would hide everything scheduled for tomorrow. The Sales
+ * Follow-ups module lists the whole tenant-scoped queue and its own
+ * Today/Upcoming/Overdue/Completed tabs do the narrowing. See DATED_MODELS in
+ * utils/dateRange.js.
  *
  * `createdBy` is the TENANT (see middlewares/ownership.js); `createdByUser` is
  * the account that scheduled it, and `assignedTo` is who it was handed to. All

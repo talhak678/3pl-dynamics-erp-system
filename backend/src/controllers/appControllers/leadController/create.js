@@ -5,6 +5,7 @@ const Company = mongoose.model('Company');
 const { ownerFilter } = require('../../../middlewares/ownership');
 const { validateAssignedTo, canChooseAssignee } = require('./assignment');
 const { syncStageAndStatus } = require('./stageSync');
+const { ensureFollowUpForLead } = require('../followUpController/syncFollowUpFromLead');
 
 const create = async (Model, req, res) => {
   // Creating a new document in the collection
@@ -91,6 +92,20 @@ const create = async (Model, req, res) => {
   const result = await new Model({
     ...req.body,
   }).save();
+
+  /*
+   * A lead created directly in the Follow-Up stage (or with a followUpDate)
+   * must appear in the Sales Follow-ups module immediately. That module reads
+   * the FollowUp collection, not the lead, so the record has to be created here
+   * as well. The sync is deliberately non-fatal: the lead is the record the
+   * caller asked to save, and a failure writing the reminder must not turn a
+   * successful save into an error the user would retry.
+   */
+  try {
+    await ensureFollowUpForLead(result);
+  } catch (error) {
+    console.error('Could not sync a follow-up from the new lead:', error.message);
+  }
 
   // Returning successfull response
   return res.status(200).json({

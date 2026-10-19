@@ -74,6 +74,13 @@
 const LEGACY_STAGE_ALIASES = new Map([
   ['loose', 'Lost'],
   ['in negociation', 'In Negotiation'],
+  // The database spelling is 'Follow-Up'. Integrations and older clients have
+  // sent the stage as an identifier rather than a label, and without these the
+  // value names no stage: the card does not move, the follow-up sync never sees
+  // it, and the request still returns success.
+  ['follow_up', 'Follow-Up'],
+  ['followup', 'Follow-Up'],
+  ['follow up', 'Follow-Up'],
 ]);
 
 /**
