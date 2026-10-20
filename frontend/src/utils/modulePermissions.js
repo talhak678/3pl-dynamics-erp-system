@@ -37,6 +37,31 @@ export const hasModule = (admin, moduleKey) => {
 };
 
 /**
+ * Whether a roadmap parent was granted explicitly, rather than inherited from
+ * the "empty means everything" default.
+ *
+ * The four roadmap parents - Purchase & Suppliers, POS, Operations, Website &
+ * E-Commerce - have no implemented child, so there is no working module to infer
+ * their visibility from. Their own key is the only signal. It has to be read
+ * from the STORED list (`storedModulePermissions`, sent by the server alongside
+ * the resolved one), because the resolved list expands an empty stored list to
+ * every key and would make the roadmaps appear on every unrestricted account.
+ *
+ * A session that predates this field has no stored copy at all. It reads as "not
+ * granted", which hides the roadmaps until the session refreshes - ErpApp
+ * dispatches refreshSession on load, and /auth/me now returns the field - or,
+ * if that request fails, until the next sign-in. Hiding is the safe direction:
+ * an account that never asked for POS does not suddenly get it.
+ *
+ * hasModule is checked as well so this can never report a grant the route guard
+ * would refuse, even if a stale resolved list were merged over a newer stored one.
+ */
+export const hasExplicitModule = (admin, moduleKey) => {
+  const stored = admin?.storedModulePermissions;
+  return Array.isArray(stored) && stored.includes(moduleKey) && hasModule(admin, moduleKey);
+};
+
+/**
  * Every grantable module. Mirrors MODULE_KEYS in backend/src/utils/moduleList.js,
  * which is the authority.
  *
@@ -77,6 +102,30 @@ export const ALL_MODULES = [
   'sales_followups',
   'sales_targets',
   'sales_forecasting',
+
+  // The four roadmap parents. They are grantable so an administrator can choose
+  // whether a wholly-placeholder group is drawn; they gate no page or API. The
+  // sidebar reads them from the STORED list only (see hasExplicitModule), which
+  // is what keeps them hidden when an empty stored list means "everything".
+  'purchase_group',
+  'pos_group',
+  'operations_group',
+  'website_group',
+];
+
+/**
+ * The roadmap keys - grantable checkboxes that reveal a parent, not a module.
+ *
+ * Used only by isMissingModules below. Counting them as missing capabilities
+ * would raise the dashboard's upgrade notice for an account that already holds
+ * every implemented module, simply because it never ticked a group that has
+ * nothing behind it yet.
+ */
+export const ROADMAP_MODULES = [
+  'purchase_group',
+  'pos_group',
+  'operations_group',
+  'website_group',
 ];
 
 /**
@@ -90,5 +139,12 @@ export const ALL_MODULES = [
  */
 export const isMissingModules = (admin) => {
   const granted = resolveModules(admin);
-  return granted !== null && granted.length < ALL_MODULES.length;
+  if (granted === null) return false;
+
+  // Roadmap keys are excluded from both sides: they reveal a placeholder group
+  // and grant no capability, so an account holding every implemented module but
+  // no roadmap group is complete, not restricted.
+  const implemented = (key) => !ROADMAP_MODULES.includes(key);
+
+  return granted.filter(implemented).length < ALL_MODULES.filter(implemented).length;
 };

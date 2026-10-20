@@ -52,6 +52,14 @@ const authUser = async (req, res, { user, databasePassword, password, UserPasswo
         // Returned resolved so the client never has to reimplement the
         // "empty means all modules" rule.
         modulePermissions: resolveModules(user),
+        // The stored allow-list, before that expansion. The sidebar needs it to
+        // tell "granted because the list is empty (everything)" apart from
+        // "granted by an administrator", which is the only way the roadmap
+        // parents can stay hidden by default. It is a copy, not the Mongoose
+        // array, so the client cannot mutate this document's state through it.
+        storedModulePermissions: Array.isArray(user.modulePermissions)
+          ? [...user.modulePermissions]
+          : [],
         token: token,
         maxAge: req.body.remember ? 365 : null,
       },

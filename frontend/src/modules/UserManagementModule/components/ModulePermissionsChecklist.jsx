@@ -20,11 +20,19 @@ const KNOWN_KEYS = new Set(ERP_MODULES.map((module) => module.key));
  * Select all / Clear shortcut beside it. Children can still be toggled one at a
  * time - the parent box is a convenience, not a lock.
  *
+ * The four roadmap parents (Purchase & Suppliers, POS, Operations, Website &
+ * E-Commerce) have no implemented child, so they have nothing to be tri-state
+ * about. Their header is a plain checkbox bound to the group's own `grantKey`;
+ * ticking it stores that one key, which is what tells the sidebar to draw the
+ * group. It is NOT disabled for having no children - that key is the whole
+ * point of this control. Their "Soon" children stay disabled and unticked.
+ *
  * The list is filtered to `grantable` - the modules the signed-in owner holds -
  * so a module they do not have is not offered at all. The server refuses such a
  * grant anyway (see teamController/permissions.js), and this is the half that
  * stops the admin from being able to ask: a checkbox that always comes back
- * rejected is worse than no checkbox.
+ * rejected is worse than no checkbox. A roadmap group is offered on the same
+ * rule, using its grantKey.
  *
  * A group's placeholders are always rendered, disabled and tagged "Soon". They
  * are entries from the shared module registry with no implementation behind
@@ -56,9 +64,12 @@ export default function ModulePermissionsChecklist({
   const available = ERP_MODULES.filter((module) => grantable.includes(module.key));
 
   // Groups with nothing this account may grant are omitted entirely; the
-  // placeholders inside a group that IS shown still render, disabled.
+  // placeholders inside a group that IS shown still render, disabled. Roadmap
+  // groups have no children to test, so their grantKey decides.
   const groups = MODULE_GROUPS_IN_ORDER.filter((group) =>
-    modulesInGroup(group.key).some((module) => grantable.includes(module.key))
+    group.grantKey
+      ? grantable.includes(group.grantKey)
+      : modulesInGroup(group.key).some((module) => grantable.includes(module.key))
   );
 
   const toggle = (key, checked) => {
@@ -116,8 +127,20 @@ export default function ModulePermissionsChecklist({
           const placeholders = placeholdersInGroup(group.key);
 
           const keys = modules.map((module) => module.key);
-          const allChecked = keys.length > 0 && keys.every((key) => selected.includes(key));
-          const someChecked = keys.some((key) => selected.includes(key));
+
+          // A roadmap parent is a single-key control, not a tri-state aggregate.
+          const grantKey = group.grantKey;
+          const roadmap = Boolean(grantKey);
+          const roadmapGrantable = roadmap && grantable.includes(grantKey);
+          const roadmapSelected = roadmap && selected.includes(grantKey);
+
+          const allChecked = roadmap
+            ? roadmapSelected
+            : keys.length > 0 && keys.every((key) => selected.includes(key));
+          const someChecked = roadmap
+            ? false
+            : keys.some((key) => selected.includes(key));
+          const noControls = roadmap ? !roadmapGrantable : keys.length === 0;
 
           return (
             <div key={group.key}>
@@ -125,8 +148,12 @@ export default function ModulePermissionsChecklist({
                 <Checkbox
                   checked={allChecked}
                   indeterminate={!allChecked && someChecked}
-                  disabled={disabled || keys.length === 0}
-                  onChange={(event) => toggleGroup(group.key, event.target.checked)}
+                  disabled={disabled || noControls}
+                  onChange={(event) =>
+                    roadmap
+                      ? toggle(grantKey, event.target.checked)
+                      : toggleGroup(group.key, event.target.checked)
+                  }
                 >
                   <Text strong>{group.label}</Text>
                 </Checkbox>
@@ -134,8 +161,12 @@ export default function ModulePermissionsChecklist({
                 <Button
                   type="link"
                   size="small"
-                  disabled={disabled || keys.length === 0}
-                  onClick={() => toggleGroup(group.key, !allChecked)}
+                  disabled={disabled || noControls}
+                  onClick={() =>
+                    roadmap
+                      ? toggle(grantKey, !roadmapSelected)
+                      : toggleGroup(group.key, !allChecked)
+                  }
                 >
                   {allChecked ? 'Clear' : 'Select all'}
                 </Button>

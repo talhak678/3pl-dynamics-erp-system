@@ -16,10 +16,18 @@ const { Text } = Typography;
  * children are ticked, indeterminate when only some are - and a Select all /
  * Clear shortcut beside it. Individual children stay independently toggleable.
  *
+ * The four roadmap parents (Purchase & Suppliers, POS, Operations, Website &
+ * E-Commerce) have no implemented child, so their header is a plain checkbox
+ * bound to the group's own `grantKey` rather than a tri-state aggregate. Ticking
+ * it stores that key, which is what makes the sidebar draw the group for this
+ * tenant; unticking it hides the group. It is deliberately not disabled for
+ * having no children. The "Soon" entries inside stay disabled.
+ *
  * The warning banner is not decoration. The backend resolves an empty array to
  * "every module", so a super admin who clears every box and saves has granted
  * FULL access, not none. The UI has to say so or the control silently does the
- * opposite of what it looks like it does.
+ * opposite of what it looks like it does. An empty list still leaves the
+ * roadmap groups hidden - they are read from the stored list only.
  *
  * Placeholders render disabled and tagged "Soon". They are entries from the
  * shared registry with no implementation behind them; they appear so this
@@ -69,8 +77,17 @@ export default function ModulePermissionsChecklist({ value = [], onChange, disab
           const placeholders = placeholdersInGroup(group.key);
 
           const keys = modules.map((module) => module.key);
-          const allChecked = keys.length > 0 && keys.every((key) => selected.includes(key));
-          const someChecked = keys.some((key) => selected.includes(key));
+
+          // A roadmap parent is a single-key control: its own grantKey is what
+          // the sidebar reads, and it has no child to aggregate.
+          const grantKey = group.grantKey;
+          const roadmap = Boolean(grantKey);
+          const roadmapSelected = roadmap && selected.includes(grantKey);
+
+          const allChecked = roadmap
+            ? roadmapSelected
+            : keys.length > 0 && keys.every((key) => selected.includes(key));
+          const someChecked = roadmap ? false : keys.some((key) => selected.includes(key));
 
           return (
             <div key={group.key}>
@@ -78,8 +95,12 @@ export default function ModulePermissionsChecklist({ value = [], onChange, disab
                 <Checkbox
                   checked={allChecked}
                   indeterminate={!allChecked && someChecked}
-                  disabled={disabled || keys.length === 0}
-                  onChange={(event) => toggleGroup(group.key, event.target.checked)}
+                  disabled={disabled || (!roadmap && keys.length === 0)}
+                  onChange={(event) =>
+                    roadmap
+                      ? toggle(grantKey, event.target.checked)
+                      : toggleGroup(group.key, event.target.checked)
+                  }
                 >
                   <Text strong>{group.label}</Text>
                 </Checkbox>
@@ -87,8 +108,12 @@ export default function ModulePermissionsChecklist({ value = [], onChange, disab
                 <Button
                   type="link"
                   size="small"
-                  disabled={disabled || keys.length === 0}
-                  onClick={() => toggleGroup(group.key, !allChecked)}
+                  disabled={disabled || (!roadmap && keys.length === 0)}
+                  onClick={() =>
+                    roadmap
+                      ? toggle(grantKey, !roadmapSelected)
+                      : toggleGroup(group.key, !allChecked)
+                  }
                 >
                   {allChecked ? 'Clear' : 'Select all'}
                 </Button>

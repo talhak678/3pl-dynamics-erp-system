@@ -9,6 +9,14 @@ import { ALL_MODULES, resolveModules } from './modulePermissions';
  * children is held. That is why every parent below carries `order` (the
  * grantable keys) and `placeholders` (entries that are drawn but do nothing).
  *
+ * The exception is a roadmap parent - one with no implemented child at all
+ * (Purchase & Suppliers, POS, Operations, Website & E-Commerce). There is no
+ * held child to infer visibility from, so each carries a `grantKey` and is
+ * drawn only when that key is in the account's STORED permissions. The key is a
+ * real member of ALL_MODULES, so the checklists can tick the parent itself; the
+ * sidebar then reads the same key back. See hasExplicitModule in
+ * modulePermissions.js for why the stored list, not the resolved one, decides.
+ *
  * Placeholders are deliberately NOT in ALL_MODULES. Granting one would hand out
  * a capability that does not exist - a checked box that changes nothing - so
  * they are presentation only and the checklists render them disabled. They are
@@ -73,6 +81,7 @@ export const MODULE_GROUPS = [
   {
     key: 'purchase-suppliers',
     label: 'Purchase & Suppliers',
+    grantKey: 'purchase_group',
     order: [],
     placeholders: [
       { key: 'placeholder:suppliers', label: 'Suppliers' },
@@ -84,6 +93,7 @@ export const MODULE_GROUPS = [
   {
     key: 'pos',
     label: 'POS (Point of Sale)',
+    grantKey: 'pos_group',
     order: [],
     placeholders: [
       { key: 'placeholder:pos_billing', label: 'POS Billing' },
@@ -107,6 +117,7 @@ export const MODULE_GROUPS = [
   {
     key: 'operations',
     label: 'Operations',
+    grantKey: 'operations_group',
     order: [],
     placeholders: [
       { key: 'placeholder:tasks', label: 'Tasks' },
@@ -118,6 +129,7 @@ export const MODULE_GROUPS = [
   {
     key: 'website-ecommerce',
     label: 'Website & E-Commerce',
+    grantKey: 'website_group',
     order: [],
     placeholders: [
       { key: 'placeholder:website_management', label: 'Website Management' },
@@ -170,6 +182,16 @@ const PRESENTATION = {
   company: ['Companies', 'administration-settings'],
   generalSettings: ['Settings', 'administration-settings'],
   help: ['Help', 'administration-settings'],
+
+  // The roadmap parents' own keys. They are placed in a pseudo-group that no
+  // checklist iterates, so they never render as a child checkbox - the parent
+  // header for each is the only control. They still have to be in ERP_MODULES:
+  // that is what makes them known keys, counted in the summary, and accepted by
+  // describePermissions.
+  purchase_group: ['Purchase & Suppliers', 'roadmap'],
+  pos_group: ['POS (Point of Sale)', 'roadmap'],
+  operations_group: ['Operations', 'roadmap'],
+  website_group: ['Website & E-Commerce', 'roadmap'],
 };
 
 const OTHER_GROUP = {
@@ -179,7 +201,19 @@ const OTHER_GROUP = {
   placeholders: [],
 };
 
-const ALL_GROUPS = [...MODULE_GROUPS, OTHER_GROUP];
+/**
+ * Holds the roadmap parents' keys so groupLabelFor can name them. It is never
+ * rendered as a checklist section - MODULE_GROUPS_IN_ORDER includes a group only
+ * when it has children or placeholders, and this one has neither.
+ */
+const ROADMAP_GROUP = {
+  key: 'roadmap',
+  label: 'Roadmap',
+  order: [],
+  placeholders: [],
+};
+
+const ALL_GROUPS = [...MODULE_GROUPS, OTHER_GROUP, ROADMAP_GROUP];
 
 const groupLabelFor = (key) =>
   ALL_GROUPS.find((group) => group.key === key)?.label ?? OTHER_GROUP.label;

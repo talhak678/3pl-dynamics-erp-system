@@ -6,7 +6,7 @@ import { Button, Drawer, Layout, Menu } from 'antd';
 import { useAppContext } from '@/context/appContext';
 
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
-import { resolveModules } from '@/utils/modulePermissions';
+import { hasExplicitModule, resolveModules } from '@/utils/modulePermissions';
 import { canUseSalesPipeline } from '@/utils/salesPipeline';
 
 import lightLogo from '@/style/images/light-logo.png';
@@ -59,6 +59,13 @@ const { Sider } = Layout;
  * MODULE_KEYS - it is separate from `key` because a few modules have a
  * hyphenated URL that is not their permission key (`sales-follow-ups` vs
  * `sales_followups`), and because the key is what `selectedKeys` matches.
+ *
+ * The four roadmap parents (Purchase & Suppliers, POS, Operations, Website &
+ * E-Commerce) have no implemented child, so there is nothing to infer. They
+ * carry their own `grantKey` and are drawn only when that key is explicitly
+ * stored on the account. That is a deliberate opt-in: an empty stored list
+ * means every MODULE, but it does not mean every roadmap, or every tenant would
+ * be shown four groups that do nothing.
  *
  * Placeholders are entries with no implementation. They are marked
  * `placeholder: true`, rendered disabled, and carry a small "Soon" marker. A
@@ -118,27 +125,37 @@ const stripMarker = (item) => {
   return stripped;
 };
 
-const groupHasVisibleActiveChild = (children) => children.some((child) => !child.placeholder);
+/**
+ * Drops a group-level nav-only marker (`grantKey`) before the group is handed
+ * to Ant Design. It is not a Menu prop, and leaving it on the item would put an
+ * unknown attribute on the rendered element.
+ */
+const stripGroupMarker = (group) => {
+  const stripped = { ...group };
+  delete stripped.grantKey;
+  return stripped;
+};
 
-const onlyPlaceholders = (children) =>
-  children.length > 0 && children.every((child) => child.placeholder);
+const groupHasVisibleActiveChild = (children) => children.some((child) => !child.placeholder);
 
 /**
  * Narrows the ten groups to the modules an account has been granted.
  *
  * Rules, in the order they matter:
  *
+ *   - A roadmap group (one carrying `grantKey`) is drawn only when that key is
+ *     explicitly stored on the account. It has no active child to infer from,
+ *     and "empty means every module" must not turn into "every roadmap": these
+ *     groups are opt-in, so an account that never asked for POS does not get a
+ *     POS section full of "Soon" entries. This rule comes first so the resolved
+ *     list cannot override it.
  *   - An ungated child (Sales Pipeline, User Management) is not a grantable
  *     module. It was only built into the tree when its own role condition held,
  *     so it is always kept. See the comments where each is appended.
  *   - A placeholder is kept with its parent. Placeholders have no permission
  *     key, and hiding the roadmap of a module the account does hold would make
  *     the parent look emptier than the product's own structure.
- *   - A parent is shown when at least one ACTIVE child is granted, or when the
- *     parent has no active children at all (Purchase & Suppliers, POS,
- *     Operations, Website & E-Commerce). Those four exist only as roadmaps, so
- *     "no granted child" cannot hide them - and hiding them from restricted
- *     tenants would make the ten-module structure look like six.
+ *   - A parent is shown when at least one ACTIVE child is granted.
  *   - A parent whose active children were all withheld is dropped, because a
  *     dropdown containing nothing but "Soon" entries describes work the account
  *     cannot do.
@@ -150,15 +167,33 @@ const onlyPlaceholders = (children) =>
 const filterByModules = (groups, admin) => {
   const granted = resolveModules(admin);
 
+  // The roadmap opt-in is read from the stored list (hasExplicitModule), not
+  // from `granted`, which the server has already expanded to every key when the
+  // stored list is empty.
+  const roadmapGranted = (group) =>
+    Boolean(group.grantKey) && hasExplicitModule(admin, group.grantKey);
+
   if (!granted) {
-    return groups.map((group) => ({
-      ...group,
-      children: group.children.map(stripMarker),
-    }));
+    return groups
+      .filter((group) => !group.grantKey || roadmapGranted(group))
+      .map((group) => ({
+        ...stripGroupMarker(group),
+        children: group.children.map(stripMarker),
+      }));
   }
 
   return groups.reduce((visible, group) => {
     const children = group.children ?? [];
+
+    if (group.grantKey) {
+      if (roadmapGranted(group)) {
+        visible.push({
+          ...stripGroupMarker(group),
+          children: children.map(stripMarker),
+        });
+      }
+      return visible;
+    }
 
     const kept = children.filter((child) => {
       if (child.placeholder) return true;
@@ -168,7 +203,7 @@ const filterByModules = (groups, admin) => {
 
     // `children`, not `kept`: a group whose active children were all withheld
     // must be dropped even though its placeholders survived the filter.
-    if (groupHasVisibleActiveChild(kept) || onlyPlaceholders(children)) {
+    if (groupHasVisibleActiveChild(kept)) {
       visible.push({ ...group, children: kept.map(stripMarker) });
     }
 
@@ -329,6 +364,7 @@ function Sidebar({ collapsible, isMobile = false }) {
       },
       {
         key: 'group-purchase-suppliers',
+        grantKey: 'purchase_group',
         icon: <TruckOutlined />,
         label: 'Purchase & Suppliers',
         children: [
@@ -340,6 +376,7 @@ function Sidebar({ collapsible, isMobile = false }) {
       },
       {
         key: 'group-pos',
+        grantKey: 'pos_group',
         icon: <ShoppingOutlined />,
         label: 'POS (Point of Sale)',
         children: [
@@ -364,6 +401,7 @@ function Sidebar({ collapsible, isMobile = false }) {
       },
       {
         key: 'group-operations',
+        grantKey: 'operations_group',
         icon: <ToolOutlined />,
         label: 'Operations',
         children: [
@@ -375,6 +413,7 @@ function Sidebar({ collapsible, isMobile = false }) {
       },
       {
         key: 'group-website-ecommerce',
+        grantKey: 'website_group',
         icon: <GlobalOutlined />,
         label: 'Website & E-Commerce',
         children: [

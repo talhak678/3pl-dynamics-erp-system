@@ -53,6 +53,24 @@ const MODULE_KEYS = [
   'sales_followups',
   'sales_targets',
   'sales_forecasting',
+
+  // The roadmap parents that have no implemented child yet: Purchase &
+  // Suppliers, POS, Operations and Website & E-Commerce.
+  //
+  // These four are unlike every key above in that they gate no API entity; they
+  // exist so an administrator can choose whether a wholly-placeholder parent is
+  // drawn in the sidebar at all. The sidebar requires one of these to be in the
+  // account's STORED permission list, not merely in the resolved default - see
+  // the explicit-grant note in apps/Navigation/NavigationContainer.jsx. That is
+  // what makes "every module" (an empty stored list) leave them hidden rather
+  // than force-rendering the roadmaps on every account.
+  //
+  // They are valid keys here so the Super Admin and Customer Admin checklists
+  // can persist them; a key missing from this list is rejected with a 400.
+  'purchase_group',
+  'pos_group',
+  'operations_group',
+  'website_group',
 ];
 
 /**

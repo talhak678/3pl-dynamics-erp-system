@@ -2,7 +2,7 @@
  * The ERP modules a tenant account can be granted, grouped under the ten parent
  * modules the sidebar renders.
  *
- * The 20 grantable keys MUST stay byte-identical to MODULE_KEYS in the backend's
+ * The 24 grantable keys MUST stay byte-identical to MODULE_KEYS in the backend's
  * src/utils/moduleList.js - that file is the validation whitelist, and a key
  * present here but absent there is rejected with a 400 "Unknown module key".
  * The backend deliberately does not expose its list over the API, so this is a
@@ -12,10 +12,18 @@
  * unchanged, so an account saved before this feature keeps every grant it had.
  * 'report' was retired earlier and is gone from both sides.
  *
+ * The four `*_group` keys are the roadmap parents - Purchase & Suppliers, POS,
+ * Operations and Website & E-Commerce - which have no implemented child. They
+ * are grantable here so this checklist can persist them, but they gate no page
+ * or API: they only decide whether the sidebar draws that parent. The sidebar
+ * requires them to be in the account's STORED list (see
+ * frontend/src/utils/modulePermissions.js), so "empty means every module" leaves
+ * them hidden instead of force-rendering roadmaps on every tenant.
+ *
  * The parent groups are a rendering hierarchy, not a second permission layer.
  * A parent has no key and cannot be granted; it is drawn when at least one of
- * its children is held. Placeholders are presentation only - granting one would
- * grant nothing - so they live in `placeholders` and render disabled.
+ * its children is held. The four roadmap parents are the exception, and carry
+ * `grantKey` so their own header checkbox has a key to store.
  *
  * An empty allow-list means EVERY module, not none - see EMPTY_MEANS_ALL below.
  */
@@ -70,6 +78,7 @@ export const MODULE_GROUPS = [
   {
     key: 'purchase-suppliers',
     label: 'Purchase & Suppliers',
+    grantKey: 'purchase_group',
     order: [],
     placeholders: [
       { key: 'placeholder:suppliers', label: 'Suppliers' },
@@ -81,6 +90,7 @@ export const MODULE_GROUPS = [
   {
     key: 'pos',
     label: 'POS (Point of Sale)',
+    grantKey: 'pos_group',
     order: [],
     placeholders: [
       { key: 'placeholder:pos_billing', label: 'POS Billing' },
@@ -104,6 +114,7 @@ export const MODULE_GROUPS = [
   {
     key: 'operations',
     label: 'Operations',
+    grantKey: 'operations_group',
     order: [],
     placeholders: [
       { key: 'placeholder:tasks', label: 'Tasks' },
@@ -115,6 +126,7 @@ export const MODULE_GROUPS = [
   {
     key: 'website-ecommerce',
     label: 'Website & E-Commerce',
+    grantKey: 'website_group',
     order: [],
     placeholders: [
       { key: 'placeholder:website_management', label: 'Website Management' },
@@ -161,11 +173,22 @@ const PRESENTATION = {
   company: ['Companies', 'administration-settings'],
   generalSettings: ['Settings', 'administration-settings'],
   help: ['Help', 'administration-settings'],
+
+  // Roadmap parents' own keys. The pseudo-group is never iterated by a
+  // checklist, so these never render as a child; each parent header is the
+  // control. Listing them here keeps them in ERP_MODULES/MODULE_KEYS, which is
+  // what makes them known, counted and accepted by the server.
+  purchase_group: ['Purchase & Suppliers', 'roadmap'],
+  pos_group: ['POS (Point of Sale)', 'roadmap'],
+  operations_group: ['Operations', 'roadmap'],
+  website_group: ['Website & E-Commerce', 'roadmap'],
 };
 
 const OTHER_GROUP = { key: 'other', label: 'Other', order: [], placeholders: [] };
 
-const ALL_GROUPS = [...MODULE_GROUPS, OTHER_GROUP];
+const ROADMAP_GROUP = { key: 'roadmap', label: 'Roadmap', order: [], placeholders: [] };
+
+const ALL_GROUPS = [...MODULE_GROUPS, OTHER_GROUP, ROADMAP_GROUP];
 
 const groupLabelFor = (key) =>
   ALL_GROUPS.find((group) => group.key === key)?.label ?? OTHER_GROUP.label;

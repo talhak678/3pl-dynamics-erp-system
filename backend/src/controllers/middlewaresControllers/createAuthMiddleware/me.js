@@ -45,6 +45,15 @@ const me = async (req, res) => {
       photo: admin.photo,
       isSuperAdmin: admin.isSuperAdmin === true,
       modulePermissions: resolveModules(admin),
+      // The stored allow-list before resolution, mirrored from authUser for the
+      // same reason the other fields are: the client merges this reply over its
+      // session, and the sidebar's roadmap visibility reads the STORED list so
+      // that "empty means everything" does not reveal groups nobody granted.
+      // Omitting it here would leave a stale copy in place after a permission
+      // change, which is exactly what this endpoint exists to prevent.
+      storedModulePermissions: Array.isArray(admin.modulePermissions)
+        ? [...admin.modulePermissions]
+        : [],
     },
     message: 'Successfully fetched current user',
   });
