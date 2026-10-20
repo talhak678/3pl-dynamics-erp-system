@@ -428,41 +428,46 @@ export default function SalesFollowUpModule() {
         />
       )}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={8} xl={4}>
+      <Row gutter={[16, 16]} align="stretch">
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<ScheduleOutlined />}
             label="Total follow-ups"
             value={stats.total}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<FieldTimeOutlined />}
             label="Overdue"
             value={stats.overdue}
             color="var(--color-error-500)"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<ClockCircleOutlined />}
             label="Due today"
             value={stats.dueToday}
             color="var(--color-warning-500)"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<CalendarOutlined />}
             label="Upcoming"
             value={stats.upcoming}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<CheckCircleOutlined />}
             label="Completed"
             value={stats.completed}

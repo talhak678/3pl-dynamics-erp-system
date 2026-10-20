@@ -14,7 +14,7 @@ const { Text } = Typography;
  * The colours and surfaces come from theme.css, so the tile follows the
  * light/dark switch rather than hard-coding a palette.
  */
-export default function StatTile({ icon, label, value, color }) {
+export default function StatTile({ icon, label, value, color, style }) {
   return (
     <div
       style={{
@@ -26,6 +26,11 @@ export default function StatTile({ icon, label, value, color }) {
         alignItems: 'center',
         gap: 14,
         boxShadow: 'var(--app-shadow)',
+        width: '100%',
+        height: '100%',
+        minHeight: 84,
+        boxSizing: 'border-box',
+        ...style,
       }}
     >
       <div
@@ -44,9 +49,30 @@ export default function StatTile({ icon, label, value, color }) {
       >
         {icon}
       </div>
-      <div>
-        <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{value}</div>
-        <Text type="secondary" style={{ fontSize: 13 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            lineHeight: 1.2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
+        >
+          {value}
+        </div>
+        <Text
+          type="secondary"
+          style={{
+            fontSize: 13,
+            display: 'block',
+            lineHeight: 1.3,
+            marginTop: 2,
+            wordBreak: 'break-word',
+          }}
+        >
           {label}
         </Text>
       </div>

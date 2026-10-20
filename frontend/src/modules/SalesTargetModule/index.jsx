@@ -394,33 +394,37 @@ export default function SalesTargetModule() {
         />
       )}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} xl={4}>
+      <Row gutter={[16, 16]} align="stretch">
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<AimOutlined />}
             label="Total target revenue"
             value={money(summary?.totalTargetRevenue)}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<DollarOutlined />}
             label="Achieved revenue"
             value={money(summary?.achievedRevenue)}
             color="var(--color-success-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<TrophyOutlined />}
             label="Revenue achievement"
             value={`${overall}%`}
             color="var(--color-warning-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<LineChartOutlined />}
             label="Remaining revenue gap"
             value={money(summary?.remainingGap)}
@@ -430,16 +434,18 @@ export default function SalesTargetModule() {
         {/* Deals are a count, not money. Showing them beside the revenue tiles -
             rather than in a footnote - is what stops a deals-only workspace
             reading four PKR 0.00 cards and concluding nothing is set. */}
-        <Col xs={24} sm={12} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<TeamOutlined />}
             label="Deals target"
             value={`${summary?.totalDealsTarget ?? 0} deals`}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={12} xl={4}>
+        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
           <StatTile
+            style={{ height: '100%' }}
             icon={<CheckCircleOutlined />}
             label="Deals achieved"
             value={`${summary?.achievedDeals ?? 0} deals`}
