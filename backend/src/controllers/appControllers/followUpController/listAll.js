@@ -29,8 +29,17 @@ const { backfillFollowUps } = require('./syncFollowUpFromLead');
  * Isolation is unchanged and cannot be widened here: scopedFilter carries the
  * tenant and, for a child account, the "mine or assigned to me" clause.
  *
- * Sorted by due date ascending - the thing a follow-up list is read to answer is
- * "what is next" - with the newest record breaking ties.
+ * Sorted newest-created first, at the query level. This is the deliberate
+ * opposite of the previous due-date ordering: the CEO reads this queue as "what
+ * did we just schedule", and a reminder created moments ago was landing at the
+ * bottom behind the whole backlog. The sort is applied by MongoDB before the
+ * rows leave it - not by reversing an array in the browser - so it also holds
+ * for any future pagination, where an in-memory reversal would reorder only the
+ * current page. The module's Today/Upcoming/Overdue tabs still decide which
+ * due-date period is shown; `created` only decides the order within it.
+ *
+ * FollowUp has no pagination today (no skip/limit), so there is no page
+ * boundary for this sort to be applied after.
  */
 const listAll = async (Model, req, res) => {
   await backfillFollowUps(req);
@@ -45,7 +54,10 @@ const listAll = async (Model, req, res) => {
   if (req.query.status === 'pending') conditions.push({ completed: false });
 
   const result = await Model.find({ $and: conditions })
-    .sort({ date: 1, created: -1 })
+    // Newest created first. `_id` breaks a same-millisecond tie deterministically
+    // (ObjectIds are monotonic within a process), so two records saved in the
+    // same tick do not swap places between requests.
+    .sort({ created: -1, _id: -1 })
     .populate()
     .exec();
 
