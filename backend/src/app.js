@@ -20,6 +20,7 @@ const requireTenantOwner = require('./middlewares/requireTenantOwner');
 
 const errorHandlers = require('./handlers/errorHandlers');
 const erpApiRouter = require('./routes/appRoutes/appApi');
+const requireDbReady = require('./middlewares/requireDbReady');
 
 const fileUpload = require('express-fileupload');
 // create our Express app
@@ -53,6 +54,13 @@ app.use(compression());
 // app.use(fileUpload());
 
 // Here our API Routes
+
+// Guarantee the database connection is live before any route handler fires.
+// On Vercel Serverless this is what prevents the "buffering timed out after
+// 10000ms" crash: the middleware awaits the cached connection promise and
+// returns 500 immediately if it fails, instead of letting Mongoose buffer
+// operations against a connection that may never open.
+app.use(requireDbReady);
 
 app.use('/api', coreAuthRouter);
 // Product photos are served here, before the routers that require a token, for
