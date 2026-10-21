@@ -100,6 +100,38 @@ export const verify = async ({ userId, emailToken }) => {
   }
 };
 
+/**
+ * Asks the API to email a password-reset link.
+ *
+ * The `portal` value is what makes the emailed link come back to this
+ * deployment rather than the Customer Portal: the API maps it to
+ * SUPERADMIN_URL. It is a fixed value here, not something read from the current
+ * URL, so the link cannot be redirected by whoever is on the sign-in page.
+ *
+ * The reply is identical whether or not the address belongs to an account. That
+ * is deliberate - this endpoint is public, and a different answer would let
+ * someone probe which emails are registered.
+ */
+export const forgetPassword = async ({ email, portal = 'superadmin' }) => {
+  try {
+    includeToken();
+    const response = await axios.post(`forgetpassword`, { email, portal });
+
+    const { status, data } = response;
+
+    successHandler(
+      { data, status },
+      {
+        notifyOnSuccess: false,
+        notifyOnFailed: true,
+      }
+    );
+    return data;
+  } catch (error) {
+    return errorHandler(error);
+  }
+};
+
 export const resetPassword = async ({ resetPasswordData }) => {
   try {
     includeToken();
@@ -110,7 +142,7 @@ export const resetPassword = async ({ resetPasswordData }) => {
     successHandler(
       { data, status },
       {
-        notifyOnSuccess: true,
+        notifyOnSuccess: false,
         notifyOnFailed: true,
       }
     );

@@ -100,6 +100,37 @@ export const verify = async ({ userId, emailToken }) => {
   }
 };
 
+/**
+ * Asks the API to email a password-reset link.
+ *
+ * `portal` decides which deployment the link points back to. The API resolves
+ * it to FRONTEND_URL or SUPERADMIN_URL - it does not trust a caller-supplied
+ * base URL - and both apps share this one endpoint.
+ *
+ * The reply is deliberately the same whether or not the address belongs to an
+ * account, so the sign-in page cannot be used to discover valid emails. That is
+ * why there is no `notifyOnSuccess` toast here: the page shows the explanation.
+ */
+export const forgetPassword = async ({ email, portal = 'frontend' }) => {
+  try {
+    includeToken();
+    const response = await axios.post(`forgetpassword`, { email, portal });
+
+    const { status, data } = response;
+
+    successHandler(
+      { data, status },
+      {
+        notifyOnSuccess: false,
+        notifyOnFailed: true,
+      }
+    );
+    return data;
+  } catch (error) {
+    return errorHandler(error);
+  }
+};
+
 export const resetPassword = async ({ resetPasswordData }) => {
   try {
     includeToken();
@@ -110,7 +141,7 @@ export const resetPassword = async ({ resetPasswordData }) => {
     successHandler(
       { data, status },
       {
-        notifyOnSuccess: true,
+        notifyOnSuccess: false,
         notifyOnFailed: true,
       }
     );

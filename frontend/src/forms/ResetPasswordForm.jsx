@@ -1,28 +1,38 @@
 import React from 'react';
 import { Form, Input } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
-
-import useLanguage from '@/locale/useLanguage';
+import { LockOutlined } from '@ant-design/icons';
 
 export default function ResetPasswordForm() {
   return (
     <>
       <Form.Item
         name="password"
+        label="New password"
         rules={[
           {
             required: true,
+          },
+          {
+            min: 6,
+            message: 'Use at least 6 characters.',
+          },
+          {
+            max: 128,
+            message: 'Use 128 characters or fewer.',
           },
         ]}
       >
         <Input.Password
           prefix={<LockOutlined className="site-form-item-icon" />}
-          placeholder="Password"
+          placeholder="Enter your new password"
+          autoComplete="new-password"
           size="large"
         />
       </Form.Item>
       <Form.Item
         name="confirm_password"
+        label="Confirm new password"
+        dependencies={['password']}
         rules={[
           {
             required: true,
@@ -40,7 +50,8 @@ export default function ResetPasswordForm() {
       >
         <Input.Password
           prefix={<LockOutlined className="site-form-item-icon" />}
-          placeholder="Confirm password"
+          placeholder="Confirm your new password"
+          autoComplete="new-password"
           size="large"
         />
       </Form.Item>

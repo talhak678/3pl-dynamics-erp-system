@@ -76,6 +76,27 @@ const adminSchema = new Schema({
     trim: true,
     required: true,
   },
+
+  // Password reset. The raw token exists only in the email link; the database
+  // stores its SHA-256 hash, so a leaked database row cannot be replayed as a
+  // working link. The expiry is enforced in the reset query itself, not by a
+  // cleanup job, so an old token stops working the moment its window closes.
+  //
+  // `select: false` keeps both fields out of the documents the rest of the API
+  // returns. They are only read by resetPassword, which asks for them
+  // explicitly. They live on Admin rather than AdminPassword because the
+  // unauthenticated reset request has only the token to go on - it has to find
+  // the account before it can find that account's credentials row.
+  resetPasswordToken: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  resetPasswordExpire: {
+    type: Date,
+    default: null,
+    select: false,
+  },
   name: { type: String, required: true },
   surname: { type: String },
   photo: {

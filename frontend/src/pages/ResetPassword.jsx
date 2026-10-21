@@ -1,65 +1,114 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
-import { resetPassword } from '@/redux/auth/actions';
-import { selectAuth } from '@/redux/auth/selectors';
+import { Alert, Button, Form, Result } from 'antd';
 
-import { Form, Button } from 'antd';
+import { resetPassword as resetPasswordRequest } from '@/auth';
 
 import ResetPasswordForm from '@/forms/ResetPasswordForm';
-
-import useLanguage from '@/locale/useLanguage';
 
 import Loading from '@/components/Loading';
 import AuthModule from '@/modules/AuthModule';
 
-const ResetPassword = () => {
-  const translate = useLanguage();
-  const { isLoading, isSuccess } = useSelector(selectAuth);
-  const navigate = useNavigate();
-  const { userId, resetToken } = useParams();
+/**
+ * Drops the locally stored session after a successful reset.
+ *
+ * The server clears loggedSessions when the password changes, so every token
+ * this browser is holding is already dead. Removing the persisted copy means a
+ * reload or a later visit starts signed out instead of booting the app with a
+ * token the API will reject on its first call.
+ */
+const clearLocalSession = () => {
+  try {
+    window.localStorage.removeItem('auth');
+    window.localStorage.removeItem('settings');
+  } catch (error) {
+    console.error('Could not clear the local session:', error);
+  }
+};
 
-  const dispatch = useDispatch();
-  const onFinish = (values) => {
-    dispatch(
-      resetPassword({
-        resetPasswordData: {
-          password: values.password,
-          userId,
-          resetToken,
-        },
-      })
+const ResetPassword = () => {
+  const { token } = useParams();
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const onFinish = async (values) => {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    const data = await resetPasswordRequest({
+      resetPasswordData: { token, password: values.password },
+    });
+
+    setIsLoading(false);
+
+    if (data && data.success === true) {
+      clearLocalSession();
+      setIsSuccess(true);
+      return;
+    }
+
+    setErrorMessage(
+      data?.message || 'We could not reset your password. Please request a new link.'
     );
   };
 
-  useEffect(() => {
-    if (isSuccess) navigate('/');
-  }, [isSuccess]);
+  if (isSuccess) {
+    return (
+      <AuthModule
+        AUTH_TITLE="Password updated"
+        authContent={
+          <Result
+            status="success"
+            title="Your password has been updated"
+            subTitle="You can now sign in with your new password."
+            extra={
+              // A full reload, not a router navigation. Redux still holds the
+              // session it booted with; reloading is what re-reads the cleared
+              // storage and mounts the sign-in screen.
+              <Button type="primary" onClick={() => window.location.assign('/login')}>
+                Sign in
+              </Button>
+            }
+          />
+        }
+      />
+    );
+  }
 
   const FormContainer = () => {
     return (
       <Loading isLoading={isLoading}>
+        {errorMessage ? (
+          <Alert type="error" showIcon message={errorMessage} style={{ marginBottom: 16 }} />
+        ) : null}
         <Form
-          name="signup"
+          layout="vertical"
+          name="reset_password"
           className="login-form"
-          initialValues={{
-            remember: true,
-          }}
           onFinish={onFinish}
         >
           <ResetPasswordForm />
           <Form.Item>
-            <Button type="primary" htmlType="submit" className="login-form-button" size="large">
-              {translate('update password')}
+            <Button
+              type="primary"
+              htmlType="submit"
+              className="login-form-button"
+              size="large"
+              loading={isLoading}
+            >
+              Update password
             </Button>
-            {translate('Or')} <a href="/login"> {translate('already have account Login')} </a>
+            <Link to="/login">Back to login</Link>
           </Form.Item>
         </Form>
       </Loading>
     );
   };
+
   return <AuthModule authContent={<FormContainer />} AUTH_TITLE="Reset Password" />;
 };
 

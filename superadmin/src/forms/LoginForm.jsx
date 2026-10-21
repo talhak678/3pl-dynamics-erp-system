@@ -1,6 +1,7 @@
 import React from 'react';
 import { Form, Input, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 
 import useLanguage from '@/locale/useLanguage';
 
@@ -47,7 +48,9 @@ export default function LoginForm() {
         <Form.Item name="remember" valuePropName="checked" noStyle>
           <Checkbox>{translate('Remember me')}</Checkbox>
         </Form.Item>
-        {/* Forgot Password link removed — users are manually generated */}
+        <Link className="login-form-forgot" to="/forgetpassword">
+          Forgot password?
+        </Link>
       </Form.Item>
     </div>
   );
