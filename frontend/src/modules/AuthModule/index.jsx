@@ -23,8 +23,8 @@ const { Title } = Typography;
 const AuthModule = ({ authContent, AUTH_TITLE }) => {
   const translate = useLanguage();
   const { theme } = useTheme();
-  // The auth card is dark glass (rgba(0, 0, 0, 0.75)), so always use darkLogo (light coloured) for high contrast
-  const logo = darkLogo;
+  // DARK theme = darkLogo (light coloured), LIGHT theme = lightLogo (dark coloured)
+  const logo = theme === 'dark' ? darkLogo : lightLogo;
 
   return (
     <AuthLayout>

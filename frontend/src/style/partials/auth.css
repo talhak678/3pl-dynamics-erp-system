@@ -93,17 +93,6 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-color: #0b0f19;
-}
-
-/* Dark gradient overlay to significantly dim bright backgrounds and eliminate glare */
-.auth-backdrop::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65));
-  z-index: 1;
-  pointer-events: none;
 }
 
 /*
@@ -117,7 +106,6 @@
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  filter: brightness(0.55);
   opacity: 0;
   transition: opacity 1000ms ease-in-out;
   will-change: opacity;
@@ -133,7 +121,7 @@
      be 48px too tall - a permanent scrollbar inside a clipped parent. */
   box-sizing: border-box;
   position: relative;
-  z-index: 2;
+  z-index: 1;
   display: flex;
   /* `safe` keeps the whole card reachable if it is ever taller than the screen.
      Plain `center` would push its top past the scroll origin, where scrolling
@@ -181,13 +169,11 @@
   width: 100%;
   max-width: 28rem;
   padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.75);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
-  color: #ffffff;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 @media (min-width: 768px) {
@@ -221,21 +207,8 @@
    the one inside the card. */
 .auth-card-title.ant-typography {
   margin-bottom: 24px;
-  color: #ffffff !important;
+  color: var(--app-text);
   text-align: center;
-}
-
-/* Form labels, general typography, and text within the dark card */
-.auth-glass-card .login-form .ant-form-item-label > label,
-.auth-glass-card .ant-form-item-label > label {
-  color: #f3f4f6 !important;
-  font-weight: 500;
-}
-
-.auth-glass-card .ant-typography,
-.auth-glass-card p,
-.auth-glass-card span {
-  color: #f3f4f6;
 }
 
 /* ---------------------------------------------------------------------------
@@ -269,23 +242,8 @@
   padding: 10px 16px;
   font-size: 14px;
   font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
-  border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  color: #ffffff !important;
-}
-
-.auth-glass-card .ant-input:focus,
-.auth-glass-card .ant-input-focused,
-.auth-glass-card .ant-input-affix-wrapper:focus,
-.auth-glass-card .ant-input-affix-wrapper-focused {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
-}
-
-.auth-glass-card .ant-input::placeholder,
-.auth-glass-card .ant-input-affix-wrapper input::placeholder {
-  color: rgba(255, 255, 255, 0.45) !important;
+  border-color: var(--color-gray-500);
+  background-color: transparent;
 }
 
 /* Both fields carry a prefix, so both render as an affix wrapper: antd puts the
@@ -295,56 +253,7 @@
 .auth-glass-card .ant-input-affix-wrapper > .ant-input {
   height: auto;
   padding: 0;
-  border: none !important;
-  background-color: transparent !important;
-  color: #ffffff !important;
-}
-
-.auth-glass-card .ant-input-prefix,
-.auth-glass-card .ant-input-suffix,
-.auth-glass-card .site-form-item-icon,
-.auth-glass-card .ant-input-password-icon {
-  color: rgba(255, 255, 255, 0.65) !important;
-}
-
-.auth-glass-card .ant-input-password-icon:hover {
-  color: #ffffff !important;
-}
-
-/* Checkbox styling on dark background */
-.auth-glass-card .ant-checkbox-wrapper {
-  color: #e5e7eb !important;
-}
-
-.auth-glass-card .ant-checkbox-inner {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
-}
-
-.auth-glass-card .ant-checkbox-checked .ant-checkbox-inner {
-  background-color: #1677ff !important;
-  border-color: #1677ff !important;
-}
-
-/* Links inside the card */
-.auth-glass-card a,
-.auth-glass-card .login-form-forgot {
-  color: #60a5fa !important;
-  transition: color 0.2s ease;
-}
-
-.auth-glass-card a:hover,
-.auth-glass-card .login-form-forgot:hover {
-  color: #93c5fd !important;
-}
-
-/* Result titles on success states */
-.auth-glass-card .ant-result-title {
-  color: #ffffff !important;
-}
-
-.auth-glass-card .ant-result-subtitle {
-  color: #d1d5db !important;
+  background-color: transparent;
 }
 
 /* The rotation still happens, it just stops sliding. */

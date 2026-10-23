@@ -65,9 +65,7 @@ export default function AuthLayout({ children }) {
           <div
             key={image}
             className={`auth-bg-layer ${index === activeBackground ? 'is-active' : ''}`}
-            style={{
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("${image}")`,
-            }}
+            style={{ backgroundImage: `url("${image}")` }}
           />
         ))}
       </div>
