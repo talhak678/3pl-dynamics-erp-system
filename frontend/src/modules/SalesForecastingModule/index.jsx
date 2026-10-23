@@ -320,45 +320,45 @@ export default function SalesForecastingModule() {
       )}
 
       <Row gutter={[16, 16]} align="stretch">
-        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
+        <Col flex="1 1 25%" style={{ display: 'flex', minWidth: '250px' }}>
           <StatTile
-            style={{ height: '100%' }}
+            style={{ flex: 1, width: '100%', height: '100%' }}
             icon={<BarChartOutlined />}
             label="Total pipeline value"
             value={money(kpis?.pipelineValue)}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
+        <Col flex="1 1 25%" style={{ display: 'flex', minWidth: '250px' }}>
           <StatTile
-            style={{ height: '100%' }}
+            style={{ flex: 1, width: '100%', height: '100%' }}
             icon={<LineChartOutlined />}
             label="Weighted forecast"
             value={money(adjusted.weightedValue)}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
+        <Col flex="1 1 25%" style={{ display: 'flex', minWidth: '250px' }}>
           <StatTile
-            style={{ height: '100%' }}
+            style={{ flex: 1, width: '100%', height: '100%' }}
             icon={<AimOutlined />}
             label="Commit projection"
             value={money(adjusted.commitValue)}
             color="var(--color-warning-500)"
           />
         </Col>
-        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
+        <Col flex="1 1 25%" style={{ display: 'flex', minWidth: '250px' }}>
           <StatTile
-            style={{ height: '100%' }}
+            style={{ flex: 1, width: '100%', height: '100%' }}
             icon={<RiseOutlined />}
             label="Best-case projection"
             value={money(kpis?.bestCaseValue)}
             color="var(--color-brand-500)"
           />
         </Col>
-        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
+        <Col flex="1 1 25%" style={{ display: 'flex', minWidth: '250px' }}>
           <StatTile
-            style={{ height: '100%' }}
+            style={{ flex: 1, width: '100%', height: '100%' }}
             icon={<PercentageOutlined />}
             label={
               kpis?.winRateScope === 'window' ? 'Win rate (this window)' : 'Win rate (all time)'
@@ -367,9 +367,9 @@ export default function SalesForecastingModule() {
             color="var(--color-success-500)"
           />
         </Col>
-        <Col xs={24} sm={24} md={12} lg={6} xl={6}>
+        <Col flex="1 1 25%" style={{ display: 'flex', minWidth: '250px' }}>
           <StatTile
-            style={{ height: '100%' }}
+            style={{ flex: 1, width: '100%', height: '100%' }}
             icon={<DollarOutlined />}
             label="Average deal size"
             value={money(kpis?.averageDealSize)}
