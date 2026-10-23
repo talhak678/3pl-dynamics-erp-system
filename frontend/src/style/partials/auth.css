@@ -95,6 +95,16 @@
   z-index: 0;
 }
 
+/* Very subtle dimming overlay to soften image glare without darkening the page */
+.auth-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25));
+  z-index: 1;
+  pointer-events: none;
+}
+
 /*
  * Both layers stay mounted and cross-fade on opacity, exactly as the WMS does.
  * Swapping a single element's background-image instead would drop to no image
@@ -121,7 +131,7 @@
      be 48px too tall - a permanent scrollbar inside a clipped parent. */
   box-sizing: border-box;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   /* `safe` keeps the whole card reachable if it is ever taller than the screen.
      Plain `center` would push its top past the scroll origin, where scrolling
