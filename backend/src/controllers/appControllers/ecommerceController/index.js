@@ -15,15 +15,6 @@ const Lead = mongoose.model('Lead');
 const tenantIdOf = (admin) => (admin ? admin.tenantId || admin.parentAdminId || admin._id || null : null);
 
 /**
- * Seed initial sample data strictly tied to the designated demo tenant (info@3pldynamicsai.com)
- * Ensures other tenant accounts never receive seed data belonging to another workspace.
- */
-const isPrimaryDemoTenant = (admin) => {
-  if (!admin) return false;
-  return admin.email === 'info@3pldynamicsai.com';
-};
-
-/**
  * Sync ERP Products to external E-Commerce Store
  * POST /api/ecommerce/sync-products
  */
@@ -120,148 +111,10 @@ const fetchOrders = async (req, res) => {
     return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
   }
 
-  let orders = await OnlineOrder.find({ createdBy: tenantId, removed: false })
+  const orders = await OnlineOrder.find({ createdBy: tenantId, removed: false })
     .populate('websiteConfig')
     .populate('erpOrderId')
     .sort({ created: -1 });
-
-  // Only seed mock orders if the logged-in user is explicitly the demo tenant (info@3pldynamicsai.com)
-  if ((!orders || orders.length === 0) && isPrimaryDemoTenant(req.admin)) {
-    let websiteConfig = await WebsiteConfig.findOne({ createdBy: tenantId, removed: false });
-    if (!websiteConfig) {
-      websiteConfig = await new WebsiteConfig({
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        name: 'Main Shopify Store',
-        platform: 'Shopify',
-        storeUrl: 'https://store-3pldynamics.myshopify.com',
-        status: 'connected',
-        lastSyncDate: new Date(),
-        syncFrequency: 'hourly',
-      }).save();
-    }
-
-    const sampleOrders = [
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        orderNumber: 'ORD-ECOMM-1001',
-        externalOrderId: 'SP-94821',
-        websiteConfig: websiteConfig._id,
-        customer: {
-          name: 'Sarah Jenkins',
-          email: 'sarah.jenkins@gmail.com',
-          phone: '+1 555-0192',
-          address: '742 Evergreen Terrace',
-          city: 'Springfield',
-          country: 'United States',
-          postalCode: '97477',
-        },
-        items: [
-          {
-            name: 'Logistics Smart Tracker v2',
-            sku: 'TRK-002',
-            quantity: 2,
-            price: 149.99,
-            total: 299.98,
-          },
-          {
-            name: 'Heavy Duty RFID Tag Pack',
-            sku: 'RFID-100',
-            quantity: 1,
-            price: 49.0,
-            total: 49.0,
-          },
-        ],
-        subtotal: 348.98,
-        taxTotal: 27.92,
-        shippingTotal: 15.0,
-        discountTotal: 0,
-        totalAmount: 391.9,
-        currency: 'USD',
-        paymentStatus: 'paid',
-        fulfillmentStatus: 'processing',
-        paymentMethod: 'Credit Card (Stripe)',
-        notes: 'Priority air express delivery requested.',
-      },
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        orderNumber: 'ORD-ECOMM-1002',
-        externalOrderId: 'SP-94830',
-        websiteConfig: websiteConfig._id,
-        customer: {
-          name: 'David Chen',
-          email: 'd.chen@apextechnologies.io',
-          phone: '+1 415-883-9201',
-          address: '100 Montgomery St, Suite 400',
-          city: 'San Francisco',
-          country: 'United States',
-          postalCode: '94104',
-        },
-        items: [
-          {
-            name: 'Enterprise Warehouse Sensor Node',
-            sku: 'W-SENS-E',
-            quantity: 4,
-            price: 220.0,
-            total: 880.0,
-          },
-        ],
-        subtotal: 880.0,
-        taxTotal: 74.8,
-        shippingTotal: 0,
-        discountTotal: 50.0,
-        totalAmount: 904.8,
-        currency: 'USD',
-        paymentStatus: 'paid',
-        fulfillmentStatus: 'pending',
-        paymentMethod: 'PayPal Express',
-        notes: 'Deliver to loading dock bay 3.',
-      },
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        orderNumber: 'ORD-ECOMM-1003',
-        externalOrderId: 'SP-94844',
-        websiteConfig: websiteConfig._id,
-        customer: {
-          name: 'Elena Rostova',
-          email: 'e.rostova@nordiclogistics.eu',
-          phone: '+44 20 7946 0912',
-          address: '45 Cannon Street',
-          city: 'London',
-          country: 'United Kingdom',
-          postalCode: 'EC4N 5JJ',
-        },
-        items: [
-          {
-            name: 'Barcode Scanner Handheld 2D',
-            sku: 'SCAN-2D-HH',
-            quantity: 3,
-            price: 185.0,
-            total: 555.0,
-          },
-        ],
-        subtotal: 555.0,
-        taxTotal: 111.0,
-        shippingTotal: 35.0,
-        discountTotal: 0,
-        totalAmount: 701.0,
-        currency: 'EUR',
-        paymentStatus: 'paid',
-        fulfillmentStatus: 'shipped',
-        paymentMethod: 'Bank Wire / Klarna',
-        notes: 'Commercial invoice required for customs clearance.',
-      },
-    ];
-
-    orders = await OnlineOrder.insertMany(sampleOrders);
-    orders = await OnlineOrder.find({ createdBy: tenantId, removed: false })
-      .populate('websiteConfig')
-      .populate('erpOrderId')
-      .sort({ created: -1 });
-  }
 
   return res.status(200).json({
     success: true,
@@ -455,94 +308,9 @@ const syncCustomers = async (req, res) => {
     return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
   }
 
-  let contacts = await CustomerSync.find({ createdBy: tenantId, removed: false }).sort({
+  const contacts = await CustomerSync.find({ createdBy: tenantId, removed: false }).sort({
     created: -1,
   });
-
-  // Only seed sample contacts if the user is explicitly the demo tenant (info@3pldynamicsai.com)
-  if ((!contacts || contacts.length === 0) && isPrimaryDemoTenant(req.admin)) {
-    let websiteConfig = await WebsiteConfig.findOne({ createdBy: tenantId, removed: false });
-    if (!websiteConfig) {
-      websiteConfig = await new WebsiteConfig({
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        name: 'Main Shopify Store',
-        platform: 'Shopify',
-        storeUrl: 'https://store-3pldynamics.myshopify.com',
-        status: 'connected',
-        lastSyncDate: new Date(),
-      }).save();
-    }
-
-    const sampleContacts = [
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        websiteConfig: websiteConfig._id,
-        sourcePlatform: 'Shopify',
-        sourceType: 'ecommerce_checkout',
-        name: 'Michael Vance',
-        email: 'mvance@transcorp-logistics.com',
-        phone: '+1 312-555-0143',
-        company: 'TransCorp Global',
-        city: 'Chicago',
-        country: 'United States',
-        externalCustomerId: 'CUST-SP-8821',
-        totalOrders: 3,
-        totalSpent: 1250.0,
-        crmStatus: 'unlinked',
-      },
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        websiteConfig: websiteConfig._id,
-        sourcePlatform: 'Webflow SaaS Form',
-        sourceType: 'saas_contact_form',
-        name: 'Amanda Brooks',
-        email: 'abrooks@nextgenfreight.com',
-        phone: '+1 617-555-9231',
-        company: 'NextGen Freight Solutions',
-        city: 'Boston',
-        country: 'United States',
-        message: 'Interested in enterprise automated fulfillment & API connector quote.',
-        crmStatus: 'unlinked',
-      },
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        websiteConfig: websiteConfig._id,
-        sourcePlatform: 'Shopify Checkout',
-        sourceType: 'ecommerce_checkout',
-        name: 'Carlos Mendez',
-        email: 'cmendez@mendezdistrib.es',
-        phone: '+34 91 123 4567',
-        company: 'Mendez Distribuciones SL',
-        city: 'Madrid',
-        country: 'Spain',
-        externalCustomerId: 'CUST-SP-8890',
-        totalOrders: 1,
-        totalSpent: 420.0,
-        crmStatus: 'unlinked',
-      },
-      {
-        createdBy: tenantId,
-        createdByUser: req.admin._id,
-        websiteConfig: websiteConfig._id,
-        sourcePlatform: 'Website Contact Page',
-        sourceType: 'demo_request',
-        name: 'Dr. Robert Stirling',
-        email: 'rstirling@medlog.org',
-        phone: '+44 161 496 0233',
-        company: 'MedLog Systems UK',
-        city: 'Manchester',
-        country: 'United Kingdom',
-        message: 'Requesting live demo for cold-chain temperature monitoring sync.',
-        crmStatus: 'unlinked',
-      },
-    ];
-
-    contacts = await CustomerSync.insertMany(sampleContacts);
-  }
 
   return res.status(200).json({
     success: true,

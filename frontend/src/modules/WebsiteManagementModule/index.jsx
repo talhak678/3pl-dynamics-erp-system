@@ -202,52 +202,21 @@ export default function WebsiteManagementModule() {
     setModalOpen(true);
   };
 
-  // Activity Logs Table mock data
-  const activityLogs = useMemo(
-    () => [
-      {
-        key: '1',
-        time: dayjs().subtract(4, 'minute').format('YYYY-MM-DD HH:mm:ss'),
-        store: stores[0]?.name || 'Primary E-Commerce Store',
-        platform: stores[0]?.platform || 'Shopify',
-        operation: 'Orders Webhook',
-        status: 'success',
-        records: '1 order ingested (ORD-ECOMM-1003)',
-        triggeredBy: 'Real-time Webhook',
-      },
-      {
-        key: '2',
-        time: dayjs().subtract(18, 'minute').format('YYYY-MM-DD HH:mm:ss'),
-        store: stores[0]?.name || 'Primary E-Commerce Store',
-        platform: stores[0]?.platform || 'Shopify',
-        operation: 'Inventory Sync',
-        status: 'success',
-        records: '48 items updated',
-        triggeredBy: 'Auto-Scheduler',
-      },
-      {
-        key: '3',
-        time: dayjs().subtract(45, 'minute').format('YYYY-MM-DD HH:mm:ss'),
-        store: stores[0]?.name || 'Primary E-Commerce Store',
-        platform: stores[0]?.platform || 'Shopify',
-        operation: 'Customer Ingestion',
-        status: 'success',
-        records: '4 new checkout contacts',
-        triggeredBy: 'Scheduled Cron',
-      },
-      {
-        key: '4',
-        time: dayjs().subtract(2, 'hour').format('YYYY-MM-DD HH:mm:ss'),
-        store: stores[0]?.name || 'Primary E-Commerce Store',
-        platform: stores[0]?.platform || 'Shopify',
-        operation: 'SSL & API Ping Healthcheck',
-        status: 'success',
-        records: 'Latency: 114ms, HTTP 200 OK',
-        triggeredBy: 'System Diagnostic',
-      },
-    ],
-    [stores]
-  );
+  // Activity Logs Table data derived from connected stores; empty if none
+  const activityLogs = useMemo(() => {
+    return stores
+      .filter((s) => s.lastSyncDate)
+      .map((s, idx) => ({
+        key: s._id || String(idx),
+        time: dayjs(s.lastSyncDate).format('YYYY-MM-DD HH:mm:ss'),
+        store: s.name || 'Store',
+        platform: s.platform || 'Custom API',
+        operation: 'Channel Synchronization',
+        status: s.status === 'connected' ? 'success' : 'pending',
+        records: `Sync active (${s.syncFrequency || 'hourly'})`,
+        triggeredBy: 'Scheduler / Webhook',
+      }));
+  }, [stores]);
 
   return (
     <Space direction="vertical" size={24} style={{ width: '100%' }}>
