@@ -12,6 +12,7 @@ const coreApiRouter = require('./routes/coreRoutes/coreApi');
 const coreDownloadRouter = require('./routes/coreRoutes/coreDownloadRouter');
 const corePublicRouter = require('./routes/coreRoutes/corePublicRouter');
 const productImageRouter = require('./routes/coreRoutes/productImageRouter');
+const ecommerceWebhookRouter = require('./routes/coreRoutes/ecommerceWebhookRouter');
 const superAdminRouter = require('./routes/coreRoutes/superAdminApi');
 const teamRouter = require('./routes/coreRoutes/teamApi');
 const adminAuth = require('./controllers/coreControllers/adminAuth');
@@ -63,6 +64,7 @@ app.use(compression());
 app.use(requireDbReady);
 
 app.use('/api', coreAuthRouter);
+app.use('/api', ecommerceWebhookRouter);
 // Product photos are served here, before the routers that require a token, for
 // the same reason coreAuthRouter is: an <img src> cannot send the app's
 // Authorization header, so the request that fetches a thumbnail arrives without

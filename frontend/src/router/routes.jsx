@@ -54,6 +54,11 @@ const SalesFollowUps = lazy(() => import('@/pages/SalesFollowUps'));
 const SalesTargets = lazy(() => import('@/pages/SalesTargets'));
 const SalesForecasting = lazy(() => import('@/pages/SalesForecasting'));
 
+const WebsiteManagement = lazy(() => import('@/pages/WebsiteManagement'));
+const ProductCatalogSync = lazy(() => import('@/pages/ProductCatalogSync'));
+const OnlineOrders = lazy(() => import('@/pages/OnlineOrders'));
+const CustomerSync = lazy(() => import('@/pages/CustomerSync'));
+
 const About = lazy(() => import('@/pages/About'));
 
 /**
@@ -213,6 +218,22 @@ let routes = {
     {
       path: '/sales-forecasting',
       element: guarded('sales_forecasting', <SalesForecasting />),
+    },
+    {
+      path: '/website-management',
+      element: guarded('website_management', <WebsiteManagement />),
+    },
+    {
+      path: '/product-catalog-sync',
+      element: guarded('product_sync', <ProductCatalogSync />),
+    },
+    {
+      path: '/online-orders',
+      element: guarded('online_orders', <OnlineOrders />),
+    },
+    {
+      path: '/customer-sync',
+      element: guarded('customer_sync', <CustomerSync />),
     },
     {
       path: '/offer',

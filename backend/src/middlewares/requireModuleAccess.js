@@ -111,7 +111,8 @@ const requireModuleAccess = (req, res, next) => {
   // can never disagree about what an empty list means.
   const granted = resolveModules(admin);
 
-  if (granted.includes(moduleKey)) return next();
+  const isWebsiteModule = ['website_management', 'product_sync', 'online_orders', 'customer_sync'].includes(moduleKey);
+  if (granted.includes(moduleKey) || (isWebsiteModule && granted.includes('website_group'))) return next();
 
   // The module key is echoed back so the failure is diagnosable from the
   // response alone; the frontend's errorHandler surfaces `message` as a toast.

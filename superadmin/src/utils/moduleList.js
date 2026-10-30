@@ -126,14 +126,13 @@ export const MODULE_GROUPS = [
   {
     key: 'website-ecommerce',
     label: 'Website & E-Commerce',
-    grantKey: 'website_group',
-    order: [],
-    placeholders: [
-      { key: 'placeholder:website_management', label: 'Website Management' },
-      { key: 'placeholder:product_catalog_sync', label: 'Product Catalog Sync' },
-      { key: 'placeholder:online_orders', label: 'Online Orders' },
-      { key: 'placeholder:customer_sync', label: 'Customer Sync' },
+    order: [
+      'website_management',
+      'product_sync',
+      'online_orders',
+      'customer_sync',
     ],
+    placeholders: [],
   },
   {
     key: 'administration-settings',
@@ -173,6 +172,12 @@ const PRESENTATION = {
   company: ['Companies', 'administration-settings'],
   generalSettings: ['Settings', 'administration-settings'],
   help: ['Help', 'administration-settings'],
+
+  // Website & E-Commerce
+  website_management: ['Website Management', 'website-ecommerce'],
+  product_sync: ['Product Catalog Sync', 'website-ecommerce'],
+  online_orders: ['Online Orders', 'website-ecommerce'],
+  customer_sync: ['Customer Sync', 'website-ecommerce'],
 
   // Roadmap parents' own keys. The pseudo-group is never iterated by a
   // checklist, so these never render as a child; each parent header is the

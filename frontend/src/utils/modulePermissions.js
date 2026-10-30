@@ -33,7 +33,15 @@ export const resolveModules = (admin) => {
 /** Whether the signed-in account may use a module. */
 export const hasModule = (admin, moduleKey) => {
   const granted = resolveModules(admin);
-  return granted === null || granted.includes(moduleKey);
+  if (granted === null) return true;
+  if (granted.includes(moduleKey)) return true;
+  if (
+    ['website_management', 'product_sync', 'online_orders', 'customer_sync'].includes(moduleKey) &&
+    granted.includes('website_group')
+  ) {
+    return true;
+  }
+  return false;
 };
 
 /**
@@ -102,6 +110,12 @@ export const ALL_MODULES = [
   'sales_followups',
   'sales_targets',
   'sales_forecasting',
+
+  // Website & E-Commerce
+  'website_management',
+  'product_sync',
+  'online_orders',
+  'customer_sync',
 
   // The four roadmap parents. They are grantable so an administrator can choose
   // whether a wholly-placeholder group is drawn; they gate no page or API. The

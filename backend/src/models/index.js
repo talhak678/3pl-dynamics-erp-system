@@ -27,3 +27,8 @@ require('./appModels/Quote');
 require('./appModels/SalesTarget');
 require('./appModels/Shipment');
 require('./appModels/Taxes');
+
+require('./appModels/WebsiteConfig');
+require('./appModels/ProductSync');
+require('./appModels/OnlineOrder');
+require('./appModels/CustomerSync');

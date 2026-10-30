@@ -54,6 +54,12 @@ const MODULE_KEYS = [
   'sales_targets',
   'sales_forecasting',
 
+  // Website & E-Commerce sub-modules
+  'website_management',
+  'product_sync',
+  'online_orders',
+  'customer_sync',
+
   // The roadmap parents that have no implemented child yet: Purchase &
   // Suppliers, POS, Operations and Website & E-Commerce.
   //
@@ -140,6 +146,13 @@ const ENTITY_MODULE_MAP = {
   followup: 'sales_followups',
   salestarget: 'sales_targets',
   salesforecast: 'sales_forecasting',
+
+  // Website & E-Commerce entities
+  websiteconfig: 'website_management',
+  productsync: 'product_sync',
+  onlineorder: 'online_orders',
+  customersync: 'customer_sync',
+  ecommerce: 'website_management',
 };
 
 /** The module governing an entity, or null when no module covers it. */

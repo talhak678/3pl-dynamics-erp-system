@@ -462,5 +462,85 @@ const request = {
       }
     },
   },
+
+  /**
+   * Website & E-Commerce Module Operations
+   */
+  ecommerce: {
+    syncProducts: async (jsonData) => {
+      try {
+        includeToken();
+        const response = await axios.post('ecommerce/sync-products', jsonData || {});
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    fetchOrders: async () => {
+      try {
+        includeToken();
+        const response = await axios.get('ecommerce/fetch-orders');
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    testConnection: async (jsonData) => {
+      try {
+        includeToken();
+        const response = await axios.post('ecommerce/test-connection', jsonData || {});
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    convertOrder: async (id) => {
+      try {
+        includeToken();
+        const response = await axios.post('ecommerce/convert-order/' + id, {});
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    linkCustomer: async (id, jsonData) => {
+      try {
+        includeToken();
+        const response = await axios.post('ecommerce/link-customer/' + id, jsonData || {});
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+    syncCustomers: async (jsonData) => {
+      try {
+        includeToken();
+        const response = await axios.post('ecommerce/sync-customers', jsonData || {});
+        successHandler(response, {
+          notifyOnSuccess: true,
+          notifyOnFailed: true,
+        });
+        return response.data;
+      } catch (error) {
+        return errorHandler(error);
+      }
+    },
+  },
 };
 export default request;

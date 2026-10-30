@@ -45,6 +45,12 @@ export const MODULE_HOME_PATHS = {
   sales_followups: '/sales-follow-ups',
   sales_targets: '/sales-targets',
   sales_forecasting: '/sales-forecasting',
+
+  // Website & E-Commerce
+  website_management: '/website-management',
+  product_sync: '/product-catalog-sync',
+  online_orders: '/online-orders',
+  customer_sync: '/customer-sync',
 };
 
 /**

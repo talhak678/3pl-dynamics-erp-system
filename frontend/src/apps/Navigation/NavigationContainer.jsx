@@ -17,6 +17,7 @@ import useResponsive from '@/hooks/useResponsive';
 
 import {
   AimOutlined,
+  ApiOutlined,
   AppstoreOutlined,
   BankOutlined,
   ClockCircleOutlined,
@@ -38,12 +39,14 @@ import {
   ShopOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
+  SyncOutlined,
   TagOutlined,
   TagsOutlined,
   TeamOutlined,
   ToolOutlined,
   TruckOutlined,
   UserOutlined,
+  UserSwitchOutlined,
   UsergroupAddOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
@@ -198,7 +201,12 @@ const filterByModules = (groups, admin) => {
     const kept = children.filter((child) => {
       if (child.placeholder) return true;
       if (isUngatedEntry(child)) return true;
-      return granted.includes(child.module ?? child.key);
+      const mod = child.module ?? child.key;
+      return (
+        granted.includes(mod) ||
+        (['website_management', 'product_sync', 'online_orders', 'customer_sync'].includes(mod) &&
+          granted.includes('website_group'))
+      );
     });
 
     // `children`, not `kept`: a group whose active children were all withheld
@@ -239,6 +247,10 @@ const SELECTABLE_PATHS = [
   'sales-targets',
   'sales-forecasting',
   'user-management',
+  'website-management',
+  'product-catalog-sync',
+  'online-orders',
+  'customer-sync',
   // `/settings/edit/:key` is the Settings editor; without this the page
   // highlights nothing and Administration & Settings never auto-opens.
   'settings',
@@ -413,14 +425,13 @@ function Sidebar({ collapsible, isMobile = false }) {
       },
       {
         key: 'group-website-ecommerce',
-        grantKey: 'website_group',
         icon: <GlobalOutlined />,
         label: 'Website & E-Commerce',
         children: [
-          placeholderItem('placeholder:website_management', 'Website Management'),
-          placeholderItem('placeholder:product_catalog_sync', 'Product Catalog Sync'),
-          placeholderItem('placeholder:online_orders', 'Online Orders'),
-          placeholderItem('placeholder:customer_sync', 'Customer Sync'),
+          navItem('website_management', '/website-management', 'Website Management', <ApiOutlined />),
+          navItem('product_sync', '/product-catalog-sync', 'Product Catalog Sync', <SyncOutlined />),
+          navItem('online_orders', '/online-orders', 'Online Orders', <ShoppingCartOutlined />),
+          navItem('customer_sync', '/customer-sync', 'Customer Sync', <UserSwitchOutlined />),
         ],
       },
       {
