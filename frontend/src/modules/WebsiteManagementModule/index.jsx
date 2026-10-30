@@ -76,33 +76,10 @@ export default function WebsiteManagementModule() {
     setLoading(true);
     try {
       const data = await request.listAll({ entity: 'websiteconfig' });
-      if (data?.success && Array.isArray(data.result) && data.result.length > 0) {
+      if (data?.success && Array.isArray(data.result)) {
         setStores(data.result);
       } else {
-        // If empty, auto-create a default starter Shopify configuration
-        const initial = await request.create({
-          entity: 'websiteconfig',
-          jsonData: {
-            name: 'Primary E-Commerce Store',
-            platform: 'Shopify',
-            storeUrl: 'https://store-3pldynamics.myshopify.com',
-            apiKey: 'shpat_8a9f201948bdca8102',
-            apiSecret: 'shpss_9930418381023',
-            webhookSecret: 'whsec_9a8df7c312',
-            status: 'connected',
-            syncFrequency: 'hourly',
-            autoSyncProducts: true,
-            autoSyncOrders: true,
-            autoSyncCustomers: true,
-            lastSyncDate: new Date(),
-            notes: 'Production Shopify storefront for omnichannel fulfillment.',
-          },
-        });
-        if (initial?.success && initial.result) {
-          setStores([initial.result]);
-        } else {
-          setStores([]);
-        }
+        setStores([]);
       }
     } catch {
       setStores([]);

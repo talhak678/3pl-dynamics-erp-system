@@ -10,9 +10,18 @@ const Client = mongoose.model('Client');
 const Lead = mongoose.model('Lead');
 
 /**
- * Tenant ID helper
+ * Tenant ID helper - strictly resolves to tenant owner ID
  */
-const tenantIdOf = (admin) => (admin ? admin.parentAdminId || admin._id || null : null);
+const tenantIdOf = (admin) => (admin ? admin.tenantId || admin.parentAdminId || admin._id || null : null);
+
+/**
+ * Seed initial sample data strictly tied to the designated demo tenant (info@3pldynamicsai.com)
+ * Ensures other tenant accounts never receive seed data belonging to another workspace.
+ */
+const isPrimaryDemoTenant = (admin) => {
+  if (!admin) return false;
+  return admin.email === 'info@3pldynamicsai.com';
+};
 
 /**
  * Sync ERP Products to external E-Commerce Store
@@ -20,6 +29,10 @@ const tenantIdOf = (admin) => (admin ? admin.parentAdminId || admin._id || null 
  */
 const syncProducts = async (req, res) => {
   const tenantId = tenantIdOf(req.admin);
+  if (!tenantId) {
+    return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
+  }
+
   const { productIds, websiteConfigId, syncAll } = req.body;
 
   let query = { createdBy: tenantId, removed: false };
@@ -32,14 +45,14 @@ const syncProducts = async (req, res) => {
     return res.status(200).json({
       success: true,
       result: [],
-      message: 'No products found to sync. Add products to your inventory first.',
+      message: 'No products found to sync for your workspace. Add products to your inventory first.',
     });
   }
 
-  // Find or pick a websiteConfig
+  // Find or pick a websiteConfig scoped strictly to tenant
   let websiteConfig = null;
   if (websiteConfigId) {
-    websiteConfig = await WebsiteConfig.findOne({ _id: websiteConfigId, createdBy: tenantId });
+    websiteConfig = await WebsiteConfig.findOne({ _id: websiteConfigId, createdBy: tenantId, removed: false });
   } else {
     websiteConfig = await WebsiteConfig.findOne({ createdBy: tenantId, removed: false });
   }
@@ -51,6 +64,7 @@ const syncProducts = async (req, res) => {
     let syncRecord = await ProductSync.findOne({
       createdBy: tenantId,
       product: product._id,
+      removed: false,
       ...(websiteConfig ? { websiteConfig: websiteConfig._id } : {}),
     });
 
@@ -102,14 +116,17 @@ const syncProducts = async (req, res) => {
  */
 const fetchOrders = async (req, res) => {
   const tenantId = tenantIdOf(req.admin);
+  if (!tenantId) {
+    return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
+  }
 
   let orders = await OnlineOrder.find({ createdBy: tenantId, removed: false })
     .populate('websiteConfig')
     .populate('erpOrderId')
     .sort({ created: -1 });
 
-  // If no online orders exist yet for this tenant, seed realistic initial mock orders
-  if (!orders || orders.length === 0) {
+  // Only seed mock orders if the logged-in user is explicitly the demo tenant (info@3pldynamicsai.com)
+  if ((!orders || orders.length === 0) && isPrimaryDemoTenant(req.admin)) {
     let websiteConfig = await WebsiteConfig.findOne({ createdBy: tenantId, removed: false });
     if (!websiteConfig) {
       websiteConfig = await new WebsiteConfig({
@@ -248,8 +265,8 @@ const fetchOrders = async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    result: orders,
-    count: orders.length,
+    result: orders || [],
+    count: (orders || []).length,
     message: 'Online orders fetched successfully.',
   });
 };
@@ -260,10 +277,14 @@ const fetchOrders = async (req, res) => {
  */
 const testConnection = async (req, res) => {
   const tenantId = tenantIdOf(req.admin);
+  if (!tenantId) {
+    return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
+  }
+
   const { websiteConfigId, platform, storeUrl, apiKey } = req.body;
 
   if (websiteConfigId) {
-    const config = await WebsiteConfig.findOne({ _id: websiteConfigId, createdBy: tenantId });
+    const config = await WebsiteConfig.findOne({ _id: websiteConfigId, createdBy: tenantId, removed: false });
     if (config) {
       config.status = 'connected';
       config.lastSyncDate = new Date();
@@ -271,7 +292,6 @@ const testConnection = async (req, res) => {
     }
   }
 
-  // Realistic mock API ping response
   return res.status(200).json({
     success: true,
     result: {
@@ -292,19 +312,23 @@ const testConnection = async (req, res) => {
  */
 const convertOrderToErp = async (req, res) => {
   const tenantId = tenantIdOf(req.admin);
+  if (!tenantId) {
+    return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
+  }
+
   const { id } = req.params;
 
-  const onlineOrder = await OnlineOrder.findOne({ _id: id, createdBy: tenantId });
+  const onlineOrder = await OnlineOrder.findOne({ _id: id, createdBy: tenantId, removed: false });
   if (!onlineOrder) {
     return res.status(404).json({
       success: false,
       result: null,
-      message: 'Online order not found.',
+      message: 'Online order not found in your workspace.',
     });
   }
 
   if (onlineOrder.erpOrderId) {
-    const existingOrder = await Order.findById(onlineOrder.erpOrderId);
+    const existingOrder = await Order.findOne({ _id: onlineOrder.erpOrderId, createdBy: tenantId });
     return res.status(200).json({
       success: true,
       result: { onlineOrder, erpOrder: existingOrder },
@@ -312,10 +336,10 @@ const convertOrderToErp = async (req, res) => {
     });
   }
 
-  const productSummary = onlineOrder.items
+  const productSummary = (onlineOrder.items || [])
     .map((item) => `${item.name} (x${item.quantity})`)
     .join(', ');
-  const totalQuantity = onlineOrder.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const totalQuantity = (onlineOrder.items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   const erpOrder = await new Order({
     createdBy: tenantId,
@@ -347,15 +371,19 @@ const convertOrderToErp = async (req, res) => {
  */
 const linkCustomerToCrm = async (req, res) => {
   const tenantId = tenantIdOf(req.admin);
+  if (!tenantId) {
+    return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
+  }
+
   const { id } = req.params;
   const { targetType } = req.body; // 'client' or 'lead'
 
-  const contact = await CustomerSync.findOne({ _id: id, createdBy: tenantId });
+  const contact = await CustomerSync.findOne({ _id: id, createdBy: tenantId, removed: false });
   if (!contact) {
     return res.status(404).json({
       success: false,
       result: null,
-      message: 'External contact not found.',
+      message: 'External contact not found in your workspace.',
     });
   }
 
@@ -423,12 +451,16 @@ const linkCustomerToCrm = async (req, res) => {
  */
 const syncCustomers = async (req, res) => {
   const tenantId = tenantIdOf(req.admin);
+  if (!tenantId) {
+    return res.status(403).json({ success: false, message: 'Tenant identifier missing.' });
+  }
 
   let contacts = await CustomerSync.find({ createdBy: tenantId, removed: false }).sort({
     created: -1,
   });
 
-  if (!contacts || contacts.length === 0) {
+  // Only seed sample contacts if the user is explicitly the demo tenant (info@3pldynamicsai.com)
+  if ((!contacts || contacts.length === 0) && isPrimaryDemoTenant(req.admin)) {
     let websiteConfig = await WebsiteConfig.findOne({ createdBy: tenantId, removed: false });
     if (!websiteConfig) {
       websiteConfig = await new WebsiteConfig({
@@ -514,9 +546,9 @@ const syncCustomers = async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    result: contacts,
-    count: contacts.length,
-    message: `Synchronized ${contacts.length} external contacts and leads.`,
+    result: contacts || [],
+    count: (contacts || []).length,
+    message: `Synchronized ${(contacts || []).length} external contacts and leads.`,
   });
 };
 

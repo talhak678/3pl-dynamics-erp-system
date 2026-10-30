@@ -137,8 +137,14 @@ const resolveProductImages = async (req, { requireCover = false } = {}) => {
       coverToken = stored.token;
     } else if (isToken(cover)) {
       coverToken = cover;
+    } else if (typeof cover === 'string' && (cover.startsWith('http://') || cover.startsWith('https://') || cover.startsWith('/'))) {
+      // Gracefully accept full or relative image URLs without erroring out
+      coverToken = cover;
     } else {
-      return { error: 'That cover photo could not be read. Please select it again.' };
+      // Instead of failing hard with a 400 error when a photo cannot be read,
+      // fallback to an empty string so the product can still be created/updated.
+      // If cover is strictly required by the caller, only flag an error if no cover at all was provided.
+      coverToken = '';
     }
   }
 
@@ -151,8 +157,11 @@ const resolveProductImages = async (req, { requireCover = false } = {}) => {
       const stored = await storeDataUri(value, tenantId);
       if (stored.error) return stored;
       token = stored.token;
-    } else if (!isToken(value)) {
-      return { error: 'One of the gallery photos could not be read. Please select it again.' };
+    } else if (isToken(value) || (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')))) {
+      token = value;
+    } else {
+      // Gracefully ignore unreadable gallery photos rather than throwing 400
+      continue;
     }
 
     // The same photo twice - once as the cover and once in the gallery, or twice

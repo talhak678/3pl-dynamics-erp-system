@@ -72,59 +72,6 @@ export default function ProductCatalogSyncModule() {
       let pData = await request.listAll({ entity: 'product' });
       let pList = Array.isArray(pData?.result) ? pData.result : [];
 
-      // If no products in ERP yet, create seed starter products
-      if (pList.length === 0) {
-        const seed1 = await request.create({
-          entity: 'product',
-          jsonData: {
-            name: 'Industrial Pallet Jack 2500kg',
-            title: 'Heavy Duty Manual Pallet Jack',
-            number: 101,
-            price: 349.0,
-            currency: 'USD',
-            coverImage: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80',
-            description: 'Rugged hydraulic warehouse pallet truck with polyurethane wheels.',
-          },
-        });
-        const seed2 = await request.create({
-          entity: 'product',
-          jsonData: {
-            name: 'Bluetooth Barcode Scanner',
-            title: 'Wireless 2D Handheld Scanner',
-            number: 102,
-            price: 129.5,
-            currency: 'USD',
-            coverImage: 'https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=400&q=80',
-            description: 'High-speed long-range inventory scanning with USB cradle.',
-          },
-        });
-        const seed3 = await request.create({
-          entity: 'product',
-          jsonData: {
-            name: 'Thermal Shipping Label Printer',
-            title: '4x6 Direct Thermal Printer',
-            number: 103,
-            price: 219.0,
-            currency: 'USD',
-            coverImage: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=400&q=80',
-            description: 'Commercial 300dpi label printing compatible with Shopify and USPS.',
-          },
-        });
-        const seed4 = await request.create({
-          entity: 'product',
-          jsonData: {
-            name: 'Warehouse Safety Vest Pack (10pcs)',
-            title: 'High-Vis Class 2 Safety Vests',
-            number: 104,
-            price: 59.0,
-            currency: 'USD',
-            coverImage: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=400&q=80',
-            description: 'Fluorescent yellow with reflective strips for logistics personnel.',
-          },
-        });
-        pList = [seed1?.result, seed2?.result, seed3?.result, seed4?.result].filter(Boolean);
-      }
-
       // 2. Fetch Website Config Stores
       const sData = await request.listAll({ entity: 'websiteconfig' });
       const sList = Array.isArray(sData?.result) ? sData.result : [];
@@ -133,32 +80,6 @@ export default function ProductCatalogSyncModule() {
       // 3. Fetch ProductSync tracking items
       const syncData = await request.listAll({ entity: 'productsync' });
       let syncList = Array.isArray(syncData?.result) ? syncData.result : [];
-
-      // Link or generate sync records for ERP products
-      if (syncList.length === 0 && pList.length > 0) {
-        const defaultStore = sList[0];
-        for (let i = 0; i < pList.length; i++) {
-          const p = pList[i];
-          const isPending = i === pList.length - 1; // leave last item pending
-          const newSync = await request.create({
-            entity: 'productsync',
-            jsonData: {
-              product: p._id,
-              websiteConfig: defaultStore?._id || null,
-              externalProductId: `SP-${1000 + i}`,
-              externalHandle: (p.name || 'item').toLowerCase().replace(/\s+/g, '-'),
-              syncStatus: isPending ? 'pending' : 'synced',
-              lastSyncDate: isPending ? null : new Date(),
-              externalPrice: p.price,
-              stockQuantity: p.number ? p.number * 2 : 24,
-              autoSync: true,
-            },
-          });
-          if (newSync?.success && newSync.result) {
-            syncList.push(newSync.result);
-          }
-        }
-      }
 
       setProducts(pList);
       setSyncRecords(syncList);

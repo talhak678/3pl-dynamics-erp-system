@@ -78,12 +78,11 @@ export default function CustomerSyncModule() {
   const loadContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await request.ecommerce.syncCustomers();
+      const data = await request.listAll({ entity: 'customersync' });
       if (data?.success && Array.isArray(data.result)) {
         setContacts(data.result);
       } else {
-        const fallback = await request.listAll({ entity: 'customersync' });
-        setContacts(Array.isArray(fallback?.result) ? fallback.result : []);
+        setContacts([]);
       }
     } catch {
       setContacts([]);

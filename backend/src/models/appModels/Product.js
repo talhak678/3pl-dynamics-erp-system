@@ -74,7 +74,7 @@ const schema = new mongoose.Schema({
    */
   coverImage: {
     type: String,
-    required: true,
+    default: '',
   },
   galleryImages: [String],
   images: [

@@ -200,6 +200,10 @@ const SCOPED_MODEL_NAMES = [
   // workspace-level figure that the owner publishes, so every account granted
   // the module sees the company-wide set (see salesTargetController/listAll.js).
   'FollowUp',
+  'WebsiteConfig',
+  'ProductSync',
+  'OnlineOrder',
+  'CustomerSync',
 ];
 
 const isScopedModel = (Model) =>
